@@ -1,6 +1,12 @@
 import { useCallback, useMemo, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { getRandomTypingText, getRandomTypingWordsText } from "../services/texts";
+import {
+  calculateAccuracy,
+  calculateCorrectChars,
+  calculateCpm,
+  calculateWpm
+} from "../services/typingMetrics";
 import type {
   TypingError,
   TypingMode,
@@ -181,23 +187,22 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
   }
 
   const accuracy = useMemo(() => {
-    if (typedChars === 0) return 100;
-    const correct = typedChars - mistakes;
-    return Math.max(0, Math.round((correct / typedChars) * 100));
+    return calculateAccuracy(typedChars, mistakes);
   }, [typedChars, mistakes]);
 
   const wpm = useMemo(() => {
-    if (elapsedMs <= 0 || typedChars === 0) return 0;
-    const minutes = elapsedMs / 60000;
-    if (minutes <= 0) return 0;
-    return Math.round((typedChars / 5) / minutes);
+    return calculateWpm(typedChars, elapsedMs);
+  }, [elapsedMs, typedChars]);
+
+  const cpm = useMemo(() => {
+    return calculateCpm(typedChars, elapsedMs);
   }, [elapsedMs, typedChars]);
 
   function restart() {
     void reloadText();
   }
 
-  const correctChars = typedChars - mistakes;
+  const correctChars = calculateCorrectChars(typedChars, mistakes);
   const completedWords = Math.min(currentWordIndex, words.length);
   const durationSeconds = Math.round((elapsedMs / 1000) * 10) / 10;
 
@@ -211,11 +216,13 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
     textLoadError,
     accuracy,
     wpm,
+    cpm,
     typedChars,
     correctChars,
     mistakes,
     completedWords,
     totalWords: words.length,
+    durationMs: elapsedMs,
     durationSeconds,
     errorEvents,
     restart,
