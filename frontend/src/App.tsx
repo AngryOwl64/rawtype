@@ -25,26 +25,24 @@ function getThemeVariables(theme: ThemeMode): CSSProperties {
   const dark = theme === "dark";
 
   return {
-    "--page-bg": dark
-      ? "radial-gradient(circle at 15% 20%, #26364a 0%, #17202d 34%, #101722 72%, #0c111a 100%)"
-      : "radial-gradient(circle at 15% 20%, #ffeab8 0%, #ffd580 30%, #f8f9fb 70%, #e6eef8 100%)",
-    "--header-bg": dark ? "rgba(16, 23, 34, 0.9)" : "rgba(255, 255, 255, 0.88)",
-    "--text": dark ? "#e7edf6" : "#1c2736",
-    "--muted": dark ? "#aebbc9" : "#4d5d70",
-    "--muted-strong": dark ? "#c6d0dc" : "#2d3a4d",
-    "--surface": dark ? "#141d2a" : "#ffffff",
-    "--surface-soft": dark ? "#1a2636" : "#fbfcff",
-    "--input-bg": dark ? "#101722" : "#ffffff",
-    "--input-muted": dark ? "#182435" : "#f8faff",
-    "--border": dark ? "#2b3a4e" : "#c8d6e8",
-    "--border-soft": dark ? "#253448" : "#e1e7f0",
-    "--border-strong": dark ? "#40526a" : "#c5d3e4",
-    "--primary": dark ? "#e7edf6" : "#1c2736",
-    "--primary-text": dark ? "#101722" : "#ffffff",
-    "--success": dark ? "#55c878" : "#2f9e44",
-    "--danger": dark ? "#ff8fa3" : "#9f3e4d",
-    "--danger-bg": dark ? "#3a1d29" : "#fff3f5",
-    "--danger-border": dark ? "#6f3348" : "#f0d7dc"
+    "--page-bg": dark ? "#272822" : "#ece8df",
+    "--header-bg": dark ? "rgba(39, 40, 34, 0.96)" : "rgba(244, 239, 229, 0.94)",
+    "--text": dark ? "#f8f8f2" : "#232a33",
+    "--muted": dark ? "#a8a8a3" : "#5e6670",
+    "--muted-strong": dark ? "#f8f8f2" : "#38414d",
+    "--surface": dark ? "#313327" : "#f7f4ee",
+    "--surface-soft": dark ? "#3e3d32" : "#f1ece4",
+    "--input-bg": dark ? "#3b3a32" : "#fdfaf3",
+    "--input-muted": dark ? "#46463b" : "#ece6dc",
+    "--border": dark ? "#4c4b42" : "#c4c0b7",
+    "--border-soft": dark ? "#3f3e35" : "#d7d2c8",
+    "--border-strong": dark ? "#59574d" : "#a8b0b8",
+    "--primary": dark ? "#66d9ef" : "#2f3742",
+    "--primary-text": dark ? "#272822" : "#f8fafc",
+    "--success": dark ? "#a6e22e" : "#3b7b4f",
+    "--danger": dark ? "#f92672" : "#8f4a54",
+    "--danger-bg": dark ? "#3a2030" : "#f3e7e8",
+    "--danger-border": dark ? "#6b3853" : "#d7c3c6"
   } as CSSProperties;
 }
 
@@ -72,7 +70,7 @@ function App() {
         minHeight: "100vh",
         background: "var(--page-bg)",
         color: "var(--text)",
-        fontFamily: "Segoe UI, Tahoma, Geneva, Verdana, sans-serif"
+        fontFamily: "'Segoe UI', 'Aptos', 'Trebuchet MS', sans-serif"
       }}
     >
       <header
