@@ -8,6 +8,7 @@ export type TypingError = {
 };
 
 export type TypingMode = "sentences" | "words";
+export type WordModeDifficulty = "easy" | "medium" | "hard" | "mixed";
 
 export type TypingText = {
   id: string;
