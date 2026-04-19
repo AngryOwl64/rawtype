@@ -63,54 +63,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      typing_runs: {
-        Row: {
-          id: number;
-          created_at: string;
-          mode: string;
-          wpm: number;
-          accuracy: number;
-          duration_seconds: number;
-          typed_chars: number;
-          correct_chars: number;
-          mistakes: number;
-          total_words: number;
-          completed_words: number;
-          error_events: Json;
-          user_id: string | null;
-        };
-        Insert: {
-          id?: number;
-          created_at?: string;
-          mode: string;
-          wpm: number;
-          accuracy: number;
-          duration_seconds: number;
-          typed_chars: number;
-          correct_chars: number;
-          mistakes: number;
-          total_words: number;
-          completed_words: number;
-          error_events: Json;
-          user_id?: string | null;
-        };
-        Update: {
-          id?: number;
-          created_at?: string;
-          mode?: string;
-          wpm?: number;
-          accuracy?: number;
-          duration_seconds?: number;
-          typed_chars?: number;
-          correct_chars?: number;
-          mistakes?: number;
-          total_words?: number;
-          completed_words?: number;
-          error_events?: Json;
-          user_id?: string | null;
-        };
-        Relationships: [];
-      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

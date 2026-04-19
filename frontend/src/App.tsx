@@ -1,6 +1,6 @@
 import { useState } from "react";
 import TypingGame from "./games/typing/components/TypingGame";
-import type { TypingMode } from "./games/typing/types";
+import type { TypingMode, WordModeDifficulty } from "./games/typing/types";
 
 type HeaderTab = "games" | "stats" | "account" | "settings";
 
@@ -16,6 +16,7 @@ function App() {
   const [playingTypingGame, setPlayingTypingGame] = useState(false);
   const [typingMode, setTypingMode] = useState<TypingMode>("sentences");
   const [wordsCount, setWordsCount] = useState(25);
+  const [wordDifficulty, setWordDifficulty] = useState<WordModeDifficulty>("mixed");
 
   return (
     <div
@@ -48,7 +49,26 @@ function App() {
             gap: "24px"
           }}
         >
-          <strong style={{ fontSize: "24px", letterSpacing: "0.4px" }}>RawType</strong>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("games");
+              setPlayingTypingGame(false);
+            }}
+            style={{
+              border: "none",
+              background: "transparent",
+              padding: 0,
+              margin: 0,
+              fontSize: "24px",
+              letterSpacing: "0.4px",
+              fontWeight: 700,
+              color: "#1c2736",
+              cursor: "pointer"
+            }}
+          >
+            RawType
+          </button>
           <nav style={{ display: "flex", gap: "10px" }}>
             {headerTabs.map((tab) => (
               <button
@@ -139,35 +159,75 @@ function App() {
                   Random words generated from the database word pool.
                 </p>
 
-                <div style={{ marginBottom: "14px" }}>
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "#5a6b80",
-                      marginBottom: "6px",
-                      fontWeight: 600
-                    }}
-                  >
-                    Word Count
+                <div
+                  style={{
+                    marginBottom: "14px",
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                    gap: "10px"
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#5a6b80",
+                        marginBottom: "6px",
+                        fontWeight: 600
+                      }}
+                    >
+                      Word Count
+                    </div>
+                    <select
+                      value={wordsCount}
+                      onChange={(event) => setWordsCount(Number(event.target.value))}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #c5d3e4",
+                        borderRadius: "8px",
+                        padding: "8px 10px",
+                        backgroundColor: "#ffffff",
+                        color: "#1c2736",
+                        fontWeight: 600
+                      }}
+                    >
+                      <option value={10}>10 words</option>
+                      <option value={25}>25 words</option>
+                      <option value={50}>50 words</option>
+                      <option value={75}>75 words</option>
+                    </select>
                   </div>
-                  <select
-                    value={wordsCount}
-                    onChange={(event) => setWordsCount(Number(event.target.value))}
-                    style={{
-                      width: "100%",
-                      border: "1px solid #c5d3e4",
-                      borderRadius: "8px",
-                      padding: "8px 10px",
-                      backgroundColor: "#ffffff",
-                      color: "#1c2736",
-                      fontWeight: 600
-                    }}
-                  >
-                    <option value={10}>10 words</option>
-                    <option value={25}>25 words</option>
-                    <option value={50}>50 words</option>
-                    <option value={75}>75 words</option>
-                  </select>
+
+                  <div>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#5a6b80",
+                        marginBottom: "6px",
+                        fontWeight: 600
+                      }}
+                    >
+                      Difficulty
+                    </div>
+                    <select
+                      value={wordDifficulty}
+                      onChange={(event) => setWordDifficulty(event.target.value as WordModeDifficulty)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #c5d3e4",
+                        borderRadius: "8px",
+                        padding: "8px 10px",
+                        backgroundColor: "#ffffff",
+                        color: "#1c2736",
+                        fontWeight: 600
+                      }}
+                    >
+                      <option value="easy">easy</option>
+                      <option value="medium">medium</option>
+                      <option value="hard">hard</option>
+                      <option value="mixed">mixed</option>
+                    </select>
+                  </div>
                 </div>
 
                 <button
@@ -198,7 +258,10 @@ function App() {
           <section>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h1 style={{ margin: 0, fontSize: "30px" }}>
-                Typing Classic {typingMode === "words" ? `(Words ${wordsCount})` : "(Sentences)"}
+                Typing Classic{" "}
+                {typingMode === "words"
+                  ? `(Words ${wordsCount}, ${wordDifficulty})`
+                  : "(Sentences)"}
               </h1>
               <button
                 type="button"
@@ -214,7 +277,7 @@ function App() {
                 Back to Start Menu
               </button>
             </div>
-            <TypingGame mode={typingMode} wordsCount={wordsCount} />
+            <TypingGame mode={typingMode} wordsCount={wordsCount} wordDifficulty={wordDifficulty} />
           </section>
         )}
 
@@ -229,9 +292,10 @@ function App() {
           >
             <h1 style={{ marginTop: 0, marginBottom: "10px", fontSize: "32px" }}>Stats</h1>
             <p style={{ marginTop: 0, color: "#4d5d70" }}>
-              You will see your runs, personal bests, and accuracy history here.
+              Your runs, personal bests, and accuracy history will show up here once tracking is added
+              back.
             </p>
-            <p style={{ marginBottom: 0, fontWeight: 600 }}>No saved sessions yet.</p>
+            <p style={{ marginBottom: 0, fontWeight: 600 }}>Database score saving is currently disabled.</p>
           </section>
         )}
 

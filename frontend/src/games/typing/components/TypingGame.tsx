@@ -1,16 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useTypingGame } from "../hooks/useTypingGame";
-import { saveTypingRun } from "../services/typingRuns";
-import type { TypingMode } from "../types";
-
-type SaveState = "idle" | "saving" | "saved" | "error";
+import type { TypingMode, WordModeDifficulty } from "../types";
 
 type TypingGameProps = {
   mode?: TypingMode;
   wordsCount?: number;
+  wordDifficulty?: WordModeDifficulty;
 };
 
-export default function TypingGame({ mode = "sentences", wordsCount = 25 }: TypingGameProps) {
+export default function TypingGame({
+  mode = "sentences",
+  wordsCount = 25,
+  wordDifficulty = "mixed"
+}: TypingGameProps) {
   const {
     activeText,
     words,
@@ -31,11 +33,8 @@ export default function TypingGame({ mode = "sentences", wordsCount = 25 }: Typi
     restart,
     reloadText,
     handleKeyDown
-  } = useTypingGame({ mode, wordsCount, language: "en" });
+  } = useTypingGame({ mode, wordsCount, wordDifficulty, language: "en" });
   const typingAreaRef = useRef<HTMLDivElement | null>(null);
-  const hasSavedRunRef = useRef(false);
-  const [saveState, setSaveState] = useState<SaveState>("idle");
-  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     void reloadText();
@@ -47,67 +46,8 @@ export default function TypingGame({ mode = "sentences", wordsCount = 25 }: Typi
     }
   }, [finished, isTextLoading, textLoadError]);
 
-  useEffect(() => {
-    if (!finished) {
-      hasSavedRunRef.current = false;
-      return;
-    }
-
-    if (hasSavedRunRef.current) {
-      return;
-    }
-
-    hasSavedRunRef.current = true;
-    setSaveState("saving");
-
-    const persistRun = async () => {
-      const { error } = await saveTypingRun({
-        mode:
-          mode === "words"
-            ? `words:${wordsCount}`
-            : `db_texts:${activeText?.category ?? "unknown"}:${activeText?.difficulty ?? "unknown"}`,
-        wpm,
-        accuracy,
-        durationSeconds,
-        typedChars,
-        correctChars,
-        mistakes,
-        totalWords,
-        completedWords,
-        errorEvents
-      });
-
-      if (error) {
-        setSaveState("error");
-        setSaveError(error);
-        return;
-      }
-
-      setSaveState("saved");
-    };
-
-    void persistRun();
-  }, [
-    finished,
-    accuracy,
-    completedWords,
-    correctChars,
-    durationSeconds,
-    errorEvents,
-    mistakes,
-    totalWords,
-    typedChars,
-    wpm,
-    activeText,
-    mode,
-    wordsCount
-  ]);
-
   function handleRestart() {
     restart();
-    hasSavedRunRef.current = false;
-    setSaveState("idle");
-    setSaveError("");
   }
 
   const errorCountByWord = errorEvents.reduce<Record<string, number>>((acc, entry) => {
@@ -322,14 +262,6 @@ export default function TypingGame({ mode = "sentences", wordsCount = 25 }: Typi
           }}
         >
           <h2 style={{ marginTop: 0, marginBottom: "10px", fontSize: "28px" }}>Run Complete</h2>
-
-          <div style={{ marginBottom: "12px", fontSize: "13px" }}>
-            {saveState === "saving" && <span>Saving run to Supabase...</span>}
-            {saveState === "saved" && <span>Run saved to Supabase.</span>}
-            {saveState === "error" && (
-              <span style={{ color: "#b42318" }}>Could not save run: {saveError}</span>
-            )}
-          </div>
 
           <div
             style={{
