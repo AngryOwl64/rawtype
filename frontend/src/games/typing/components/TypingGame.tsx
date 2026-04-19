@@ -1,10 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useTypingGame } from "../hooks/useTypingGame";
 import { saveTypingRun } from "../services/typingRuns";
+import type { TypingMode } from "../types";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-export default function TypingGame() {
+type TypingGameProps = {
+  mode?: TypingMode;
+  wordsCount?: number;
+};
+
+export default function TypingGame({ mode = "sentences", wordsCount = 25 }: TypingGameProps) {
   const {
     activeText,
     words,
@@ -25,7 +31,7 @@ export default function TypingGame() {
     restart,
     reloadText,
     handleKeyDown
-  } = useTypingGame();
+  } = useTypingGame({ mode, wordsCount, language: "en" });
   const typingAreaRef = useRef<HTMLDivElement | null>(null);
   const hasSavedRunRef = useRef(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -56,7 +62,10 @@ export default function TypingGame() {
 
     const persistRun = async () => {
       const { error } = await saveTypingRun({
-        mode: `db_texts:${activeText?.category ?? "unknown"}:${activeText?.difficulty ?? "unknown"}`,
+        mode:
+          mode === "words"
+            ? `words:${wordsCount}`
+            : `db_texts:${activeText?.category ?? "unknown"}:${activeText?.difficulty ?? "unknown"}`,
         wpm,
         accuracy,
         durationSeconds,
@@ -89,7 +98,9 @@ export default function TypingGame() {
     totalWords,
     typedChars,
     wpm,
-    activeText
+    activeText,
+    mode,
+    wordsCount
   ]);
 
   function handleRestart() {
@@ -138,7 +149,9 @@ export default function TypingGame() {
                 width: "min(100%, 980px)"
               }}
             >
-              Loading text from database...
+              {mode === "words"
+                ? "Generating random words from database..."
+                : "Loading text from database..."}
             </div>
           )}
 
