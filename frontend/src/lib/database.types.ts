@@ -36,6 +36,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      words: {
+        Row: {
+          id: string;
+          word: string;
+          language: string;
+          difficulty: string | null;
+          category: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          word: string;
+          language?: string;
+          difficulty?: string | null;
+          category?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          word?: string;
+          language?: string;
+          difficulty?: string | null;
+          category?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       typing_runs: {
         Row: {
           id: number;

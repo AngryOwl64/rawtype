@@ -1,7 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { getRandomTypingText } from "../services/texts";
-import type { TypingError, TypingText } from "../types";
+import { getRandomTypingText, getRandomTypingWordsText } from "../services/texts";
+import type { TypingError, TypingMode, TypingText } from "../types";
+
+type UseTypingGameOptions = {
+  mode?: TypingMode;
+  wordsCount?: number;
+  language?: string;
+};
 
 function normalizeTypingText(content: string): string {
   return content
@@ -10,7 +16,11 @@ function normalizeTypingText(content: string): string {
     .trim();
 }
 
-export function useTypingGame() {
+export function useTypingGame(options: UseTypingGameOptions = {}) {
+  const mode = options.mode ?? "sentences";
+  const wordsCount = Math.max(5, options.wordsCount ?? 25);
+  const language = options.language ?? "en";
+
   const [activeText, setActiveText] = useState<TypingText | null>(null);
   const [text, setText] = useState("");
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -31,7 +41,12 @@ export function useTypingGame() {
     setIsTextLoading(true);
     setTextLoadError("");
 
-    const { text: dbText, error } = await getRandomTypingText({ language: "en" });
+    const loader =
+      mode === "words"
+        ? getRandomTypingWordsText({ language, wordsCount })
+        : getRandomTypingText({ language });
+
+    const { text: dbText, error } = await loader;
 
     if (error || !dbText) {
       setIsTextLoading(false);
@@ -49,7 +64,7 @@ export function useTypingGame() {
     setElapsedMs(0);
     setErrorEvents([]);
     setIsTextLoading(false);
-  }, []);
+  }, [language, mode, wordsCount]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (isTextLoading || words.length === 0) {
@@ -185,6 +200,8 @@ export function useTypingGame() {
     errorEvents,
     restart,
     reloadText,
+    mode,
+    wordsCount,
     handleKeyDown
   };
 }

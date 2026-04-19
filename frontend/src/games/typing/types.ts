@@ -7,6 +7,8 @@ export type TypingError = {
   typed: string;
 };
 
+export type TypingMode = "sentences" | "words";
+
 export type TypingText = {
   id: string;
   content: string;

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import TypingGame from "./games/typing/components/TypingGame";
+import type { TypingMode } from "./games/typing/types";
 
 type HeaderTab = "games" | "stats" | "account" | "settings";
 
@@ -13,6 +14,8 @@ const headerTabs: Array<{ id: HeaderTab; label: string }> = [
 function App() {
   const [activeTab, setActiveTab] = useState<HeaderTab>("games");
   const [playingTypingGame, setPlayingTypingGame] = useState(false);
+  const [typingMode, setTypingMode] = useState<TypingMode>("sentences");
+  const [wordsCount, setWordsCount] = useState(25);
 
   return (
     <div
@@ -85,7 +88,7 @@ function App() {
               style={{
                 marginTop: "22px",
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                gridTemplateColumns: "1fr",
                 gap: "14px"
               }}
             >
@@ -99,22 +102,92 @@ function App() {
               >
                 <h2 style={{ marginTop: 0, marginBottom: "8px", fontSize: "22px" }}>Typing Classic</h2>
                 <p style={{ marginTop: 0, marginBottom: "14px", color: "#4d5d70", lineHeight: 1.45 }}>
-                  Classic mode with live WPM and accuracy.
+                  Standard mode with normal sentence texts from the database.
                 </p>
+
                 <button
                   type="button"
-                  onClick={() => setPlayingTypingGame(true)}
+                  onClick={() => {
+                    setTypingMode("sentences");
+                    setPlayingTypingGame(true);
+                  }}
                   style={{
                     border: "none",
                     borderRadius: "8px",
                     padding: "10px 16px",
+                    width: "100%",
                     backgroundColor: "#2f9e44",
                     color: "#ffffff",
                     fontWeight: 700,
                     cursor: "pointer"
                   }}
                 >
-                  Start Game
+                  Start Typing Classic
+                </button>
+              </article>
+
+              <article
+                style={{
+                  border: "1px solid #c8d6e8",
+                  borderRadius: "8px",
+                  backgroundColor: "#ffffff",
+                  padding: "18px"
+                }}
+              >
+                <h2 style={{ marginTop: 0, marginBottom: "8px", fontSize: "22px" }}>Word Mode</h2>
+                <p style={{ marginTop: 0, marginBottom: "14px", color: "#4d5d70", lineHeight: 1.45 }}>
+                  Random words generated from the database word pool.
+                </p>
+
+                <div style={{ marginBottom: "14px" }}>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#5a6b80",
+                      marginBottom: "6px",
+                      fontWeight: 600
+                    }}
+                  >
+                    Word Count
+                  </div>
+                  <select
+                    value={wordsCount}
+                    onChange={(event) => setWordsCount(Number(event.target.value))}
+                    style={{
+                      width: "100%",
+                      border: "1px solid #c5d3e4",
+                      borderRadius: "8px",
+                      padding: "8px 10px",
+                      backgroundColor: "#ffffff",
+                      color: "#1c2736",
+                      fontWeight: 600
+                    }}
+                  >
+                    <option value={10}>10 words</option>
+                    <option value={25}>25 words</option>
+                    <option value={50}>50 words</option>
+                    <option value={75}>75 words</option>
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTypingMode("words");
+                    setPlayingTypingGame(true);
+                  }}
+                  style={{
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 16px",
+                    width: "100%",
+                    backgroundColor: "#1c2736",
+                    color: "#ffffff",
+                    fontWeight: 700,
+                    cursor: "pointer"
+                  }}
+                >
+                  Start Word Mode
                 </button>
               </article>
             </div>
@@ -124,7 +197,9 @@ function App() {
         {activeTab === "games" && playingTypingGame && (
           <section>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h1 style={{ margin: 0, fontSize: "30px" }}>Typing Classic</h1>
+              <h1 style={{ margin: 0, fontSize: "30px" }}>
+                Typing Classic {typingMode === "words" ? `(Words ${wordsCount})` : "(Sentences)"}
+              </h1>
               <button
                 type="button"
                 onClick={() => setPlayingTypingGame(false)}
@@ -139,7 +214,7 @@ function App() {
                 Back to Start Menu
               </button>
             </div>
-            <TypingGame />
+            <TypingGame mode={typingMode} wordsCount={wordsCount} />
           </section>
         )}
 
