@@ -1,4 +1,6 @@
 import { useState } from "react";
+import AccountPanel from "./account/AccountPanel";
+import { useAuth } from "./auth/authContext";
 import TypingGame from "./games/typing/components/TypingGame";
 import type { TypingMode, WordModeDifficulty, WordNoMistakeMode } from "./games/typing/types";
 
@@ -7,17 +9,18 @@ type HeaderTab = "games" | "stats" | "account" | "settings";
 const headerTabs: Array<{ id: HeaderTab; label: string }> = [
   { id: "games", label: "Games" },
   { id: "stats", label: "Stats" },
-  { id: "account", label: "Account" },
   { id: "settings", label: "Settings" }
 ];
 
 function App() {
+  const { loading: authLoading, profile, user } = useAuth();
   const [activeTab, setActiveTab] = useState<HeaderTab>("games");
   const [playingTypingGame, setPlayingTypingGame] = useState(false);
   const [typingMode, setTypingMode] = useState<TypingMode>("sentences");
   const [wordsCount, setWordsCount] = useState(25);
   const [wordDifficulty, setWordDifficulty] = useState<WordModeDifficulty>("mixed");
   const [wordNoMistakeMode, setWordNoMistakeMode] = useState<WordNoMistakeMode>("off");
+  const accountLabel = authLoading ? "Account" : user ? profile?.username ?? "Account" : "Login";
 
   return (
     <div
@@ -45,7 +48,6 @@ function App() {
             margin: "0 auto",
             padding: "16px 24px",
             display: "flex",
-            justifyContent: "space-between",
             alignItems: "center",
             gap: "24px"
           }}
@@ -93,6 +95,29 @@ function App() {
               </button>
             ))}
           </nav>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("account");
+              setPlayingTypingGame(false);
+            }}
+            style={{
+              marginLeft: "auto",
+              border: "1px solid #c5d3e4",
+              borderRadius: "8px",
+              padding: "8px 14px",
+              backgroundColor: activeTab === "account" ? "#1c2736" : "#ffffff",
+              color: activeTab === "account" ? "#ffffff" : "#1c2736",
+              cursor: "pointer",
+              fontWeight: 600,
+              maxWidth: "180px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {accountLabel}
+          </button>
         </div>
       </header>
 
@@ -381,20 +406,7 @@ function App() {
         )}
 
         {activeTab === "account" && (
-          <section
-            style={{
-              border: "1px solid #c8d6e8",
-              borderRadius: "8px",
-              backgroundColor: "#ffffff",
-              padding: "20px"
-            }}
-          >
-            <h1 style={{ marginTop: 0, marginBottom: "10px", fontSize: "32px" }}>Account</h1>
-            <p style={{ marginTop: 0, color: "#4d5d70" }}>
-              Account area for profile info and future cloud sync.
-            </p>
-            <p style={{ marginBottom: 0, fontWeight: 600 }}>Current status: Guest mode</p>
-          </section>
+          <AccountPanel />
         )}
 
         {activeTab === "settings" && (
