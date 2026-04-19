@@ -1,0 +1,8 @@
+settings:
+theme
+lang
+
+account:
+wpm
+top/sub 5 words
+

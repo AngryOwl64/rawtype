@@ -1,12 +1,19 @@
 import { useCallback, useMemo, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { getRandomTypingText, getRandomTypingWordsText } from "../services/texts";
-import type { TypingError, TypingMode, TypingText, WordModeDifficulty } from "../types";
+import type {
+  TypingError,
+  TypingMode,
+  TypingText,
+  WordModeDifficulty,
+  WordNoMistakeMode
+} from "../types";
 
 type UseTypingGameOptions = {
   mode?: TypingMode;
   wordsCount?: number;
   wordDifficulty?: WordModeDifficulty;
+  wordNoMistakeMode?: WordNoMistakeMode;
   language?: string;
 };
 
@@ -21,6 +28,8 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
   const mode = options.mode ?? "sentences";
   const wordsCount = Math.max(5, options.wordsCount ?? 25);
   const wordDifficulty = options.wordDifficulty ?? "mixed";
+  const wordNoMistakeMode = options.wordNoMistakeMode ?? "off";
+  const noMistakeActive = mode === "words" && wordNoMistakeMode === "on";
   const language = options.language ?? "en";
 
   const [activeText, setActiveText] = useState<TypingText | null>(null);
@@ -34,9 +43,10 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
   const [errorEvents, setErrorEvents] = useState<TypingError[]>([]);
   const [isTextLoading, setIsTextLoading] = useState(true);
   const [textLoadError, setTextLoadError] = useState("");
+  const [failedByMistake, setFailedByMistake] = useState(false);
 
   const words = useMemo(() => normalizeTypingText(text).split(/\s+/).filter(Boolean), [text]);
-  const finished = !isTextLoading && words.length > 0 && currentWordIndex >= words.length;
+  const finished = (!isTextLoading && words.length > 0 && currentWordIndex >= words.length) || failedByMistake;
   const currentWord = finished || words.length === 0 ? "" : words[currentWordIndex] ?? "";
 
   const reloadText = useCallback(async () => {
@@ -65,8 +75,9 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
     setMistakes(0);
     setElapsedMs(0);
     setErrorEvents([]);
+    setFailedByMistake(false);
     setIsTextLoading(false);
-  }, [language, mode, wordsCount, wordDifficulty]);
+  }, [language, mode, wordsCount, wordDifficulty, noMistakeActive]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (isTextLoading || words.length === 0) {
@@ -152,6 +163,13 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
           typed: event.key
         }
       ]);
+
+      if (noMistakeActive) {
+        setTypedChars((prev) => prev + 1);
+        setCurrentInput(nextInput);
+        setFailedByMistake(true);
+        return;
+      }
     }
 
     setTypedChars((prev) => prev + 1);
@@ -205,6 +223,8 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
     mode,
     wordsCount,
     wordDifficulty,
+    failedByMistake,
+    noMistakeActive,
     handleKeyDown
   };
 }
