@@ -1,6 +1,6 @@
 import { useState } from "react";
 import TypingGame from "./games/typing/components/TypingGame";
-import type { TypingMode, WordModeDifficulty } from "./games/typing/types";
+import type { TypingMode, WordModeDifficulty, WordNoMistakeMode } from "./games/typing/types";
 
 type HeaderTab = "games" | "stats" | "account" | "settings";
 
@@ -17,6 +17,7 @@ function App() {
   const [typingMode, setTypingMode] = useState<TypingMode>("sentences");
   const [wordsCount, setWordsCount] = useState(25);
   const [wordDifficulty, setWordDifficulty] = useState<WordModeDifficulty>("mixed");
+  const [wordNoMistakeMode, setWordNoMistakeMode] = useState<WordNoMistakeMode>("off");
 
   return (
     <div
@@ -154,20 +155,36 @@ function App() {
                   padding: "18px"
                 }}
               >
-                <h2 style={{ marginTop: 0, marginBottom: "8px", fontSize: "22px" }}>Word Mode</h2>
-                <p style={{ marginTop: 0, marginBottom: "14px", color: "#4d5d70", lineHeight: 1.45 }}>
-                  Random words generated from the database word pool.
-                </p>
-
                 <div
                   style={{
                     marginBottom: "14px",
                     display: "grid",
                     gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                    gridTemplateRows: "auto auto",
                     gap: "10px"
                   }}
                 >
-                  <div>
+                  <div
+                    style={{
+                      gridColumn: "1",
+                      gridRow: "1",
+                      fontSize: "18px",
+                      color: "#1c2736",
+                      fontWeight: 700,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      justifyContent: "center",
+                      gap: "6px"
+                    }}
+                  >
+                    <span>Word Mode</span>
+                    <span style={{ fontSize: "14px", color: "#4d5d70", fontWeight: 400 }}>
+                      Random words generated from the database word pool.
+                    </span>
+                  </div>
+
+                  <div style={{ gridColumn: "2", gridRow: "1" }}>
                     <div
                       style={{
                         fontSize: "12px",
@@ -176,7 +193,66 @@ function App() {
                         fontWeight: 600
                       }}
                     >
-                      Word Count
+                      No Mistake Mode
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={wordNoMistakeMode === "on"}
+                      onClick={() =>
+                        setWordNoMistakeMode((prev) => (prev === "on" ? "off" : "on"))
+                      }
+                      style={{
+                        width: "100%",
+                        border: "1px solid #c5d3e4",
+                        borderRadius: "8px",
+                        padding: "8px 10px",
+                        backgroundColor: "#ffffff",
+                        color: "#1c2736",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between"
+                      }}
+                    >
+                      <span>{wordNoMistakeMode === "on" ? "on" : "off"}</span>
+                      <span
+                        style={{
+                          width: "42px",
+                          height: "24px",
+                          borderRadius: "999px",
+                          backgroundColor: wordNoMistakeMode === "on" ? "#2f9e44" : "#c5d3e4",
+                          position: "relative",
+                          transition: "background-color 120ms ease"
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: "18px",
+                            height: "18px",
+                            borderRadius: "999px",
+                            backgroundColor: "#ffffff",
+                            position: "absolute",
+                            top: "3px",
+                            left: wordNoMistakeMode === "on" ? "21px" : "3px",
+                            transition: "left 120ms ease"
+                          }}
+                        />
+                      </span>
+                    </button>
+                  </div>
+
+                  <div style={{ gridColumn: "1", gridRow: "2" }}>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#5a6b80",
+                        marginBottom: "6px",
+                        fontWeight: 600
+                      }}
+                    >
+                      Words
                     </div>
                     <select
                       value={wordsCount}
@@ -198,7 +274,7 @@ function App() {
                     </select>
                   </div>
 
-                  <div>
+                  <div style={{ gridColumn: "2", gridRow: "2" }}>
                     <div
                       style={{
                         fontSize: "12px",
@@ -260,7 +336,7 @@ function App() {
               <h1 style={{ margin: 0, fontSize: "30px" }}>
                 Typing Classic{" "}
                 {typingMode === "words"
-                  ? `(Words ${wordsCount}, ${wordDifficulty})`
+                  ? `(Words ${wordsCount}, ${wordDifficulty}, no-mistake ${wordNoMistakeMode})`
                   : "(Sentences)"}
               </h1>
               <button
@@ -277,7 +353,12 @@ function App() {
                 Back to Start Menu
               </button>
             </div>
-            <TypingGame mode={typingMode} wordsCount={wordsCount} wordDifficulty={wordDifficulty} />
+            <TypingGame
+              mode={typingMode}
+              wordsCount={wordsCount}
+              wordDifficulty={wordDifficulty}
+              wordNoMistakeMode={wordNoMistakeMode}
+            />
           </section>
         )}
 

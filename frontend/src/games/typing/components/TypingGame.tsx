@@ -1,17 +1,19 @@
 import { useEffect, useRef } from "react";
 import { useTypingGame } from "../hooks/useTypingGame";
-import type { TypingMode, WordModeDifficulty } from "../types";
+import type { TypingMode, WordModeDifficulty, WordNoMistakeMode } from "../types";
 
 type TypingGameProps = {
   mode?: TypingMode;
   wordsCount?: number;
   wordDifficulty?: WordModeDifficulty;
+  wordNoMistakeMode?: WordNoMistakeMode;
 };
 
 export default function TypingGame({
   mode = "sentences",
   wordsCount = 25,
-  wordDifficulty = "mixed"
+  wordDifficulty = "mixed",
+  wordNoMistakeMode = "off"
 }: TypingGameProps) {
   const {
     activeText,
@@ -30,10 +32,12 @@ export default function TypingGame({
     totalWords,
     durationSeconds,
     errorEvents,
+    failedByMistake,
+    noMistakeActive,
     restart,
     reloadText,
     handleKeyDown
-  } = useTypingGame({ mode, wordsCount, wordDifficulty, language: "en" });
+  } = useTypingGame({ mode, wordsCount, wordDifficulty, wordNoMistakeMode, language: "en" });
   const typingAreaRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -262,6 +266,11 @@ export default function TypingGame({
           }}
         >
           <h2 style={{ marginTop: 0, marginBottom: "10px", fontSize: "28px" }}>Run Complete</h2>
+          {noMistakeActive && failedByMistake && (
+            <p style={{ marginTop: 0, marginBottom: "12px", color: "#9f3e4d", fontWeight: 600 }}>
+              No Mistake Mode: run ended after the first mistake.
+            </p>
+          )}
 
           <div
             style={{
