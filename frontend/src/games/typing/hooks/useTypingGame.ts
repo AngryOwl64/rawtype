@@ -77,7 +77,7 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
     setErrorEvents([]);
     setFailedByMistake(false);
     setIsTextLoading(false);
-  }, [language, mode, wordsCount, wordDifficulty, noMistakeActive]);
+  }, [language, mode, wordsCount, wordDifficulty]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (isTextLoading || words.length === 0) {
