@@ -6,3 +6,13 @@ export type TypingError = {
   expected: string;
   typed: string;
 };
+
+export type TypingText = {
+  id: string;
+  content: string;
+  category: string;
+  difficulty: string;
+  language: string;
+  word_count: number;
+  source: string | null;
+};
