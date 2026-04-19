@@ -1,4 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../../../auth/authContext";
+import { saveTypingRun } from "../services/runResults";
 import { useTypingGame } from "../hooks/useTypingGame";
 import type { TypingMode, WordModeDifficulty, WordNoMistakeMode } from "../types";
 
@@ -9,12 +11,57 @@ type TypingGameProps = {
   wordNoMistakeMode?: WordNoMistakeMode;
 };
 
+const savedDifficulties = new Set<WordModeDifficulty>(["easy", "medium", "hard", "mixed"]);
+
+function getSavedDifficulty(
+  mode: TypingMode,
+  wordDifficulty: WordModeDifficulty,
+  textDifficulty: string | undefined
+): WordModeDifficulty | null {
+  if (mode === "words") return wordDifficulty;
+  if (savedDifficulties.has(textDifficulty as WordModeDifficulty)) {
+    return textDifficulty as WordModeDifficulty;
+  }
+
+  return null;
+}
+
+function MetricCard({
+  label,
+  value,
+  compact = false
+}: {
+  label: string;
+  value: string | number;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        border: "1px solid var(--border-soft)",
+        borderRadius: "8px",
+        padding: "10px",
+        minHeight: compact ? "58px" : "66px",
+        boxSizing: "border-box"
+      }}
+    >
+      <div style={{ color: "var(--muted)", fontSize: "12px", marginBottom: "4px" }}>{label}</div>
+      <strong style={{ fontSize: compact ? "16px" : "22px" }}>{value}</strong>
+    </div>
+  );
+}
+
 export default function TypingGame({
   mode = "sentences",
   wordsCount = 25,
   wordDifficulty = "mixed",
   wordNoMistakeMode = "off"
 }: TypingGameProps) {
+  const language = "en";
+  const { user } = useAuth();
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveError, setSaveError] = useState("");
+  const savedRunKeyRef = useRef("");
   const {
     activeText,
     words,
@@ -24,12 +71,14 @@ export default function TypingGame({
     isTextLoading,
     textLoadError,
     wpm,
+    cpm,
     accuracy,
     typedChars,
     correctChars,
     mistakes,
     completedWords,
     totalWords,
+    durationMs,
     durationSeconds,
     errorEvents,
     failedByMistake,
@@ -37,7 +86,7 @@ export default function TypingGame({
     restart,
     reloadText,
     handleKeyDown
-  } = useTypingGame({ mode, wordsCount, wordDifficulty, wordNoMistakeMode, language: "en" });
+  } = useTypingGame({ mode, wordsCount, wordDifficulty, wordNoMistakeMode, language });
   const typingAreaRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -50,7 +99,93 @@ export default function TypingGame({
     }
   }, [finished, isTextLoading, textLoadError]);
 
+  useEffect(() => {
+    if (!finished || isTextLoading || textLoadError || totalWords === 0) {
+      return;
+    }
+
+    if (!user) {
+      return;
+    }
+
+    const runKey = [
+      user.id,
+      activeText?.id ?? "none",
+      mode,
+      wordsCount,
+      wordDifficulty,
+      wordNoMistakeMode,
+      typedChars,
+      mistakes,
+      completedWords,
+      totalWords,
+      durationMs
+    ].join(":");
+
+    if (savedRunKeyRef.current === runKey) {
+      return;
+    }
+
+    savedRunKeyRef.current = runKey;
+    setSaveState("saving");
+    setSaveError("");
+
+    const savedDifficulty = getSavedDifficulty(mode, wordDifficulty, activeText?.difficulty);
+
+    void saveTypingRun({
+      textId: activeText?.id ?? null,
+      mode,
+      language,
+      difficulty: savedDifficulty,
+      wordsCount: mode === "words" ? wordsCount : null,
+      noMistakeMode: wordNoMistakeMode,
+      wpm,
+      accuracy,
+      durationMs,
+      typedChars,
+      correctChars,
+      mistakes,
+      completedWords,
+      totalWords,
+      failedByMistake,
+      errorEvents
+    })
+      .then(() => {
+        setSaveState("saved");
+      })
+      .catch((error: unknown) => {
+        savedRunKeyRef.current = "";
+        setSaveState("error");
+        setSaveError(error instanceof Error ? error.message : "Could not save this run.");
+      });
+  }, [
+    accuracy,
+    activeText?.difficulty,
+    activeText?.id,
+    completedWords,
+    correctChars,
+    durationMs,
+    errorEvents,
+    failedByMistake,
+    finished,
+    isTextLoading,
+    language,
+    mistakes,
+    mode,
+    textLoadError,
+    totalWords,
+    typedChars,
+    user,
+    wordDifficulty,
+    wordNoMistakeMode,
+    wordsCount,
+    wpm
+  ]);
+
   function handleRestart() {
+    savedRunKeyRef.current = "";
+    setSaveState("idle");
+    setSaveError("");
     restart();
   }
 
@@ -61,6 +196,7 @@ export default function TypingGame({
   }, {});
   const uniqueErrorWords = Object.keys(errorCountByWord).length;
   const mostErrorWord = Object.entries(errorCountByWord).sort((a, b) => b[1] - a[1])[0];
+  const displayedSaveState = finished && !user ? "skipped" : saveState;
 
   return (
     <div
@@ -86,9 +222,9 @@ export default function TypingGame({
           {isTextLoading && (
             <div
               style={{
-                border: "1px solid #c9d5e5",
+                border: "1px solid var(--border)",
                 borderRadius: "8px",
-                backgroundColor: "#ffffff",
+                backgroundColor: "var(--surface)",
                 padding: "18px",
                 width: "min(100%, 980px)"
               }}
@@ -102,14 +238,14 @@ export default function TypingGame({
           {!isTextLoading && textLoadError && (
             <div
               style={{
-                border: "1px solid #f0d7dc",
+                border: "1px solid var(--danger-border)",
                 borderRadius: "8px",
-                backgroundColor: "#fff3f5",
+                backgroundColor: "var(--danger-bg)",
                 padding: "18px",
                 width: "min(100%, 980px)"
               }}
             >
-              <div style={{ color: "#9f3e4d", marginBottom: "10px" }}>{textLoadError}</div>
+              <div style={{ color: "var(--danger)", marginBottom: "10px" }}>{textLoadError}</div>
               <button
                 type="button"
                 onClick={() => void reloadText()}
@@ -127,9 +263,9 @@ export default function TypingGame({
               onKeyDown={handleKeyDown}
               onClick={() => typingAreaRef.current?.focus()}
               style={{
-                border: "1px solid #c9d5e5",
+                border: "1px solid var(--border)",
                 borderRadius: "8px",
-                backgroundColor: "#ffffff",
+                backgroundColor: "var(--surface)",
                 padding: "18px",
                 outline: "none",
                 cursor: "text",
@@ -153,7 +289,7 @@ export default function TypingGame({
                 {words.map((word, wordIndex) => {
                   if (wordIndex < currentWordIndex) {
                     return (
-                      <span key={wordIndex} style={{ color: "#4caf50", display: "inline-flex" }}>
+                      <span key={wordIndex} style={{ color: "var(--success)", display: "inline-flex" }}>
                         {word}
                       </span>
                     );
@@ -161,7 +297,7 @@ export default function TypingGame({
 
                   if (wordIndex > currentWordIndex || finished) {
                     return (
-                      <span key={wordIndex} style={{ color: "#8a8a8a", display: "inline-flex" }}>
+                      <span key={wordIndex} style={{ color: "var(--muted)", display: "inline-flex" }}>
                         {word}
                       </span>
                     );
@@ -176,14 +312,14 @@ export default function TypingGame({
                         alignItems: "center",
                         whiteSpace: "normal",
                         display: "inline-flex",
-                        boxShadow: !cursorInWord && !finished ? "inset -2px 0 0 #1c2736" : "none"
+                        boxShadow: !cursorInWord && !finished ? "inset -2px 0 0 var(--text)" : "none"
                       }}
                     >
                       {word.split("").map((char, charIndex) => {
-                        let color = "#8a8a8a";
+                        let color = "var(--muted)";
 
                         if (charIndex < currentInput.length) {
-                          color = currentInput[charIndex] === char ? "#4caf50" : "#f44336";
+                          color = currentInput[charIndex] === char ? "var(--success)" : "var(--danger)";
                         }
 
                         const showCursor = cursorInWord && charIndex === currentInput.length;
@@ -193,7 +329,7 @@ export default function TypingGame({
                             key={charIndex}
                             style={{
                               color,
-                              boxShadow: showCursor ? "inset 2px 0 0 #1c2736" : "none"
+                              boxShadow: showCursor ? "inset 2px 0 0 var(--text)" : "none"
                             }}
                           >
                             {char}
@@ -211,36 +347,17 @@ export default function TypingGame({
             style={{
               width: "min(100%, 980px)",
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(118px, 1fr))",
               gap: "10px"
             }}
           >
-            <div style={{ border: "1px solid #e1e7f0", borderRadius: "8px", padding: "10px" }}>
-              <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>WPM</div>
-              <strong style={{ fontSize: "22px" }}>{wpm}</strong>
-            </div>
-            <div style={{ border: "1px solid #e1e7f0", borderRadius: "8px", padding: "10px" }}>
-              <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>Accuracy</div>
-              <strong style={{ fontSize: "22px" }}>{accuracy}%</strong>
-            </div>
-            <div style={{ border: "1px solid #e1e7f0", borderRadius: "8px", padding: "10px" }}>
-              <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>Progress</div>
-              <strong style={{ fontSize: "22px" }}>
-                {currentWordIndex}/{totalWords}
-              </strong>
-            </div>
-            <div style={{ border: "1px solid #e1e7f0", borderRadius: "8px", padding: "10px" }}>
-              <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>Errors</div>
-              <strong style={{ fontSize: "22px" }}>{mistakes}</strong>
-            </div>
-            <div style={{ border: "1px solid #e1e7f0", borderRadius: "8px", padding: "10px" }}>
-              <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>Category</div>
-              <strong style={{ fontSize: "16px" }}>{activeText?.category ?? "-"}</strong>
-            </div>
-            <div style={{ border: "1px solid #e1e7f0", borderRadius: "8px", padding: "10px" }}>
-              <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>Difficulty</div>
-              <strong style={{ fontSize: "16px" }}>{activeText?.difficulty ?? "-"}</strong>
-            </div>
+            <MetricCard label="WPM" value={wpm} />
+            <MetricCard label="CPM" value={cpm} />
+            <MetricCard label="Accuracy" value={`${accuracy}%`} />
+            <MetricCard label="Progress" value={`${currentWordIndex}/${totalWords}`} />
+            <MetricCard label="Errors" value={mistakes} />
+            <MetricCard label="Category" value={activeText?.category ?? "-"} compact />
+            <MetricCard label="Difficulty" value={activeText?.difficulty ?? "-"} compact />
           </div>
 
           <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
@@ -258,61 +375,50 @@ export default function TypingGame({
       {finished && (
         <section
           style={{
-            border: "1px solid #c9d5e5",
+            border: "1px solid var(--border)",
             borderRadius: "8px",
-            backgroundColor: "#ffffff",
+            backgroundColor: "var(--surface)",
             padding: "18px",
             width: "min(100%, 980px)"
           }}
         >
           <h2 style={{ marginTop: 0, marginBottom: "10px", fontSize: "28px" }}>Run Complete</h2>
           {noMistakeActive && failedByMistake && (
-            <p style={{ marginTop: 0, marginBottom: "12px", color: "#9f3e4d", fontWeight: 600 }}>
+            <p style={{ marginTop: 0, marginBottom: "12px", color: "var(--danger)", fontWeight: 600 }}>
               No Mistake Mode: run ended after the first mistake.
+            </p>
+          )}
+          {displayedSaveState !== "idle" && (
+            <p
+              style={{
+                marginTop: 0,
+                marginBottom: "12px",
+                color: displayedSaveState === "error" ? "var(--danger)" : "var(--muted)",
+                fontWeight: 600
+              }}
+            >
+              {displayedSaveState === "saving" && "Saving run..."}
+              {displayedSaveState === "saved" && "Run saved to your account."}
+              {displayedSaveState === "skipped" && "Login to save this run to your stats."}
+              {displayedSaveState === "error" && `Save failed: ${saveError}`}
             </p>
           )}
 
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
               gap: "10px"
             }}
           >
-            <div style={{ border: "1px solid #e1e7f0", borderRadius: "8px", padding: "10px" }}>
-              <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>WPM</div>
-              <strong style={{ fontSize: "22px" }}>{wpm}</strong>
-            </div>
-            <div style={{ border: "1px solid #e1e7f0", borderRadius: "8px", padding: "10px" }}>
-              <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>Accuracy</div>
-              <strong style={{ fontSize: "22px" }}>{accuracy}%</strong>
-            </div>
-            <div style={{ border: "1px solid #e1e7f0", borderRadius: "8px", padding: "10px" }}>
-              <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>Duration</div>
-              <strong style={{ fontSize: "22px" }}>{durationSeconds}s</strong>
-            </div>
-            <div style={{ border: "1px solid #e1e7f0", borderRadius: "8px", padding: "10px" }}>
-              <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>
-                Words Completed
-              </div>
-              <strong style={{ fontSize: "22px" }}>
-                {completedWords}/{totalWords}
-              </strong>
-            </div>
-            <div style={{ border: "1px solid #e1e7f0", borderRadius: "8px", padding: "10px" }}>
-              <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>Keystrokes</div>
-              <strong style={{ fontSize: "22px" }}>{typedChars}</strong>
-            </div>
-            <div style={{ border: "1px solid #e1e7f0", borderRadius: "8px", padding: "10px" }}>
-              <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>
-                Correct Keystrokes
-              </div>
-              <strong style={{ fontSize: "22px" }}>{correctChars}</strong>
-            </div>
-            <div style={{ border: "1px solid #e1e7f0", borderRadius: "8px", padding: "10px" }}>
-              <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>Errors</div>
-              <strong style={{ fontSize: "22px" }}>{mistakes}</strong>
-            </div>
+            <MetricCard label="WPM" value={wpm} />
+            <MetricCard label="CPM" value={cpm} />
+            <MetricCard label="Accuracy" value={`${accuracy}%`} />
+            <MetricCard label="Duration" value={`${durationSeconds}s`} />
+            <MetricCard label="Words Completed" value={`${completedWords}/${totalWords}`} />
+            <MetricCard label="Keystrokes" value={typedChars} />
+            <MetricCard label="Correct Keystrokes" value={correctChars} />
+            <MetricCard label="Errors" value={mistakes} />
           </div>
 
           <h3 style={{ marginBottom: "8px", marginTop: "18px" }}>Error Breakdown</h3>
@@ -321,9 +427,9 @@ export default function TypingGame({
           {errorEvents.length > 0 && (
             <section
               style={{
-                border: "1px solid #e1e7f0",
+                border: "1px solid var(--border-soft)",
                 borderRadius: "10px",
-                backgroundColor: "#fbfcff",
+                backgroundColor: "var(--surface-soft)",
                 padding: "12px"
               }}
             >
@@ -337,22 +443,22 @@ export default function TypingGame({
               >
                 <span
                   style={{
-                    border: "1px solid #d7dfeb",
+                    border: "1px solid var(--border-soft)",
                     borderRadius: "999px",
                     padding: "4px 10px",
                     fontSize: "12px",
-                    backgroundColor: "#ffffff"
+                    backgroundColor: "var(--surface)"
                   }}
                 >
                   Total Errors: {mistakes}
                 </span>
                 <span
                   style={{
-                    border: "1px solid #d7dfeb",
+                    border: "1px solid var(--border-soft)",
                     borderRadius: "999px",
                     padding: "4px 10px",
                     fontSize: "12px",
-                    backgroundColor: "#ffffff"
+                    backgroundColor: "var(--surface)"
                   }}
                 >
                   Words Affected: {uniqueErrorWords}
@@ -360,11 +466,11 @@ export default function TypingGame({
                 {mostErrorWord && (
                   <span
                     style={{
-                      border: "1px solid #d7dfeb",
+                      border: "1px solid var(--border-soft)",
                       borderRadius: "999px",
                       padding: "4px 10px",
                       fontSize: "12px",
-                      backgroundColor: "#ffffff"
+                      backgroundColor: "var(--surface)"
                     }}
                   >
                     Most Errors: {mostErrorWord[0]} ({mostErrorWord[1]})
@@ -383,9 +489,9 @@ export default function TypingGame({
                     <article
                       key={entry.id}
                       style={{
-                        border: "1px solid #e2e8f2",
+                        border: "1px solid var(--border-soft)",
                         borderRadius: "8px",
-                        backgroundColor: "#ffffff",
+                        backgroundColor: "var(--surface)",
                         padding: "10px"
                       }}
                     >
@@ -402,27 +508,27 @@ export default function TypingGame({
                         <strong style={{ fontSize: "14px" }}>
                           Word {entry.wordNumber} ({entry.word})
                         </strong>
-                        <span style={{ color: "#5a6b80", fontSize: "12px" }}>
+                        <span style={{ color: "var(--muted)", fontSize: "12px" }}>
                           Character {entry.charPosition}
                         </span>
                       </div>
 
                       <div
                         style={{
-                          border: "1px dashed #d7dfeb",
+                          border: "1px dashed var(--border-soft)",
                           borderRadius: "8px",
-                          backgroundColor: "#f8faff",
+                          backgroundColor: "var(--input-muted)",
                           padding: "10px"
                         }}
                       >
-                        <div style={{ color: "#5a6b80", fontSize: "11px", marginBottom: "6px" }}>
+                        <div style={{ color: "var(--muted)", fontSize: "11px", marginBottom: "6px" }}>
                           Word Markup
                         </div>
                         <div style={{ display: "inline-flex", alignItems: "flex-end", gap: "1px" }}>
                           {entry.word.split("").map((char, index) => {
                             if (index !== errorIndex) {
                               return (
-                                <span key={index} style={{ color: "#2d3a4d", fontSize: "20px" }}>
+                                <span key={index} style={{ color: "var(--muted-strong)", fontSize: "20px" }}>
                                   {char}
                                 </span>
                               );
@@ -444,9 +550,9 @@ export default function TypingGame({
                                     position: "absolute",
                                     top: "-18px",
                                     fontSize: "10px",
-                                    color: "#9f3e4d",
-                                    backgroundColor: "#fff3f5",
-                                    border: "1px solid #f0d7dc",
+                                    color: "var(--danger)",
+                                    backgroundColor: "var(--danger-bg)",
+                                    border: "1px solid var(--danger-border)",
                                     borderRadius: "999px",
                                     padding: "1px 6px",
                                     whiteSpace: "nowrap"
@@ -456,10 +562,10 @@ export default function TypingGame({
                                 </span>
                                 <span
                                   style={{
-                                    color: "#9f3e4d",
+                                    color: "var(--danger)",
                                     fontSize: "20px",
-                                    backgroundColor: "#ffe7ec",
-                                    border: "1px solid #f0d7dc",
+                                    backgroundColor: "var(--danger-bg)",
+                                    border: "1px solid var(--danger-border)",
                                     borderRadius: "4px",
                                     padding: "0 4px",
                                     textDecoration: "underline"
@@ -471,7 +577,7 @@ export default function TypingGame({
                             );
                           })}
                         </div>
-                        <div style={{ marginTop: "8px", color: "#5a6b80", fontSize: "12px" }}>
+                        <div style={{ marginTop: "8px", color: "var(--muted)", fontSize: "12px" }}>
                           Expected: <strong>{entry.expected}</strong>
                         </div>
                       </div>

@@ -1,16 +1,52 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { CSSProperties } from "react";
 import AccountPanel from "./account/AccountPanel";
 import { useAuth } from "./auth/authContext";
 import TypingGame from "./games/typing/components/TypingGame";
 import type { TypingMode, WordModeDifficulty, WordNoMistakeMode } from "./games/typing/types";
+import SettingsPanel from "./settings/SettingsPanel";
+import StatsPanel from "./stats/StatsPanel";
 
 type HeaderTab = "games" | "stats" | "account" | "settings";
+type ThemeMode = "light" | "dark";
 
 const headerTabs: Array<{ id: HeaderTab; label: string }> = [
   { id: "games", label: "Games" },
   { id: "stats", label: "Stats" },
   { id: "settings", label: "Settings" }
 ];
+
+function getStoredTheme(): ThemeMode {
+  if (typeof window === "undefined") return "light";
+  return window.localStorage.getItem("rawtype-theme") === "dark" ? "dark" : "light";
+}
+
+function getThemeVariables(theme: ThemeMode): CSSProperties {
+  const dark = theme === "dark";
+
+  return {
+    "--page-bg": dark
+      ? "radial-gradient(circle at 15% 20%, #26364a 0%, #17202d 34%, #101722 72%, #0c111a 100%)"
+      : "radial-gradient(circle at 15% 20%, #ffeab8 0%, #ffd580 30%, #f8f9fb 70%, #e6eef8 100%)",
+    "--header-bg": dark ? "rgba(16, 23, 34, 0.9)" : "rgba(255, 255, 255, 0.88)",
+    "--text": dark ? "#e7edf6" : "#1c2736",
+    "--muted": dark ? "#aebbc9" : "#4d5d70",
+    "--muted-strong": dark ? "#c6d0dc" : "#2d3a4d",
+    "--surface": dark ? "#141d2a" : "#ffffff",
+    "--surface-soft": dark ? "#1a2636" : "#fbfcff",
+    "--input-bg": dark ? "#101722" : "#ffffff",
+    "--input-muted": dark ? "#182435" : "#f8faff",
+    "--border": dark ? "#2b3a4e" : "#c8d6e8",
+    "--border-soft": dark ? "#253448" : "#e1e7f0",
+    "--border-strong": dark ? "#40526a" : "#c5d3e4",
+    "--primary": dark ? "#e7edf6" : "#1c2736",
+    "--primary-text": dark ? "#101722" : "#ffffff",
+    "--success": dark ? "#55c878" : "#2f9e44",
+    "--danger": dark ? "#ff8fa3" : "#9f3e4d",
+    "--danger-bg": dark ? "#3a1d29" : "#fff3f5",
+    "--danger-border": dark ? "#6f3348" : "#f0d7dc"
+  } as CSSProperties;
+}
 
 function App() {
   const { loading: authLoading, profile, user } = useAuth();
@@ -20,15 +56,22 @@ function App() {
   const [wordsCount, setWordsCount] = useState(25);
   const [wordDifficulty, setWordDifficulty] = useState<WordModeDifficulty>("mixed");
   const [wordNoMistakeMode, setWordNoMistakeMode] = useState<WordNoMistakeMode>("off");
+  const [theme, setTheme] = useState<ThemeMode>(getStoredTheme);
   const accountLabel = authLoading ? "Account" : user ? profile?.username ?? "Account" : "Login";
+  const themeVariables = getThemeVariables(theme);
+
+  useEffect(() => {
+    window.localStorage.setItem("rawtype-theme", theme);
+  }, [theme]);
 
   return (
     <div
+      data-theme={theme}
       style={{
+        ...themeVariables,
         minHeight: "100vh",
-        background:
-          "radial-gradient(circle at 15% 20%, #ffeab8 0%, #ffd580 30%, #f8f9fb 70%, #e6eef8 100%)",
-        color: "#1c2736",
+        background: "var(--page-bg)",
+        color: "var(--text)",
         fontFamily: "Segoe UI, Tahoma, Geneva, Verdana, sans-serif"
       }}
     >
@@ -37,9 +80,9 @@ function App() {
           position: "sticky",
           top: 0,
           zIndex: 20,
-          backgroundColor: "rgba(255, 255, 255, 0.88)",
+          backgroundColor: "var(--header-bg)",
           backdropFilter: "blur(8px)",
-          borderBottom: "1px solid #d9e1ec"
+          borderBottom: "1px solid var(--border)"
         }}
       >
         <div
@@ -66,7 +109,7 @@ function App() {
               fontSize: "24px",
               letterSpacing: "0.4px",
               fontWeight: 700,
-              color: "#1c2736",
+              color: "var(--text)",
               cursor: "pointer"
             }}
           >
@@ -82,11 +125,11 @@ function App() {
                   setPlayingTypingGame(false);
                 }}
                 style={{
-                  border: "1px solid #c5d3e4",
+                  border: "1px solid var(--border-strong)",
                   borderRadius: "8px",
                   padding: "8px 14px",
-                  backgroundColor: activeTab === tab.id ? "#1c2736" : "#ffffff",
-                  color: activeTab === tab.id ? "#ffffff" : "#1c2736",
+                  backgroundColor: activeTab === tab.id ? "var(--primary)" : "var(--surface)",
+                  color: activeTab === tab.id ? "var(--primary-text)" : "var(--text)",
                   cursor: "pointer",
                   fontWeight: 600
                 }}
@@ -103,11 +146,11 @@ function App() {
             }}
             style={{
               marginLeft: "auto",
-              border: "1px solid #c5d3e4",
+              border: "1px solid var(--border-strong)",
               borderRadius: "8px",
               padding: "8px 14px",
-              backgroundColor: activeTab === "account" ? "#1c2736" : "#ffffff",
-              color: activeTab === "account" ? "#ffffff" : "#1c2736",
+              backgroundColor: activeTab === "account" ? "var(--primary)" : "var(--surface)",
+              color: activeTab === "account" ? "var(--primary-text)" : "var(--text)",
               cursor: "pointer",
               fontWeight: 600,
               maxWidth: "180px",
@@ -125,12 +168,7 @@ function App() {
         {activeTab === "games" && !playingTypingGame && (
           <section>
             <h1 style={{ marginTop: 0, marginBottom: "10px", fontSize: "34px" }}>Start Menu</h1>
-            <p style={{ marginTop: 0, maxWidth: "620px", color: "#415166", lineHeight: 1.5 }}>
-              Pick a game and jump straight into a run. You can add more modes in this section
-              later.
-            </p>
-
-            <div
+             <div
               style={{
                 marginTop: "22px",
                 display: "grid",
@@ -140,15 +178,15 @@ function App() {
             >
               <article
                 style={{
-                  border: "1px solid #c8d6e8",
+                  border: "1px solid var(--border)",
                   borderRadius: "8px",
-                  backgroundColor: "#ffffff",
+                  backgroundColor: "var(--surface)",
                   padding: "18px"
                 }}
               >
                 <h2 style={{ marginTop: 0, marginBottom: "8px", fontSize: "22px" }}>Typing Classic</h2>
-                <p style={{ marginTop: 0, marginBottom: "14px", color: "#4d5d70", lineHeight: 1.45 }}>
-                  Standard mode with normal sentence texts from the database.
+                <p style={{ marginTop: 0, marginBottom: "14px", color: "var(--muted)", lineHeight: 1.45 }}>
+                  Standard mode with normal sentences.
                 </p>
 
                 <button
@@ -162,7 +200,7 @@ function App() {
                     borderRadius: "8px",
                     padding: "10px 16px",
                     width: "100%",
-                    backgroundColor: "#2f9e44",
+                    backgroundColor: "var(--success)",
                     color: "#ffffff",
                     fontWeight: 700,
                     cursor: "pointer"
@@ -174,9 +212,9 @@ function App() {
 
               <article
                 style={{
-                  border: "1px solid #c8d6e8",
+                  border: "1px solid var(--border)",
                   borderRadius: "8px",
-                  backgroundColor: "#ffffff",
+                  backgroundColor: "var(--surface)",
                   padding: "18px"
                 }}
               >
@@ -194,7 +232,7 @@ function App() {
                       gridColumn: "1",
                       gridRow: "1",
                       fontSize: "18px",
-                      color: "#1c2736",
+                      color: "var(--text)",
                       fontWeight: 700,
                       display: "flex",
                       flexDirection: "column",
@@ -204,8 +242,8 @@ function App() {
                     }}
                   >
                     <span>Word Mode</span>
-                    <span style={{ fontSize: "14px", color: "#4d5d70", fontWeight: 400 }}>
-                      Random words generated from the database word pool.
+                    <span style={{ fontSize: "14px", color: "var(--muted)", fontWeight: 400 }}>
+                      Random words generated.
                     </span>
                   </div>
 
@@ -213,7 +251,7 @@ function App() {
                     <div
                       style={{
                         fontSize: "12px",
-                        color: "#5a6b80",
+                        color: "var(--muted)",
                         marginBottom: "6px",
                         fontWeight: 600
                       }}
@@ -229,11 +267,11 @@ function App() {
                       }
                       style={{
                         width: "100%",
-                        border: "1px solid #c5d3e4",
+                        border: "1px solid var(--border-strong)",
                         borderRadius: "8px",
                         padding: "8px 10px",
-                        backgroundColor: "#ffffff",
-                        color: "#1c2736",
+                        backgroundColor: "var(--surface)",
+                        color: "var(--text)",
                         fontWeight: 600,
                         cursor: "pointer",
                         display: "flex",
@@ -247,7 +285,7 @@ function App() {
                           width: "42px",
                           height: "24px",
                           borderRadius: "999px",
-                          backgroundColor: wordNoMistakeMode === "on" ? "#2f9e44" : "#c5d3e4",
+                          backgroundColor: wordNoMistakeMode === "on" ? "var(--success)" : "var(--border-strong)",
                           position: "relative",
                           transition: "background-color 120ms ease"
                         }}
@@ -257,7 +295,7 @@ function App() {
                             width: "18px",
                             height: "18px",
                             borderRadius: "999px",
-                            backgroundColor: "#ffffff",
+                            backgroundColor: "var(--surface)",
                             position: "absolute",
                             top: "3px",
                             left: wordNoMistakeMode === "on" ? "21px" : "3px",
@@ -272,7 +310,7 @@ function App() {
                     <div
                       style={{
                         fontSize: "12px",
-                        color: "#5a6b80",
+                        color: "var(--muted)",
                         marginBottom: "6px",
                         fontWeight: 600
                       }}
@@ -284,11 +322,11 @@ function App() {
                       onChange={(event) => setWordsCount(Number(event.target.value))}
                       style={{
                         width: "100%",
-                        border: "1px solid #c5d3e4",
+                        border: "1px solid var(--border-strong)",
                         borderRadius: "8px",
                         padding: "8px 10px",
-                        backgroundColor: "#ffffff",
-                        color: "#1c2736",
+                        backgroundColor: "var(--input-bg)",
+                        color: "var(--text)",
                         fontWeight: 600
                       }}
                     >
@@ -303,7 +341,7 @@ function App() {
                     <div
                       style={{
                         fontSize: "12px",
-                        color: "#5a6b80",
+                        color: "var(--muted)",
                         marginBottom: "6px",
                         fontWeight: 600
                       }}
@@ -315,11 +353,11 @@ function App() {
                       onChange={(event) => setWordDifficulty(event.target.value as WordModeDifficulty)}
                       style={{
                         width: "100%",
-                        border: "1px solid #c5d3e4",
+                        border: "1px solid var(--border-strong)",
                         borderRadius: "8px",
                         padding: "8px 10px",
-                        backgroundColor: "#ffffff",
-                        color: "#1c2736",
+                        backgroundColor: "var(--input-bg)",
+                        color: "var(--text)",
                         fontWeight: 600
                       }}
                     >
@@ -342,8 +380,8 @@ function App() {
                     borderRadius: "8px",
                     padding: "10px 16px",
                     width: "100%",
-                    backgroundColor: "#1c2736",
-                    color: "#ffffff",
+                    backgroundColor: "var(--primary)",
+                    color: "var(--primary-text)",
                     fontWeight: 700,
                     cursor: "pointer"
                   }}
@@ -368,10 +406,11 @@ function App() {
                 type="button"
                 onClick={() => setPlayingTypingGame(false)}
                 style={{
-                  border: "1px solid #bfcfe2",
+                  border: "1px solid var(--border-strong)",
                   borderRadius: "8px",
                   padding: "9px 12px",
-                  backgroundColor: "#ffffff",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text)",
                   cursor: "pointer"
                 }}
               >
@@ -387,43 +426,12 @@ function App() {
           </section>
         )}
 
-        {activeTab === "stats" && (
-          <section
-            style={{
-              border: "1px solid #c8d6e8",
-              borderRadius: "8px",
-              backgroundColor: "#ffffff",
-              padding: "20px"
-            }}
-          >
-            <h1 style={{ marginTop: 0, marginBottom: "10px", fontSize: "32px" }}>Stats</h1>
-            <p style={{ marginTop: 0, color: "#4d5d70" }}>
-              Your runs, personal bests, and accuracy history will show up here once tracking is added
-              back.
-            </p>
-            <p style={{ marginBottom: 0, fontWeight: 600 }}>Database score saving is currently disabled.</p>
-          </section>
-        )}
+        {activeTab === "stats" && <StatsPanel />}
 
-        {activeTab === "account" && (
-          <AccountPanel />
-        )}
+        {activeTab === "account" && <AccountPanel />}
 
         {activeTab === "settings" && (
-          <section
-            style={{
-              border: "1px solid #c8d6e8",
-              borderRadius: "8px",
-              backgroundColor: "#ffffff",
-              padding: "20px"
-            }}
-          >
-            <h1 style={{ marginTop: 0, marginBottom: "10px", fontSize: "32px" }}>Settings</h1>
-            <p style={{ marginTop: 0, color: "#4d5d70" }}>
-              Gameplay and display settings will live here.
-            </p>
-            <p style={{ marginBottom: 0, fontWeight: 600 }}>Current mode: Default</p>
-          </section>
+          <SettingsPanel darkMode={theme === "dark"} onDarkModeChange={(enabled) => setTheme(enabled ? "dark" : "light")} />
         )}
       </main>
     </div>

@@ -8,11 +8,11 @@ type AuthMode = "login" | "register";
 const fieldStyle = {
   width: "100%",
   boxSizing: "border-box" as const,
-  border: "1px solid #c5d3e4",
+  border: "1px solid var(--border-strong)",
   borderRadius: "8px",
   padding: "10px 12px",
-  backgroundColor: "#ffffff",
-  color: "#1c2736",
+  backgroundColor: "var(--input-bg)",
+  color: "var(--text)",
   fontSize: "15px"
 };
 
@@ -20,8 +20,8 @@ const buttonStyle = {
   border: "none",
   borderRadius: "8px",
   padding: "10px 16px",
-  backgroundColor: "#1c2736",
-  color: "#ffffff",
+  backgroundColor: "var(--primary)",
+  color: "var(--primary-text)",
   fontWeight: 700,
   cursor: "pointer"
 };
@@ -90,9 +90,9 @@ export default function AccountPanel() {
   return (
     <section
       style={{
-        border: "1px solid #c8d6e8",
+        border: "1px solid var(--border)",
         borderRadius: "8px",
-        backgroundColor: "#ffffff",
+        backgroundColor: "var(--surface)",
         padding: "20px",
         width: "min(100%, 520px)",
         boxSizing: "border-box",
@@ -102,22 +102,22 @@ export default function AccountPanel() {
       <h1 style={{ marginTop: 0, marginBottom: "10px", fontSize: "32px" }}>{title}</h1>
 
       {!configured && (
-        <p style={{ margin: 0, color: "#9f3e4d", lineHeight: 1.5 }}>
+        <p style={{ margin: 0, color: "var(--danger)", lineHeight: 1.5 }}>
           Supabase is not configured. Add your Vite Supabase environment variables first.
         </p>
       )}
 
-      {configured && loading && <p style={{ marginBottom: 0, color: "#4d5d70" }}>Loading account...</p>}
+      {configured && loading && <p style={{ marginBottom: 0, color: "var(--muted)" }}>Loading account...</p>}
 
       {configured && !loading && user && (
         <div style={{ display: "grid", gap: "14px" }}>
           <div>
-            <div style={{ color: "#5a6b80", fontSize: "13px", marginBottom: "4px" }}>Signed in as</div>
+            <div style={{ color: "var(--muted)", fontSize: "13px", marginBottom: "4px" }}>Signed in as</div>
             <strong style={{ fontSize: "22px" }}>{profile?.username ?? "Account"}</strong>
           </div>
 
-          {accountError && <p style={{ margin: 0, color: "#9f3e4d" }}>{accountError}</p>}
-          {formError && <p style={{ margin: 0, color: "#9f3e4d" }}>{formError}</p>}
+          {accountError && <p style={{ margin: 0, color: "var(--danger)" }}>{accountError}</p>}
+          {formError && <p style={{ margin: 0, color: "var(--danger)" }}>{formError}</p>}
 
           <button
             type="button"
@@ -125,7 +125,7 @@ export default function AccountPanel() {
             disabled={submitting}
             style={{
               ...buttonStyle,
-              backgroundColor: submitting ? "#7d8da1" : "#1c2736"
+              backgroundColor: submitting ? "var(--border-strong)" : "var(--primary)"
             }}
           >
             {submitting ? "Signing out..." : "Logout"}
@@ -152,11 +152,11 @@ export default function AccountPanel() {
                   setFormError("");
                 }}
                 style={{
-                  border: "1px solid #c5d3e4",
+                  border: "1px solid var(--border-strong)",
                   borderRadius: "8px",
                   padding: "9px 12px",
-                  backgroundColor: mode === nextMode ? "#1c2736" : "#ffffff",
-                  color: mode === nextMode ? "#ffffff" : "#1c2736",
+                  backgroundColor: mode === nextMode ? "var(--primary)" : "var(--surface)",
+                  color: mode === nextMode ? "var(--primary-text)" : "var(--text)",
                   fontWeight: 700,
                   cursor: "pointer"
                 }}
@@ -204,12 +204,12 @@ export default function AccountPanel() {
               </label>
             )}
 
-            <p style={{ margin: 0, color: usernameHint ? "#9f3e4d" : "#5a6b80", fontSize: "13px" }}>
+            <p style={{ margin: 0, color: usernameHint ? "var(--danger)" : "var(--muted)", fontSize: "13px" }}>
               {usernameHint || "Username only. Use 3-20 letters, numbers, or underscores."}
             </p>
 
             {(formError || accountError) && (
-              <p style={{ margin: 0, color: "#9f3e4d" }}>{formError || accountError}</p>
+              <p style={{ margin: 0, color: "var(--danger)" }}>{formError || accountError}</p>
             )}
 
             <button
@@ -218,7 +218,7 @@ export default function AccountPanel() {
               style={{
                 ...buttonStyle,
                 marginTop: "4px",
-                backgroundColor: submitting ? "#7d8da1" : "#1c2736"
+                backgroundColor: submitting ? "var(--border-strong)" : "var(--primary)"
               }}
             >
               {submitting ? "Please wait..." : mode === "login" ? "Login" : "Create account"}
