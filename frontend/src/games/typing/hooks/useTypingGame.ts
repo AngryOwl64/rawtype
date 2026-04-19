@@ -1,14 +1,18 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { TYPING_TEXTS } from "../data/texts";
-import type { TypingError } from "../types";
+import { getRandomTypingText } from "../services/texts";
+import type { TypingError, TypingText } from "../types";
 
-function getRandomText() {
-  return TYPING_TEXTS[Math.floor(Math.random() * TYPING_TEXTS.length)];
+function normalizeTypingText(content: string): string {
+  return content
+    .replace(/\p{Cc}+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function useTypingGame() {
-  const [text, setText] = useState(getRandomText());
+  const [activeText, setActiveText] = useState<TypingText | null>(null);
+  const [text, setText] = useState("");
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [currentInput, setCurrentInput] = useState("");
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -16,12 +20,43 @@ export function useTypingGame() {
   const [mistakes, setMistakes] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [errorEvents, setErrorEvents] = useState<TypingError[]>([]);
+  const [isTextLoading, setIsTextLoading] = useState(true);
+  const [textLoadError, setTextLoadError] = useState("");
 
-  const words = useMemo(() => text.split(" "), [text]);
-  const finished = currentWordIndex >= words.length;
-  const currentWord = finished ? "" : words[currentWordIndex];
+  const words = useMemo(() => normalizeTypingText(text).split(/\s+/).filter(Boolean), [text]);
+  const finished = !isTextLoading && words.length > 0 && currentWordIndex >= words.length;
+  const currentWord = finished || words.length === 0 ? "" : words[currentWordIndex] ?? "";
+
+  const reloadText = useCallback(async () => {
+    setIsTextLoading(true);
+    setTextLoadError("");
+
+    const { text: dbText, error } = await getRandomTypingText({ language: "en" });
+
+    if (error || !dbText) {
+      setIsTextLoading(false);
+      setTextLoadError(error ?? "Could not load text from database.");
+      return;
+    }
+
+    setActiveText(dbText);
+    setText(normalizeTypingText(dbText.content));
+    setCurrentWordIndex(0);
+    setCurrentInput("");
+    setStartTime(null);
+    setTypedChars(0);
+    setMistakes(0);
+    setElapsedMs(0);
+    setErrorEvents([]);
+    setIsTextLoading(false);
+  }, []);
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (isTextLoading || words.length === 0) {
+      event.preventDefault();
+      return;
+    }
+
     if (event.key === "Backspace" && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
       if (currentInput.length > 0) {
@@ -124,14 +159,7 @@ export function useTypingGame() {
   }, [elapsedMs, typedChars]);
 
   function restart() {
-    setText(getRandomText());
-    setCurrentWordIndex(0);
-    setCurrentInput("");
-    setStartTime(null);
-    setTypedChars(0);
-    setMistakes(0);
-    setElapsedMs(0);
-    setErrorEvents([]);
+    void reloadText();
   }
 
   const correctChars = typedChars - mistakes;
@@ -139,10 +167,13 @@ export function useTypingGame() {
   const durationSeconds = Math.round((elapsedMs / 1000) * 10) / 10;
 
   return {
+    activeText,
     words,
     currentWordIndex,
     currentInput,
     finished,
+    isTextLoading,
+    textLoadError,
     accuracy,
     wpm,
     typedChars,
@@ -153,6 +184,7 @@ export function useTypingGame() {
     durationSeconds,
     errorEvents,
     restart,
+    reloadText,
     handleKeyDown
   };
 }

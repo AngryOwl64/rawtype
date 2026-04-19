@@ -1,12 +1,18 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTypingGame } from "../hooks/useTypingGame";
+import { saveTypingRun } from "../services/typingRuns";
+
+type SaveState = "idle" | "saving" | "saved" | "error";
 
 export default function TypingGame() {
   const {
+    activeText,
     words,
     currentWordIndex,
     currentInput,
     finished,
+    isTextLoading,
+    textLoadError,
     wpm,
     accuracy,
     typedChars,
@@ -17,15 +23,81 @@ export default function TypingGame() {
     durationSeconds,
     errorEvents,
     restart,
+    reloadText,
     handleKeyDown
   } = useTypingGame();
   const typingAreaRef = useRef<HTMLDivElement | null>(null);
+  const hasSavedRunRef = useRef(false);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveError, setSaveError] = useState("");
+
+  useEffect(() => {
+    void reloadText();
+  }, [reloadText]);
+
+  useEffect(() => {
+    if (!finished && !isTextLoading && !textLoadError) {
+      typingAreaRef.current?.focus();
+    }
+  }, [finished, isTextLoading, textLoadError]);
 
   useEffect(() => {
     if (!finished) {
-      typingAreaRef.current?.focus();
+      hasSavedRunRef.current = false;
+      return;
     }
-  }, [finished]);
+
+    if (hasSavedRunRef.current) {
+      return;
+    }
+
+    hasSavedRunRef.current = true;
+    setSaveState("saving");
+
+    const persistRun = async () => {
+      const { error } = await saveTypingRun({
+        mode: `db_texts:${activeText?.category ?? "unknown"}:${activeText?.difficulty ?? "unknown"}`,
+        wpm,
+        accuracy,
+        durationSeconds,
+        typedChars,
+        correctChars,
+        mistakes,
+        totalWords,
+        completedWords,
+        errorEvents
+      });
+
+      if (error) {
+        setSaveState("error");
+        setSaveError(error);
+        return;
+      }
+
+      setSaveState("saved");
+    };
+
+    void persistRun();
+  }, [
+    finished,
+    accuracy,
+    completedWords,
+    correctChars,
+    durationSeconds,
+    errorEvents,
+    mistakes,
+    totalWords,
+    typedChars,
+    wpm,
+    activeText
+  ]);
+
+  function handleRestart() {
+    restart();
+    hasSavedRunRef.current = false;
+    setSaveState("idle");
+    setSaveError("");
+  }
 
   const errorCountByWord = errorEvents.reduce<Record<string, number>>((acc, entry) => {
     const key = `Word ${entry.wordNumber}: ${entry.word}`;
@@ -56,87 +128,127 @@ export default function TypingGame() {
             gap: "14px"
           }}
         >
-          <div
-            ref={typingAreaRef}
-            tabIndex={0}
-            onKeyDown={handleKeyDown}
-            onClick={() => typingAreaRef.current?.focus()}
-            style={{
-              border: "1px solid #c9d5e5",
-              borderRadius: "8px",
-              backgroundColor: "#ffffff",
-              padding: "18px",
-              outline: "none",
-              cursor: "text",
-              width: "fit-content",
-              maxWidth: "min(100%, 980px)"
-            }}
-          >
-            <p
+          {isTextLoading && (
+            <div
               style={{
-                fontSize: "24px",
-                lineHeight: 1.8,
-                margin: 0,
-                wordBreak: "break-word",
-                width: "fit-content",
-                maxWidth: "100%"
+                border: "1px solid #c9d5e5",
+                borderRadius: "8px",
+                backgroundColor: "#ffffff",
+                padding: "18px",
+                width: "min(100%, 980px)"
               }}
             >
-              {words.map((word, wordIndex) => {
-                if (wordIndex < currentWordIndex) {
+              Loading text from database...
+            </div>
+          )}
+
+          {!isTextLoading && textLoadError && (
+            <div
+              style={{
+                border: "1px solid #f0d7dc",
+                borderRadius: "8px",
+                backgroundColor: "#fff3f5",
+                padding: "18px",
+                width: "min(100%, 980px)"
+              }}
+            >
+              <div style={{ color: "#9f3e4d", marginBottom: "10px" }}>{textLoadError}</div>
+              <button
+                type="button"
+                onClick={() => void reloadText()}
+                style={{ padding: "10px 16px", cursor: "pointer", borderRadius: "8px" }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {!isTextLoading && !textLoadError && (
+            <div
+              ref={typingAreaRef}
+              tabIndex={0}
+              onKeyDown={handleKeyDown}
+              onClick={() => typingAreaRef.current?.focus()}
+              style={{
+                border: "1px solid #c9d5e5",
+                borderRadius: "8px",
+                backgroundColor: "#ffffff",
+                padding: "18px",
+                outline: "none",
+                cursor: "text",
+                display: "inline-block",
+                width: "max-content",
+                maxWidth: "min(100%, 980px)",
+                verticalAlign: "top"
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "24px",
+                  lineHeight: 1.8,
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "flex-end",
+                  columnGap: "8px",
+                  rowGap: "4px"
+                }}
+              >
+                {words.map((word, wordIndex) => {
+                  if (wordIndex < currentWordIndex) {
+                    return (
+                      <span key={wordIndex} style={{ color: "#4caf50", display: "inline-flex" }}>
+                        {word}
+                      </span>
+                    );
+                  }
+
+                  if (wordIndex > currentWordIndex || finished) {
+                    return (
+                      <span key={wordIndex} style={{ color: "#8a8a8a", display: "inline-flex" }}>
+                        {word}
+                      </span>
+                    );
+                  }
+
+                  const cursorInWord = currentInput.length < word.length;
+
                   return (
-                    <span key={wordIndex} style={{ color: "#4caf50", marginRight: "8px" }}>
-                      {word}
+                    <span
+                      key={wordIndex}
+                      style={{
+                        alignItems: "center",
+                        whiteSpace: "normal",
+                        display: "inline-flex",
+                        boxShadow: !cursorInWord && !finished ? "inset -2px 0 0 #1c2736" : "none"
+                      }}
+                    >
+                      {word.split("").map((char, charIndex) => {
+                        let color = "#8a8a8a";
+
+                        if (charIndex < currentInput.length) {
+                          color = currentInput[charIndex] === char ? "#4caf50" : "#f44336";
+                        }
+
+                        const showCursor = cursorInWord && charIndex === currentInput.length;
+
+                        return (
+                          <span
+                            key={charIndex}
+                            style={{
+                              color,
+                              boxShadow: showCursor ? "inset 2px 0 0 #1c2736" : "none"
+                            }}
+                          >
+                            {char}
+                          </span>
+                        );
+                      })}
                     </span>
                   );
-                }
-
-                if (wordIndex > currentWordIndex || finished) {
-                  return (
-                    <span key={wordIndex} style={{ color: "#8a8a8a", marginRight: "8px" }}>
-                      {word}
-                    </span>
-                  );
-                }
-
-                const cursorInWord = currentInput.length < word.length;
-
-                return (
-                  <span
-                    key={wordIndex}
-                    style={{
-                      marginRight: "8px",
-                      whiteSpace: "pre",
-                      display: "inline-block",
-                      boxShadow: !cursorInWord && !finished ? "inset -2px 0 0 #1c2736" : "none"
-                    }}
-                  >
-                    {word.split("").map((char, charIndex) => {
-                      let color = "#8a8a8a";
-
-                      if (charIndex < currentInput.length) {
-                        color = currentInput[charIndex] === char ? "#4caf50" : "#f44336";
-                      }
-
-                      const showCursor = cursorInWord && charIndex === currentInput.length;
-
-                      return (
-                        <span
-                          key={charIndex}
-                          style={{
-                            color,
-                            boxShadow: showCursor ? "inset 2px 0 0 #1c2736" : "none"
-                          }}
-                        >
-                          {char}
-                        </span>
-                      );
-                    })}
-                  </span>
-                );
-              })}
-            </p>
-          </div>
+                })}
+              </div>
+            </div>
+          )}
 
           <div
             style={{
@@ -164,12 +276,20 @@ export default function TypingGame() {
               <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>Errors</div>
               <strong style={{ fontSize: "22px" }}>{mistakes}</strong>
             </div>
+            <div style={{ border: "1px solid #e1e7f0", borderRadius: "8px", padding: "10px" }}>
+              <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>Category</div>
+              <strong style={{ fontSize: "16px" }}>{activeText?.category ?? "-"}</strong>
+            </div>
+            <div style={{ border: "1px solid #e1e7f0", borderRadius: "8px", padding: "10px" }}>
+              <div style={{ color: "#5a6b80", fontSize: "12px", marginBottom: "4px" }}>Difficulty</div>
+              <strong style={{ fontSize: "16px" }}>{activeText?.difficulty ?? "-"}</strong>
+            </div>
           </div>
 
           <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
             <button
               type="button"
-              onClick={restart}
+              onClick={handleRestart}
               style={{ padding: "10px 16px", cursor: "pointer", borderRadius: "8px" }}
             >
               Reset
@@ -189,6 +309,14 @@ export default function TypingGame() {
           }}
         >
           <h2 style={{ marginTop: 0, marginBottom: "10px", fontSize: "28px" }}>Run Complete</h2>
+
+          <div style={{ marginBottom: "12px", fontSize: "13px" }}>
+            {saveState === "saving" && <span>Saving run to Supabase...</span>}
+            {saveState === "saved" && <span>Run saved to Supabase.</span>}
+            {saveState === "error" && (
+              <span style={{ color: "#b42318" }}>Could not save run: {saveError}</span>
+            )}
+          </div>
 
           <div
             style={{
@@ -402,7 +530,7 @@ export default function TypingGame() {
 
           <button
             type="button"
-            onClick={restart}
+            onClick={handleRestart}
             style={{ padding: "10px 16px", cursor: "pointer", borderRadius: "8px" }}
           >
             Play Again
