@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../auth/authContext";
 import { saveTypingRun } from "../services/runResults";
 import { useTypingGame } from "../hooks/useTypingGame";
@@ -17,7 +17,7 @@ function getSavedDifficulty(mode: TypingMode, wordDifficulty: WordModeDifficulty
   return null;
 }
 
-function MetricCard({
+const MetricCard = memo(function MetricCard({
   label,
   value,
   compact = false
@@ -40,7 +40,7 @@ function MetricCard({
       <strong style={{ fontSize: compact ? "16px" : "22px" }}>{value}</strong>
     </div>
   );
-}
+});
 
 export default function TypingGame({
   mode = "sentences",
@@ -179,13 +179,18 @@ export default function TypingGame({
     restart();
   }
 
-  const errorCountByWord = errorEvents.reduce<Record<string, number>>((acc, entry) => {
-    const key = `Word ${entry.wordNumber}: ${entry.word}`;
-    acc[key] = (acc[key] ?? 0) + 1;
-    return acc;
-  }, {});
-  const uniqueErrorWords = Object.keys(errorCountByWord).length;
-  const mostErrorWord = Object.entries(errorCountByWord).sort((a, b) => b[1] - a[1])[0];
+  const errorSummary = useMemo(() => {
+    const errorCountByWord = errorEvents.reduce<Record<string, number>>((acc, entry) => {
+      const key = `Word ${entry.wordNumber}: ${entry.word}`;
+      acc[key] = (acc[key] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      uniqueErrorWords: Object.keys(errorCountByWord).length,
+      mostErrorWord: Object.entries(errorCountByWord).sort((a, b) => b[1] - a[1])[0]
+    };
+  }, [errorEvents]);
   const displayedSaveState = finished && !user ? "skipped" : saveState;
 
   return (
@@ -451,9 +456,9 @@ export default function TypingGame({
                     backgroundColor: "var(--surface)"
                   }}
                 >
-                  Words Affected: {uniqueErrorWords}
+                  Words Affected: {errorSummary.uniqueErrorWords}
                 </span>
-                {mostErrorWord && (
+                {errorSummary.mostErrorWord && (
                   <span
                     style={{
                       border: "1px solid var(--border-soft)",
@@ -463,7 +468,7 @@ export default function TypingGame({
                       backgroundColor: "var(--surface)"
                     }}
                   >
-                    Most Errors: {mostErrorWord[0]} ({mostErrorWord[1]})
+                    Most Errors: {errorSummary.mostErrorWord[0]} ({errorSummary.mostErrorWord[1]})
                   </span>
                 )}
               </div>
