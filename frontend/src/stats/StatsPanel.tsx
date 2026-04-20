@@ -7,12 +7,23 @@ const emptyStats: SavedTypingStats = {
   totalRuns: 0,
   bestWpm: 0,
   bestCpm: 0,
+  bestAccuracy: 0,
   averageWpm: 0,
   averageCpm: 0,
   averageAccuracy: 0,
+  cleanRuns: 0,
+  cleanRunRate: 0,
+  failedRuns: 0,
+  currentStreakDays: 0,
+  lastFiveAverageWpm: 0,
+  previousFiveAverageWpm: 0,
+  wpmTrend: 0,
   totalDurationMs: 0,
   totalTypedChars: 0,
   totalMistakes: 0,
+  modeStats: [],
+  dailyActivity: [],
+  wpmHistory: [],
   recentRuns: [],
   worstWords: []
 };
@@ -35,12 +46,41 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
+function formatDay(value: string): string {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric"
+  }).format(new Date(`${value}T00:00:00`));
+}
+
+function formatTrend(value: number): string {
+  if (value === 0) return "No change";
+  return value > 0 ? `${value} WPM faster` : `${Math.abs(value)} WPM slower`;
+}
+
 function StatTile({ label, value }: { label: string; value: string | number }) {
   return (
     <div style={{ border: "1px solid var(--border-soft)", borderRadius: "8px", padding: "12px" }}>
       <div style={{ color: "var(--muted)", fontSize: "12px", marginBottom: "4px" }}>{label}</div>
       <strong style={{ fontSize: "24px" }}>{value}</strong>
     </div>
+  );
+}
+
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section
+      style={{
+        border: "1px solid var(--border-soft)",
+        borderRadius: "8px",
+        padding: "14px",
+        display: "grid",
+        gap: "12px"
+      }}
+    >
+      <h2 style={{ fontSize: "20px", margin: 0 }}>{title}</h2>
+      {children}
+    </section>
   );
 }
 
@@ -53,6 +93,183 @@ function RunMetric({ label, value }: { label: string; value: string | number }) 
     >
       <div style={{ color: "var(--muted)", fontSize: "12px", marginBottom: "2px" }}>{label}</div>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function WpmHistoryChart({ runs }: { runs: SavedTypingStats["wpmHistory"] }) {
+  const maxWpm = Math.max(1, ...runs.map((run) => run.wpm));
+
+  if (runs.length === 0) {
+    return <p style={{ margin: 0, color: "var(--muted)" }}>No WPM history yet.</p>;
+  }
+
+  return (
+    <div
+      style={{
+        minHeight: "150px",
+        display: "grid",
+        gridTemplateColumns: `repeat(${runs.length}, minmax(18px, 1fr))`,
+        gap: "8px",
+        alignItems: "end"
+      }}
+    >
+      {runs.map((run, index) => {
+        const height = Math.max(12, Math.round((run.wpm / maxWpm) * 120));
+
+        return (
+          <div key={`${run.id}-${index}`} title={`${run.wpm} WPM on ${formatDate(run.created_at)}`}>
+            <div
+              style={{
+                height: `${height}px`,
+                borderRadius: "6px 6px 3px 3px",
+                backgroundColor: "var(--primary)"
+              }}
+            />
+            <div
+              style={{
+                marginTop: "6px",
+                color: "var(--muted)",
+                fontSize: "11px",
+                textAlign: "center"
+              }}
+            >
+              {run.wpm}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function DailyActivityChart({ days }: { days: SavedTypingStats["dailyActivity"] }) {
+  const maxRuns = Math.max(1, ...days.map((day) => day.runs));
+
+  if (days.length === 0) {
+    return <p style={{ margin: 0, color: "var(--muted)" }}>No daily activity yet.</p>;
+  }
+
+  return (
+    <div style={{ display: "grid", gap: "8px" }}>
+      {days.map((day) => (
+        <div
+          key={day.date}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "70px minmax(80px, 1fr) 82px",
+            gap: "10px",
+            alignItems: "center"
+          }}
+        >
+          <span style={{ color: "var(--muted)", fontSize: "12px" }}>{formatDay(day.date)}</span>
+          <div
+            style={{
+              height: "10px",
+              borderRadius: "999px",
+              backgroundColor: "var(--input-muted)",
+              overflow: "hidden"
+            }}
+          >
+            <div
+              style={{
+                width: `${Math.max(8, Math.round((day.runs / maxRuns) * 100))}%`,
+                height: "100%",
+                backgroundColor: "var(--success)"
+              }}
+            />
+          </div>
+          <strong style={{ fontSize: "12px" }}>
+            {day.runs} {day.runs === 1 ? "run" : "runs"}
+          </strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function WorstWordsChart({ words }: { words: SavedTypingStats["worstWords"] }) {
+  const maxMistakes = Math.max(1, ...words.map((entry) => entry.mistakes));
+
+  if (words.length === 0) {
+    return <p style={{ margin: 0, color: "var(--muted)" }}>No recurring mistakes yet.</p>;
+  }
+
+  return (
+    <div style={{ display: "grid", gap: "10px" }}>
+      {words.map((entry, index) => (
+        <div
+          key={entry.word}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(90px, 140px) minmax(110px, 1fr) 68px",
+            gap: "10px",
+            alignItems: "center"
+          }}
+        >
+          <strong style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {index + 1}. {entry.word}
+          </strong>
+          <div
+            style={{
+              height: "14px",
+              borderRadius: "999px",
+              backgroundColor: "var(--input-muted)",
+              overflow: "hidden"
+            }}
+          >
+            <div
+              style={{
+                width: `${Math.max(10, Math.round((entry.mistakes / maxMistakes) * 100))}%`,
+                height: "100%",
+                backgroundColor: "var(--danger)"
+              }}
+            />
+          </div>
+          <span style={{ color: "var(--muted-strong)", fontSize: "13px", fontWeight: 700 }}>
+            {entry.mistakes} {entry.mistakes === 1 ? "error" : "errors"}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ModeBreakdown({ modes }: { modes: SavedTypingStats["modeStats"] }) {
+  if (modes.length === 0) {
+    return <p style={{ margin: 0, color: "var(--muted)" }}>No mode data yet.</p>;
+  }
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "10px" }}>
+      {modes.map((mode) => (
+        <article
+          key={mode.mode}
+          style={{
+            border: "1px solid var(--border-soft)",
+            borderRadius: "8px",
+            padding: "12px",
+            backgroundColor: "var(--surface-soft)"
+          }}
+        >
+          <strong>{mode.mode === "words" ? "Word Mode" : "Sentences"}</strong>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gap: "8px",
+              marginTop: "10px"
+            }}
+          >
+            <RunMetric label="Runs" value={mode.runs} />
+            <RunMetric label="Best WPM" value={mode.bestWpm} />
+            <RunMetric label="Avg WPM" value={mode.averageWpm} />
+            <RunMetric label="Accuracy" value={`${mode.averageAccuracy}%`} />
+            <RunMetric label="Error-Free" value={mode.cleanRuns} />
+            <RunMetric label="Time" value={formatDuration(mode.totalDurationMs)} />
+          </div>
+        </article>
+      ))}
     </div>
   );
 }
@@ -153,6 +370,7 @@ export default function StatsPanel() {
             <StatTile label="Runs" value={stats.totalRuns} />
             <StatTile label="Best WPM" value={stats.bestWpm} />
             <StatTile label="Best CPM" value={stats.bestCpm} />
+            <StatTile label="Best Accuracy" value={`${stats.bestAccuracy}%`} />
             <StatTile label="Average WPM" value={stats.averageWpm} />
             <StatTile label="Average CPM" value={stats.averageCpm} />
             <StatTile label="Accuracy" value={`${stats.averageAccuracy}%`} />
@@ -160,8 +378,39 @@ export default function StatsPanel() {
             <StatTile label="Mistakes" value={stats.totalMistakes} />
           </div>
 
-          <section>
-            <h2 style={{ fontSize: "20px", margin: "0 0 10px" }}>Recent Runs</h2>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+              gap: "10px"
+            }}
+          >
+            <StatTile label="Last 5 Avg" value={`${stats.lastFiveAverageWpm} WPM`} />
+            <StatTile label="Recent Speed" value={formatTrend(stats.wpmTrend)} />
+            <StatTile label="Streak" value={`${stats.currentStreakDays}d`} />
+            <StatTile label="Error-Free Runs" value={`${stats.cleanRuns} (${stats.cleanRunRate}%)`} />
+            <StatTile label="Failed Runs" value={stats.failedRuns} />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px" }}>
+            <SectionCard title="WPM History">
+              <WpmHistoryChart runs={stats.wpmHistory} />
+            </SectionCard>
+
+            <SectionCard title="Daily Activity">
+              <DailyActivityChart days={stats.dailyActivity} />
+            </SectionCard>
+          </div>
+
+          <SectionCard title="Mode Breakdown">
+            <ModeBreakdown modes={stats.modeStats} />
+          </SectionCard>
+
+          <SectionCard title="Worst Words">
+            <WorstWordsChart words={stats.worstWords} />
+          </SectionCard>
+
+          <SectionCard title="Recent Runs">
             <div style={{ display: "grid", gap: "8px" }}>
               {stats.recentRuns.map((run) => (
                 <article
@@ -198,32 +447,7 @@ export default function StatsPanel() {
                 </article>
               ))}
             </div>
-          </section>
-
-          <section>
-            <h2 style={{ fontSize: "20px", margin: "0 0 10px" }}>Worst Words</h2>
-            {stats.worstWords.length === 0 && (
-              <p style={{ margin: 0, color: "var(--muted)" }}>No recurring mistakes yet.</p>
-            )}
-            {stats.worstWords.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                {stats.worstWords.map((entry) => (
-                  <span
-                    key={entry.word}
-                    style={{
-                      border: "1px solid var(--border-soft)",
-                      borderRadius: "999px",
-                      padding: "6px 10px",
-                      backgroundColor: "var(--surface-soft)",
-                      fontWeight: 700
-                    }}
-                  >
-                    {entry.word} ({entry.mistakes})
-                  </span>
-                ))}
-              </div>
-            )}
-          </section>
+          </SectionCard>
         </div>
       )}
     </section>

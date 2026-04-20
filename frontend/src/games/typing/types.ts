@@ -41,16 +41,44 @@ export type SavedTypingRun = {
   created_at: string;
 };
 
+export type SavedTypingModeStats = {
+  mode: string;
+  runs: number;
+  bestWpm: number;
+  averageWpm: number;
+  averageAccuracy: number;
+  cleanRuns: number;
+  totalDurationMs: number;
+};
+
+export type SavedTypingDayStats = {
+  date: string;
+  runs: number;
+  averageWpm: number;
+  totalDurationMs: number;
+};
+
 export type SavedTypingStats = {
   totalRuns: number;
   bestWpm: number;
   bestCpm: number;
+  bestAccuracy: number;
   averageWpm: number;
   averageCpm: number;
   averageAccuracy: number;
+  cleanRuns: number;
+  cleanRunRate: number;
+  failedRuns: number;
+  currentStreakDays: number;
+  lastFiveAverageWpm: number;
+  previousFiveAverageWpm: number;
+  wpmTrend: number;
   totalDurationMs: number;
   totalTypedChars: number;
   totalMistakes: number;
+  modeStats: SavedTypingModeStats[];
+  dailyActivity: SavedTypingDayStats[];
+  wpmHistory: SavedTypingRun[];
   recentRuns: SavedTypingRun[];
   worstWords: Array<{
     word: string;
