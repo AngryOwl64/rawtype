@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import AccountPanel from "./account/AccountPanel";
 import { useAuth } from "./auth/authContext";
 import TypingGame from "./games/typing/components/TypingGame";
+import { fetchTypingDailyActivity, fetchTypingStreakDays } from "./games/typing/services/runResults";
 import type {
+  SavedTypingDayStats,
   TypingFont,
   TypingLanguage,
   TypingMode,
@@ -20,7 +22,7 @@ import {
   type ThemeMode
 } from "./settings/preferences";
 import SettingsPanel from "./settings/SettingsPanel";
-import StatsPanel from "./stats/StatsPanel";
+import StatsPanel, { DailyActivityChart } from "./stats/StatsPanel";
 
 type HeaderTab = "games" | "stats" | "account" | "settings";
 
@@ -31,7 +33,7 @@ const headerTabs: Array<{ id: HeaderTab; label: string }> = [
 ];
 
 function App() {
-  const { loading: authLoading, profile, settings, updateSettings, user } = useAuth();
+  const { configured, loading: authLoading, profile, settings, updateSettings, user } = useAuth();
   const [activeTab, setActiveTab] = useState<HeaderTab>("games");
   const [playingTypingGame, setPlayingTypingGame] = useState(false);
   const [typingMode, setTypingMode] = useState<TypingMode>("sentences");
@@ -42,6 +44,8 @@ function App() {
   const [font, setFont] = useState<TypingFont>(getStoredFont);
   const [localLanguage, setLocalLanguage] = useState<TypingLanguage>(getStoredLanguage);
   const [pendingAccountLanguage, setPendingAccountLanguage] = useState<TypingLanguage | null>(null);
+  const [currentStreakDays, setCurrentStreakDays] = useState(0);
+  const [dailyActivity, setDailyActivity] = useState<SavedTypingDayStats[]>([]);
   const accountLabel = authLoading ? "Account" : user ? profile?.username ?? "Account" : "Login";
   const themeVariables = useMemo(() => getThemeVariables(theme), [theme]);
   const fontVariables = useMemo(() => getFontVariables(font), [font]);
@@ -71,6 +75,32 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem("rawtype-font", font);
   }, [font]);
+
+  useEffect(() => {
+    if (!configured || authLoading || !user) {
+      return;
+    }
+
+    if (activeTab !== "games" || playingTypingGame) {
+      return;
+    }
+
+    let active = true;
+
+    void Promise.all([fetchTypingStreakDays(), fetchTypingDailyActivity()])
+      .then(([streakDays, activityDays]) => {
+        if (!active) return;
+        setCurrentStreakDays(streakDays);
+        setDailyActivity(activityDays);
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [activeTab, authLoading, configured, playingTypingGame, user]);
 
   function handleLanguageChange(nextLanguage: TypingLanguage) {
     setLocalLanguage(nextLanguage);
@@ -187,7 +217,31 @@ function App() {
       <main style={{ maxWidth: "980px", margin: "0 auto", padding: "28px 24px 40px" }}>
         {activeTab === "games" && !playingTypingGame && (
           <section>
-            <h1 style={{ marginTop: 0, marginBottom: "10px", fontSize: "34px" }}>Start Menu</h1>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "14px",
+                flexWrap: "wrap"
+              }}
+            >
+              <h1 style={{ margin: 0, fontSize: "34px" }}>Start Menu</h1>
+              {user && (
+                <div
+                  style={{
+                    border: "1px solid var(--border-soft)",
+                    borderRadius: "8px",
+                    padding: "8px 12px",
+                    backgroundColor: "var(--surface)",
+                    color: "var(--muted-strong)",
+                    fontWeight: 700
+                  }}
+                >
+                  Streak: {currentStreakDays} {currentStreakDays === 1 ? "day" : "days"}
+                </div>
+              )}
+            </div>
              <div
               style={{
                 marginTop: "22px",
@@ -196,6 +250,22 @@ function App() {
                 gap: "14px"
               }}
             >
+              {user && (
+                <section
+                  style={{
+                    border: "1px solid var(--border)",
+                    borderRadius: "8px",
+                    backgroundColor: "var(--surface)",
+                    padding: "18px",
+                    display: "grid",
+                    gap: "12px"
+                  }}
+                >
+                  <h2 style={{ margin: 0, fontSize: "20px" }}>Daily Activity</h2>
+                  <DailyActivityChart days={dailyActivity} />
+                </section>
+              )}
+
               <article
                 style={{
                   border: "1px solid var(--border)",

@@ -410,7 +410,6 @@ export default function TypingGame({
             <MetricCard label="CPM" value={cpm} />
             <MetricCard label="Accuracy" value={`${accuracy}%`} />
             <MetricCard label="Duration" value={`${durationSeconds}s`} />
-            <MetricCard label="Words Completed" value={`${completedWords}/${totalWords}`} />
             <MetricCard label="Keystrokes" value={typedChars} />
             <MetricCard label="Correct Keystrokes" value={correctChars} />
             <MetricCard label="Errors" value={mistakes} />
