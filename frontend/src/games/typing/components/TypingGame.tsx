@@ -11,18 +11,12 @@ type TypingGameProps = {
   wordNoMistakeMode?: WordNoMistakeMode;
 };
 
-const savedDifficulties = new Set<WordModeDifficulty>(["easy", "medium", "hard", "mixed"]);
-
 function getSavedDifficulty(
   mode: TypingMode,
   wordDifficulty: WordModeDifficulty,
-  textDifficulty: string | undefined
+  _textDifficulty: string | undefined
 ): WordModeDifficulty | null {
   if (mode === "words") return wordDifficulty;
-  if (savedDifficulties.has(textDifficulty as WordModeDifficulty)) {
-    return textDifficulty as WordModeDifficulty;
-  }
-
   return null;
 }
 

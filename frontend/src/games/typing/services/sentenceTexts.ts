@@ -29,7 +29,7 @@ async function fetchSentenceBatchFromDb(language: string, batchSize: number): Pr
     .from("texts")
     .select("id, content, category, difficulty, language, word_count, source")
     .eq("language", language)
-    .not("category", "ilike", "code")
+    .eq("category", "prose")
     .limit(batchSize);
 
   if (error) {
@@ -67,7 +67,7 @@ async function ensureSentenceBatchLoaded(language: string, batchSize: number): P
   }
 
   if (result.rows.length === 0) {
-    return `No non-code texts found in database for language "${language}".`;
+    return `No prose texts found in database for language "${language}".`;
   }
 
   textCache.set(key, result.rows);
@@ -143,7 +143,7 @@ export async function getRandomTypingText(options: GetRandomTypingTextOptions = 
   if (!picked) {
     return {
       text: null,
-      error: `No non-code texts available for language "${language}".`
+      error: `No prose texts available for language "${language}".`
     };
   }
 
