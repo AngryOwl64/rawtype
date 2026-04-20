@@ -1,9 +1,5 @@
 import type { TypingFont, TypingLanguage } from "../games/typing/types";
-
-type SelectOption = {
-  value: string;
-  label: string;
-};
+import { FONT_OPTIONS, LANGUAGE_OPTIONS, type SelectOption } from "./preferences";
 
 const fieldStyle = {
   width: "100%",
@@ -41,7 +37,7 @@ function SettingGroup({ title, children }: { title: string; children: React.Reac
   );
 }
 
-function SelectSetting({
+function SelectSetting<T extends string>({
   label,
   value,
   options,
@@ -49,10 +45,10 @@ function SelectSetting({
   onChange
 }: {
   label: string;
-  value: string;
-  options: SelectOption[];
+  value: T;
+  options: ReadonlyArray<SelectOption<T>>;
   disabled?: boolean;
-  onChange?: (value: string) => void;
+  onChange?: (value: T) => void;
 }) {
   return (
     <label style={{ display: "grid", gap: "6px", color: "var(--muted-strong)", fontWeight: 700 }}>
@@ -60,7 +56,7 @@ function SelectSetting({
       <select
         disabled={disabled}
         value={value}
-        onChange={(event) => onChange?.(event.target.value)}
+        onChange={(event) => onChange?.(event.target.value as T)}
         style={fieldStyle}
       >
         {options.map((option) => (
@@ -204,22 +200,15 @@ export default function SettingsPanel({
             label="Language"
             value={language}
             disabled={false}
-            onChange={(value) => onLanguageChange(value as TypingLanguage)}
-            options={[
-              { value: "en", label: "English" },
-              { value: "de", label: "German" }
-            ]}
+            onChange={onLanguageChange}
+            options={LANGUAGE_OPTIONS}
           />
           <SelectSetting
             label="Font"
             value={font}
             disabled={false}
-            onChange={(value) => onFontChange(value as TypingFont)}
-            options={[
-              { value: "system-mono", label: "System mono" },
-              { value: "sans", label: "Sans" },
-              { value: "serif", label: "Serif" }
-            ]}
+            onChange={onFontChange}
+            options={FONT_OPTIONS}
           />
         </SettingGroup>
 

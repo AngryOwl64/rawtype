@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import type { CSSProperties } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AccountPanel from "./account/AccountPanel";
 import { useAuth } from "./auth/authContext";
 import TypingGame from "./games/typing/components/TypingGame";
@@ -10,88 +9,26 @@ import type {
   WordModeDifficulty,
   WordNoMistakeMode
 } from "./games/typing/types";
+import {
+  getFontVariables,
+  getLanguageLabel,
+  getStoredFont,
+  getStoredLanguage,
+  getStoredTheme,
+  getThemeVariables,
+  isTypingLanguage,
+  type ThemeMode
+} from "./settings/preferences";
 import SettingsPanel from "./settings/SettingsPanel";
 import StatsPanel from "./stats/StatsPanel";
 
 type HeaderTab = "games" | "stats" | "account" | "settings";
-type ThemeMode = "light" | "dark";
 
 const headerTabs: Array<{ id: HeaderTab; label: string }> = [
   { id: "games", label: "Games" },
   { id: "stats", label: "Stats" },
   { id: "settings", label: "Settings" }
 ];
-
-function getStoredTheme(): ThemeMode {
-  if (typeof window === "undefined") return "light";
-  return window.localStorage.getItem("rawtype-theme") === "dark" ? "dark" : "light";
-}
-
-function isTypingLanguage(value: string | null | undefined): value is TypingLanguage {
-  return value === "en" || value === "de";
-}
-
-function getStoredLanguage(): TypingLanguage {
-  if (typeof window === "undefined") return "en";
-  const storedLanguage = window.localStorage.getItem("rawtype-language");
-  return isTypingLanguage(storedLanguage) ? storedLanguage : "en";
-}
-
-function isTypingFont(value: string | null | undefined): value is TypingFont {
-  return value === "system-mono" || value === "sans" || value === "serif";
-}
-
-function getStoredFont(): TypingFont {
-  if (typeof window === "undefined") return "system-mono";
-  const storedFont = window.localStorage.getItem("rawtype-font");
-  return isTypingFont(storedFont) ? storedFont : "system-mono";
-}
-
-function getThemeVariables(theme: ThemeMode): CSSProperties {
-  const dark = theme === "dark";
-
-  return {
-    "--page-bg": dark ? "#272822" : "#ece8df",
-    "--header-bg": dark ? "rgba(39, 40, 34, 0.96)" : "rgba(244, 239, 229, 0.94)",
-    "--text": dark ? "#f8f8f2" : "#232a33",
-    "--muted": dark ? "#a8a8a3" : "#5e6670",
-    "--muted-strong": dark ? "#f8f8f2" : "#38414d",
-    "--surface": dark ? "#313327" : "#f7f4ee",
-    "--surface-soft": dark ? "#3e3d32" : "#f1ece4",
-    "--input-bg": dark ? "#3b3a32" : "#fdfaf3",
-    "--input-muted": dark ? "#46463b" : "#ece6dc",
-    "--border": dark ? "#4c4b42" : "#c4c0b7",
-    "--border-soft": dark ? "#3f3e35" : "#d7d2c8",
-    "--border-strong": dark ? "#59574d" : "#a8b0b8",
-    "--primary": dark ? "#66d9ef" : "#2f3742",
-    "--primary-text": dark ? "#272822" : "#f8fafc",
-    "--success": dark ? "#a6e22e" : "#3b7b4f",
-    "--danger": dark ? "#f92672" : "#8f4a54",
-    "--danger-bg": dark ? "#3a2030" : "#f3e7e8",
-    "--danger-border": dark ? "#6b3853" : "#d7c3c6"
-  } as CSSProperties;
-}
-
-function getFontVariables(font: TypingFont): CSSProperties {
-  if (font === "sans") {
-    return {
-      "--app-font": "'Segoe UI', 'Aptos', 'Trebuchet MS', sans-serif",
-      "--typing-font": "'Segoe UI', 'Aptos', 'Trebuchet MS', sans-serif"
-    } as CSSProperties;
-  }
-
-  if (font === "serif") {
-    return {
-      "--app-font": "Georgia, 'Times New Roman', serif",
-      "--typing-font": "Georgia, 'Times New Roman', serif"
-    } as CSSProperties;
-  }
-
-  return {
-    "--app-font": "'Segoe UI', 'Aptos', 'Trebuchet MS', sans-serif",
-    "--typing-font": "Consolas, Menlo, Monaco, 'Segoe UI Mono', monospace"
-  } as CSSProperties;
-}
 
 function App() {
   const { loading: authLoading, profile, settings, updateSettings, user } = useAuth();
@@ -106,11 +43,22 @@ function App() {
   const [localLanguage, setLocalLanguage] = useState<TypingLanguage>(getStoredLanguage);
   const [pendingAccountLanguage, setPendingAccountLanguage] = useState<TypingLanguage | null>(null);
   const accountLabel = authLoading ? "Account" : user ? profile?.username ?? "Account" : "Login";
-  const themeVariables = getThemeVariables(theme);
-  const fontVariables = getFontVariables(font);
+  const themeVariables = useMemo(() => getThemeVariables(theme), [theme]);
+  const fontVariables = useMemo(() => getFontVariables(font), [font]);
   const accountLanguage = isTypingLanguage(settings?.language) ? settings.language : null;
   const language = pendingAccountLanguage ?? (user ? accountLanguage : null) ?? localLanguage;
-  const languageLabel = language === "de" ? "German" : "English";
+  const languageLabel = getLanguageLabel(language);
+  const appStyle = useMemo(
+    () => ({
+      ...themeVariables,
+      ...fontVariables,
+      minHeight: "100vh",
+      background: "var(--page-bg)",
+      color: "var(--text)",
+      fontFamily: "var(--app-font)"
+    }),
+    [fontVariables, themeVariables]
+  );
 
   useEffect(() => {
     window.localStorage.setItem("rawtype-theme", theme);
@@ -145,14 +93,7 @@ function App() {
   return (
     <div
       data-theme={theme}
-      style={{
-        ...themeVariables,
-        ...fontVariables,
-        minHeight: "100vh",
-        background: "var(--page-bg)",
-        color: "var(--text)",
-        fontFamily: "var(--app-font)"
-      }}
+      style={appStyle}
     >
       <header
         style={{
