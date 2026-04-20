@@ -1,3 +1,10 @@
+import type { TypingFont, TypingLanguage } from "../games/typing/types";
+
+type SelectOption = {
+  value: string;
+  label: string;
+};
+
 const fieldStyle = {
   width: "100%",
   boxSizing: "border-box" as const,
@@ -37,19 +44,28 @@ function SettingGroup({ title, children }: { title: string; children: React.Reac
 function SelectSetting({
   label,
   value,
-  options
+  options,
+  disabled = true,
+  onChange
 }: {
   label: string;
   value: string;
-  options: string[];
+  options: SelectOption[];
+  disabled?: boolean;
+  onChange?: (value: string) => void;
 }) {
   return (
     <label style={{ display: "grid", gap: "6px", color: "var(--muted-strong)", fontWeight: 700 }}>
       <span style={{ fontSize: "13px" }}>{label}</span>
-      <select disabled value={value} style={fieldStyle}>
+      <select
+        disabled={disabled}
+        value={value}
+        onChange={(event) => onChange?.(event.target.value)}
+        style={fieldStyle}
+      >
         {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </select>
@@ -140,10 +156,21 @@ function DarkModeSetting({
 
 type SettingsPanelProps = {
   darkMode: boolean;
+  font: TypingFont;
+  language: TypingLanguage;
   onDarkModeChange: (enabled: boolean) => void;
+  onFontChange: (font: TypingFont) => void;
+  onLanguageChange: (language: TypingLanguage) => void;
 };
 
-export default function SettingsPanel({ darkMode, onDarkModeChange }: SettingsPanelProps) {
+export default function SettingsPanel({
+  darkMode,
+  font,
+  language,
+  onDarkModeChange,
+  onFontChange,
+  onLanguageChange
+}: SettingsPanelProps) {
   return (
     <section
       style={{
@@ -172,15 +199,59 @@ export default function SettingsPanel({ darkMode, onDarkModeChange }: SettingsPa
       <div style={{ display: "grid", gap: "14px", marginTop: "18px" }}>
         <DarkModeSetting enabled={darkMode} onChange={onDarkModeChange} />
 
-        <SettingGroup title="Appearance">
-          <SelectSetting label="Language" value="English" options={["English", "German"]} />
-          <SelectSetting label="Font" value="System mono" options={["System mono", "Sans", "Serif"]} />
+        <SettingGroup title="General Settings">
+          <SelectSetting
+            label="Language"
+            value={language}
+            disabled={false}
+            onChange={(value) => onLanguageChange(value as TypingLanguage)}
+            options={[
+              { value: "en", label: "English" },
+              { value: "de", label: "German" }
+            ]}
+          />
+          <SelectSetting
+            label="Font"
+            value={font}
+            disabled={false}
+            onChange={(value) => onFontChange(value as TypingFont)}
+            options={[
+              { value: "system-mono", label: "System mono" },
+              { value: "sans", label: "Sans" },
+              { value: "serif", label: "Serif" }
+            ]}
+          />
         </SettingGroup>
 
         <SettingGroup title="Typing Defaults">
-          <SelectSetting label="Mode" value="Sentences" options={["Sentences", "Words"]} />
-          <SelectSetting label="Word Count" value="25" options={["10", "25", "50", "75"]} />
-          <SelectSetting label="Difficulty" value="Mixed" options={["Easy", "Medium", "Hard", "Mixed"]} />
+          <SelectSetting
+            label="Mode"
+            value="Sentences"
+            options={[
+              { value: "Sentences", label: "Sentences" },
+              { value: "Words", label: "Words" }
+            ]}
+          />
+          <SelectSetting
+            label="Word Count"
+            value="25"
+            options={[
+              { value: "10", label: "10" },
+              { value: "25", label: "25" },
+              { value: "50", label: "50" },
+              { value: "75", label: "75" }
+            ]}
+          />
+          <SelectSetting
+            label="Difficulty"
+            value="Mixed"
+            options={[
+              { value: "Easy", label: "Easy" },
+              { value: "Medium", label: "Medium" },
+              { value: "Hard", label: "Hard" },
+              { value: "Mixed", label: "Mixed" }
+            ]}
+          />
         </SettingGroup>
 
         <SettingGroup title="Training">
