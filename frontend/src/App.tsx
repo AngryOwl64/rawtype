@@ -184,7 +184,7 @@ function App() {
               >
                 <h2 style={{ marginTop: 0, marginBottom: "8px", fontSize: "22px" }}>Typing Classic</h2>
                 <p style={{ marginTop: 0, marginBottom: "14px", color: "var(--muted)", lineHeight: 1.45 }}>
-                  Standard mode with normal sentences.
+                  Standard prose mode with random text from the database.
                 </p>
 
                 <button
@@ -398,7 +398,7 @@ function App() {
                 Typing Classic{" "}
                 {typingMode === "words"
                   ? `(Words ${wordsCount}, ${wordDifficulty}, no-mistake ${wordNoMistakeMode})`
-                  : "(Sentences)"}
+                  : "(Prose)"}
               </h1>
               <button
                 type="button"
