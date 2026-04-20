@@ -8,7 +8,13 @@ import {
   normalizeUsername,
   usernameToAuthEmail
 } from "./usernameAuth";
-import { AuthContext, type AuthContextValue, type Profile, type UserSettings } from "./authContext";
+import {
+  AuthContext,
+  type AuthContextValue,
+  type Profile,
+  type UserSettings,
+  type UserSettingsUpdate
+} from "./authContext";
 
 function getAuthErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message) {
@@ -195,6 +201,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await loadAccount(null);
   }, [loadAccount]);
 
+  const updateSettings = useCallback(async (updates: UserSettingsUpdate) => {
+    if (!user) {
+      return;
+    }
+
+    const client = requireSupabaseClient();
+    const { data, error: settingsError } = await client
+      .from("user_settings")
+      .update(updates)
+      .eq("user_id", user.id)
+      .select("*")
+      .single();
+
+    if (settingsError) throw new Error(getAuthErrorMessage(settingsError));
+    setSettings(data);
+  }, [user]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -206,9 +229,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       register,
       signOut,
+      updateSettings,
       refreshAccount
     }),
-    [error, loading, profile, refreshAccount, register, settings, signIn, signOut, user]
+    [error, loading, profile, refreshAccount, register, settings, signIn, signOut, updateSettings, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

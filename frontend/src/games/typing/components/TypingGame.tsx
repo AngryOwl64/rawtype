@@ -2,20 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../../auth/authContext";
 import { saveTypingRun } from "../services/runResults";
 import { useTypingGame } from "../hooks/useTypingGame";
-import type { TypingMode, WordModeDifficulty, WordNoMistakeMode } from "../types";
+import type { TypingLanguage, TypingMode, WordModeDifficulty, WordNoMistakeMode } from "../types";
 
 type TypingGameProps = {
   mode?: TypingMode;
+  language?: TypingLanguage;
   wordsCount?: number;
   wordDifficulty?: WordModeDifficulty;
   wordNoMistakeMode?: WordNoMistakeMode;
 };
 
-function getSavedDifficulty(
-  mode: TypingMode,
-  wordDifficulty: WordModeDifficulty,
-  _textDifficulty: string | undefined
-): WordModeDifficulty | null {
+function getSavedDifficulty(mode: TypingMode, wordDifficulty: WordModeDifficulty): WordModeDifficulty | null {
   if (mode === "words") return wordDifficulty;
   return null;
 }
@@ -47,11 +44,11 @@ function MetricCard({
 
 export default function TypingGame({
   mode = "sentences",
+  language = "en",
   wordsCount = 25,
   wordDifficulty = "mixed",
   wordNoMistakeMode = "off"
 }: TypingGameProps) {
-  const language = "en";
   const { user } = useAuth();
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
@@ -124,7 +121,7 @@ export default function TypingGame({
     setSaveState("saving");
     setSaveError("");
 
-    const savedDifficulty = getSavedDifficulty(mode, wordDifficulty, activeText?.difficulty);
+    const savedDifficulty = getSavedDifficulty(mode, wordDifficulty);
 
     void saveTypingRun({
       textId: activeText?.id ?? null,
@@ -154,7 +151,6 @@ export default function TypingGame({
       });
   }, [
     accuracy,
-    activeText?.difficulty,
     activeText?.id,
     completedWords,
     correctChars,
@@ -196,7 +192,7 @@ export default function TypingGame({
     <div
       style={{
         padding: "32px 16px 40px",
-        fontFamily: "Consolas, Menlo, Monaco, monospace",
+        fontFamily: "var(--typing-font)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",

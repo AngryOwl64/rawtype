@@ -3,7 +3,13 @@ import type { CSSProperties } from "react";
 import AccountPanel from "./account/AccountPanel";
 import { useAuth } from "./auth/authContext";
 import TypingGame from "./games/typing/components/TypingGame";
-import type { TypingMode, WordModeDifficulty, WordNoMistakeMode } from "./games/typing/types";
+import type {
+  TypingFont,
+  TypingLanguage,
+  TypingMode,
+  WordModeDifficulty,
+  WordNoMistakeMode
+} from "./games/typing/types";
 import SettingsPanel from "./settings/SettingsPanel";
 import StatsPanel from "./stats/StatsPanel";
 
@@ -19,6 +25,26 @@ const headerTabs: Array<{ id: HeaderTab; label: string }> = [
 function getStoredTheme(): ThemeMode {
   if (typeof window === "undefined") return "light";
   return window.localStorage.getItem("rawtype-theme") === "dark" ? "dark" : "light";
+}
+
+function isTypingLanguage(value: string | null | undefined): value is TypingLanguage {
+  return value === "en" || value === "de";
+}
+
+function getStoredLanguage(): TypingLanguage {
+  if (typeof window === "undefined") return "en";
+  const storedLanguage = window.localStorage.getItem("rawtype-language");
+  return isTypingLanguage(storedLanguage) ? storedLanguage : "en";
+}
+
+function isTypingFont(value: string | null | undefined): value is TypingFont {
+  return value === "system-mono" || value === "sans" || value === "serif";
+}
+
+function getStoredFont(): TypingFont {
+  if (typeof window === "undefined") return "system-mono";
+  const storedFont = window.localStorage.getItem("rawtype-font");
+  return isTypingFont(storedFont) ? storedFont : "system-mono";
 }
 
 function getThemeVariables(theme: ThemeMode): CSSProperties {
@@ -46,8 +72,29 @@ function getThemeVariables(theme: ThemeMode): CSSProperties {
   } as CSSProperties;
 }
 
+function getFontVariables(font: TypingFont): CSSProperties {
+  if (font === "sans") {
+    return {
+      "--app-font": "'Segoe UI', 'Aptos', 'Trebuchet MS', sans-serif",
+      "--typing-font": "'Segoe UI', 'Aptos', 'Trebuchet MS', sans-serif"
+    } as CSSProperties;
+  }
+
+  if (font === "serif") {
+    return {
+      "--app-font": "Georgia, 'Times New Roman', serif",
+      "--typing-font": "Georgia, 'Times New Roman', serif"
+    } as CSSProperties;
+  }
+
+  return {
+    "--app-font": "'Segoe UI', 'Aptos', 'Trebuchet MS', sans-serif",
+    "--typing-font": "Consolas, Menlo, Monaco, 'Segoe UI Mono', monospace"
+  } as CSSProperties;
+}
+
 function App() {
-  const { loading: authLoading, profile, user } = useAuth();
+  const { loading: authLoading, profile, settings, updateSettings, user } = useAuth();
   const [activeTab, setActiveTab] = useState<HeaderTab>("games");
   const [playingTypingGame, setPlayingTypingGame] = useState(false);
   const [typingMode, setTypingMode] = useState<TypingMode>("sentences");
@@ -55,22 +102,56 @@ function App() {
   const [wordDifficulty, setWordDifficulty] = useState<WordModeDifficulty>("mixed");
   const [wordNoMistakeMode, setWordNoMistakeMode] = useState<WordNoMistakeMode>("off");
   const [theme, setTheme] = useState<ThemeMode>(getStoredTheme);
+  const [font, setFont] = useState<TypingFont>(getStoredFont);
+  const [localLanguage, setLocalLanguage] = useState<TypingLanguage>(getStoredLanguage);
+  const [pendingAccountLanguage, setPendingAccountLanguage] = useState<TypingLanguage | null>(null);
   const accountLabel = authLoading ? "Account" : user ? profile?.username ?? "Account" : "Login";
   const themeVariables = getThemeVariables(theme);
+  const fontVariables = getFontVariables(font);
+  const accountLanguage = isTypingLanguage(settings?.language) ? settings.language : null;
+  const language = pendingAccountLanguage ?? (user ? accountLanguage : null) ?? localLanguage;
+  const languageLabel = language === "de" ? "German" : "English";
 
   useEffect(() => {
     window.localStorage.setItem("rawtype-theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    window.localStorage.setItem("rawtype-language", language);
+  }, [language]);
+
+  useEffect(() => {
+    window.localStorage.setItem("rawtype-font", font);
+  }, [font]);
+
+  function handleLanguageChange(nextLanguage: TypingLanguage) {
+    setLocalLanguage(nextLanguage);
+
+    if (!user) {
+      return;
+    }
+
+    setPendingAccountLanguage(nextLanguage);
+
+    void updateSettings({ language: nextLanguage })
+      .then(() => {
+        setPendingAccountLanguage(null);
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+      });
+  }
 
   return (
     <div
       data-theme={theme}
       style={{
         ...themeVariables,
+        ...fontVariables,
         minHeight: "100vh",
         background: "var(--page-bg)",
         color: "var(--text)",
-        fontFamily: "'Segoe UI', 'Aptos', 'Trebuchet MS', sans-serif"
+        fontFamily: "var(--app-font)"
       }}
     >
       <header
@@ -397,8 +478,8 @@ function App() {
               <h1 style={{ margin: 0, fontSize: "30px" }}>
                 Typing Classic{" "}
                 {typingMode === "words"
-                  ? `(Words ${wordsCount}, ${wordDifficulty}, no-mistake ${wordNoMistakeMode})`
-                  : "(Prose)"}
+                  ? `(Words ${wordsCount}, ${wordDifficulty}, no-mistake ${wordNoMistakeMode}, ${languageLabel})`
+                  : `(Prose, ${languageLabel})`}
               </h1>
               <button
                 type="button"
@@ -420,6 +501,7 @@ function App() {
               wordsCount={wordsCount}
               wordDifficulty={wordDifficulty}
               wordNoMistakeMode={wordNoMistakeMode}
+              language={language}
             />
           </section>
         )}
@@ -429,7 +511,14 @@ function App() {
         {activeTab === "account" && <AccountPanel />}
 
         {activeTab === "settings" && (
-          <SettingsPanel darkMode={theme === "dark"} onDarkModeChange={(enabled) => setTheme(enabled ? "dark" : "light")} />
+          <SettingsPanel
+            darkMode={theme === "dark"}
+            font={font}
+            language={language}
+            onDarkModeChange={(enabled) => setTheme(enabled ? "dark" : "light")}
+            onFontChange={setFont}
+            onLanguageChange={handleLanguageChange}
+          />
         )}
       </main>
     </div>
