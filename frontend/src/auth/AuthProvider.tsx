@@ -5,37 +5,46 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import {
   getUsernameValidationMessage,
   isValidUsername,
-  normalizeUsername,
-  usernameToAuthEmail
+  normalizeUsername
 } from "./usernameAuth";
 import {
   AuthContext,
   type AuthContextValue,
   type Profile,
+  type ProfileUpdate,
   type UserSettings,
   type UserSettingsUpdate
 } from "./authContext";
 
 function getAuthErrorMessage(error: unknown): string {
+  let rawMessage = "";
+
   if (error instanceof Error && error.message) {
-    const message = error.message.toLowerCase();
-
-    if (message.includes("email rate limit")) {
-      return "Signup is blocked by Supabase's email rate limit. Turn off email confirmation in Supabase Auth, then wait for the current rate limit to reset.";
+    rawMessage = error.message;
+  } else if (typeof error === "object" && error && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string") {
+      rawMessage = message;
     }
-
-    if (message.includes("invalid login credentials")) {
-      return "Username or password is incorrect.";
-    }
-
-    if (message.includes("@rawtype.local")) {
-      return error.message.replace(/[a-z0-9_]+@rawtype\.local/gi, "this username");
-    }
-
-    return error.message;
+  } else if (typeof error === "string") {
+    rawMessage = error;
   }
 
-  return "Something went wrong. Please try again.";
+  if (!rawMessage) {
+    return "Something went wrong. Please try again.";
+  }
+
+  const message = rawMessage.toLowerCase();
+
+  if (message.includes("email rate limit")) {
+    return "Signup is blocked by Supabase's email rate limit. Turn off email confirmation in Supabase Auth, then wait for the current rate limit to reset.";
+  }
+
+  if (message.includes("invalid login credentials")) {
+    return "Username or password is incorrect.";
+  }
+
+  return rawMessage;
 }
 
 function requireSupabaseClient() {
@@ -72,6 +81,14 @@ async function ensureUsernameAvailable(username: string): Promise<void> {
 
   if (error) throw new Error(getAuthErrorMessage(error));
   if (!data) throw new Error("This username is already taken.");
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -148,14 +165,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [loadAccount]);
 
-  const signIn = useCallback(async (username: string, password: string) => {
-    if (!isValidUsername(username)) {
-      throw new Error(getUsernameValidationMessage(username));
+  const signIn = useCallback(async (email: string, password: string) => {
+    const normalizedEmail = normalizeEmail(email);
+
+    if (!isValidEmail(normalizedEmail)) {
+      throw new Error("Please enter a valid email address.");
+    }
+    if (password.length === 0) {
+      throw new Error("Password is required.");
     }
 
     const client = requireSupabaseClient();
     const { data, error: signInError } = await client.auth.signInWithPassword({
-      email: usernameToAuthEmail(username),
+      email: normalizedEmail,
       password
     });
 
@@ -163,7 +185,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await loadAccount(data.user);
   }, [loadAccount]);
 
-  const register = useCallback(async (username: string, password: string) => {
+  const register = useCallback(async (email: string, username: string, password: string) => {
+    const normalizedEmail = normalizeEmail(email);
+
+    if (!isValidEmail(normalizedEmail)) {
+      throw new Error("Please enter a valid email address.");
+    }
     if (!isValidUsername(username)) {
       throw new Error(getUsernameValidationMessage(username));
     }
@@ -177,7 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await ensureUsernameAvailable(normalizedUsername);
 
     const { data, error: signUpError } = await client.auth.signUp({
-      email: usernameToAuthEmail(normalizedUsername),
+      email: normalizedEmail,
       password,
       options: {
         data: {
@@ -200,6 +227,112 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (signOutError) throw new Error(getAuthErrorMessage(signOutError));
     await loadAccount(null);
   }, [loadAccount]);
+
+  const updateUsername = useCallback(async (nextUsername: string, currentPassword: string) => {
+    if (!user || !profile?.username) {
+      throw new Error("Account profile is not loaded.");
+    }
+
+    const normalizedUsername = normalizeUsername(nextUsername);
+
+    if (!isValidUsername(normalizedUsername)) {
+      throw new Error(getUsernameValidationMessage(normalizedUsername));
+    }
+    if (currentPassword.length === 0) {
+      throw new Error("Current password is required.");
+    }
+    if (normalizedUsername === normalizeUsername(profile.username)) {
+      return;
+    }
+
+    await ensureUsernameAvailable(normalizedUsername);
+
+    const currentAuthEmail = normalizeEmail(user.email ?? "");
+
+    if (!isValidEmail(currentAuthEmail)) {
+      throw new Error("Current account email is missing or invalid.");
+    }
+
+    const client = requireSupabaseClient();
+
+    const { error: signInError } = await client.auth.signInWithPassword({
+      email: currentAuthEmail,
+      password: currentPassword
+    });
+
+    if (signInError) throw new Error(getAuthErrorMessage(signInError));
+
+    const { error: authUpdateError } = await client.auth.updateUser({
+      data: {
+        username: normalizedUsername
+      }
+    });
+
+    if (authUpdateError) throw new Error(getAuthErrorMessage(authUpdateError));
+
+    const { data: nextProfile, error: profileError } = await client
+      .from("profiles")
+      .update({ username: normalizedUsername })
+      .eq("user_id", user.id)
+      .select("*")
+      .single();
+
+    if (profileError) throw new Error(getAuthErrorMessage(profileError));
+    setProfile(nextProfile);
+
+    const { data: userData, error: userError } = await client.auth.getUser();
+    if (userError) throw new Error(getAuthErrorMessage(userError));
+    await loadAccount(userData.user ?? user);
+  }, [loadAccount, profile, user]);
+
+  const updatePassword = useCallback(async (currentPassword: string, nextPassword: string) => {
+    if (!user) {
+      throw new Error("Account user is not loaded.");
+    }
+    if (currentPassword.length === 0) {
+      throw new Error("Current password is required.");
+    }
+    if (nextPassword.length < 8) {
+      throw new Error("New password must be at least 8 characters.");
+    }
+
+    const currentAuthEmail = normalizeEmail(user.email ?? "");
+
+    if (!isValidEmail(currentAuthEmail)) {
+      throw new Error("Current account email is missing or invalid.");
+    }
+
+    const client = requireSupabaseClient();
+    const { error: signInError } = await client.auth.signInWithPassword({
+      email: currentAuthEmail,
+      password: currentPassword
+    });
+
+    if (signInError) throw new Error(getAuthErrorMessage(signInError));
+
+    const { error: passwordError } = await client.auth.updateUser({
+      password: nextPassword
+    });
+
+    if (passwordError) throw new Error(getAuthErrorMessage(passwordError));
+  }, [user]);
+
+  const updateProfile = useCallback(async (updates: ProfileUpdate) => {
+    if (!user) {
+      return;
+    }
+
+    const client = requireSupabaseClient();
+    const { data, error: profileError } = await client
+      .from("profiles")
+      .update(updates)
+      .eq("user_id", user.id)
+      .select("*")
+      .single();
+
+    if (profileError) throw new Error(getAuthErrorMessage(profileError));
+    setProfile(data);
+  }, [user]);
 
   const updateSettings = useCallback(async (updates: UserSettingsUpdate) => {
     if (!user) {
@@ -229,10 +362,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       register,
       signOut,
+      updateUsername,
+      updatePassword,
+      updateProfile,
       updateSettings,
       refreshAccount
     }),
-    [error, loading, profile, refreshAccount, register, settings, signIn, signOut, updateSettings, user]
+    [
+      error,
+      loading,
+      profile,
+      refreshAccount,
+      register,
+      settings,
+      signIn,
+      signOut,
+      updateUsername,
+      updatePassword,
+      updateProfile,
+      updateSettings,
+      user
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

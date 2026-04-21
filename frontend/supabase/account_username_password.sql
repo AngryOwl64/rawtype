@@ -1,4 +1,4 @@
--- RawType: username + password accounts without user-facing email.
+-- RawType: email + password auth with separate username profile.
 --
 -- This is a setup/reset script for the RawType account + stats tables.
 -- It drops and recreates:
@@ -6,14 +6,8 @@
 --
 -- Do not run this on production data you want to keep.
 --
--- Supabase Auth still needs an email for password auth. In the frontend, derive
--- it from the username:
---
---   username: Player_One
---   auth email: player_one@rawtype.local
---
--- Supabase setting required:
--- Authentication -> Providers -> Email -> Confirm email = OFF
+-- Login is email-based.
+-- Username is stored in public.profiles and can be changed independently.
 
 begin;
 
@@ -65,15 +59,12 @@ $$;
 create table if not exists public.profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   username text not null,
-  display_name text,
   avatar_url text,
+  public_profile boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
 
   constraint profiles_username_valid check (public.is_valid_username(username)),
-  constraint profiles_display_name_valid check (
-    display_name is null or char_length(display_name) between 1 and 40
-  ),
   constraint profiles_avatar_url_valid check (
     avatar_url is null or char_length(avatar_url) <= 500
   )
@@ -86,24 +77,6 @@ drop trigger if exists profiles_touch_updated_at on public.profiles;
 create trigger profiles_touch_updated_at
 before update on public.profiles
 for each row execute function public.touch_updated_at();
-
-create or replace function public.prevent_username_change()
-returns trigger
-language plpgsql
-as $$
-begin
-  if public.normalize_username(new.username) <> public.normalize_username(old.username) then
-    raise exception 'Username changes are disabled because login uses username@rawtype.local.';
-  end if;
-
-  return new;
-end;
-$$;
-
-drop trigger if exists profiles_prevent_username_change on public.profiles;
-create trigger profiles_prevent_username_change
-before update on public.profiles
-for each row execute function public.prevent_username_change();
 
 create or replace function public.is_username_available(value text)
 returns boolean
@@ -246,6 +219,35 @@ create trigger on_auth_user_created_create_rawtype_account
 after insert on auth.users
 for each row execute function public.handle_new_auth_user();
 
+-- Backfill profiles/settings for accounts that already existed before this script ran.
+insert into public.profiles (user_id, username)
+select
+  users.id,
+  case
+    when public.is_valid_username(public.normalize_username(users.raw_user_meta_data ->> 'username'))
+      then public.normalize_username(users.raw_user_meta_data ->> 'username')
+    else split_part(lower(coalesce(users.email, '')), '@', 1)
+  end
+from auth.users
+where not exists (
+  select 1
+  from public.profiles
+  where profiles.user_id = users.id
+)
+and (
+  public.is_valid_username(public.normalize_username(users.raw_user_meta_data ->> 'username'))
+  or public.is_valid_username(split_part(lower(coalesce(users.email, '')), '@', 1))
+);
+
+insert into public.user_settings (user_id)
+select users.id
+from auth.users
+where not exists (
+  select 1
+  from public.user_settings
+  where user_settings.user_id = users.id
+);
+
 alter table public.profiles enable row level security;
 alter table public.user_settings enable row level security;
 alter table public.typing_runs enable row level security;
@@ -254,6 +256,10 @@ alter table public.typing_errors enable row level security;
 drop policy if exists "profiles read own" on public.profiles;
 create policy "profiles read own" on public.profiles
 for select to authenticated using (auth.uid() = user_id);
+
+drop policy if exists "profiles read public" on public.profiles;
+create policy "profiles read public" on public.profiles
+for select to anon, authenticated using (public_profile = true);
 
 drop policy if exists "profiles update own" on public.profiles;
 create policy "profiles update own" on public.profiles
@@ -270,6 +276,17 @@ for update to authenticated using (auth.uid() = user_id) with check (auth.uid() 
 drop policy if exists "runs read own" on public.typing_runs;
 create policy "runs read own" on public.typing_runs
 for select to authenticated using (auth.uid() = user_id);
+
+drop policy if exists "runs read public profile" on public.typing_runs;
+create policy "runs read public profile" on public.typing_runs
+for select to anon, authenticated using (
+  exists (
+    select 1
+    from public.profiles
+    where profiles.user_id = typing_runs.user_id
+      and profiles.public_profile = true
+  )
+);
 
 drop policy if exists "runs insert own" on public.typing_runs;
 create policy "runs insert own" on public.typing_runs
@@ -295,9 +312,11 @@ grant usage on schema public to anon, authenticated;
 grant execute on function public.normalize_username(text) to anon, authenticated;
 grant execute on function public.is_valid_username(text) to anon, authenticated;
 grant execute on function public.is_username_available(text) to anon, authenticated;
-grant select, update on public.profiles to authenticated;
+grant select on public.profiles to anon, authenticated;
+grant update on public.profiles to authenticated;
 grant select, update on public.user_settings to authenticated;
-grant select, insert, delete on public.typing_runs to authenticated;
+grant select on public.typing_runs to anon, authenticated;
+grant insert, delete on public.typing_runs to authenticated;
 grant select, insert, delete on public.typing_errors to authenticated;
 
 commit;

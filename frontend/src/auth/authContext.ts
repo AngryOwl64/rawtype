@@ -5,6 +5,7 @@ import type { Database } from "../lib/database.types";
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type UserSettings = Database["public"]["Tables"]["user_settings"]["Row"];
 export type UserSettingsUpdate = Database["public"]["Tables"]["user_settings"]["Update"];
+export type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
 export type AuthContextValue = {
   user: User | null;
@@ -13,9 +14,12 @@ export type AuthContextValue = {
   loading: boolean;
   error: string;
   configured: boolean;
-  signIn: (username: string, password: string) => Promise<void>;
-  register: (username: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  register: (email: string, username: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  updateUsername: (nextUsername: string, currentPassword: string) => Promise<void>;
+  updatePassword: (currentPassword: string, nextPassword: string) => Promise<void>;
+  updateProfile: (profile: ProfileUpdate) => Promise<void>;
   updateSettings: (settings: UserSettingsUpdate) => Promise<void>;
   refreshAccount: () => Promise<void>;
 };

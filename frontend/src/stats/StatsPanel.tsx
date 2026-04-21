@@ -97,48 +97,95 @@ function RunMetric({ label, value }: { label: string; value: string | number }) 
   );
 }
 
-function WpmHistoryChart({ runs }: { runs: SavedTypingStats["wpmHistory"] }) {
-  const maxWpm = Math.max(1, ...runs.map((run) => run.wpm));
+type WpmRangeBucket = {
+  label: string;
+  count: number;
+};
+
+function buildWpmRangeBuckets(runs: SavedTypingStats["wpmHistory"]): WpmRangeBucket[] {
+  if (runs.length === 0) return [];
+
+  const values = runs.map((run) => run.wpm);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const start = Math.floor(min / 10) * 10;
+  const end = Math.ceil(max / 10) * 10 + 10;
+  const buckets: WpmRangeBucket[] = [];
+
+  for (let rangeStart = start; rangeStart < end; rangeStart += 10) {
+    const rangeEnd = rangeStart + 10;
+    const count = values.filter((value) => value >= rangeStart && value < rangeEnd).length;
+
+    if (count > 0) {
+      buckets.push({
+        label: `${rangeStart}-${rangeEnd}`,
+        count
+      });
+    }
+  }
+
+  return buckets;
+}
+
+function AverageWpmRangeChart({
+  runs,
+  averageWpm
+}: {
+  runs: SavedTypingStats["wpmHistory"];
+  averageWpm: number;
+}) {
+  const buckets = buildWpmRangeBuckets(runs);
+  const maxCount = Math.max(1, ...buckets.map((bucket) => bucket.count));
 
   if (runs.length === 0) {
-    return <p style={{ margin: 0, color: "var(--muted)" }}>No WPM history yet.</p>;
+    return <p style={{ margin: 0, color: "var(--muted)" }}>No WPM data yet.</p>;
   }
 
   return (
-    <div
-      style={{
-        minHeight: "150px",
-        display: "grid",
-        gridTemplateColumns: `repeat(${runs.length}, minmax(18px, 1fr))`,
-        gap: "8px",
-        alignItems: "end"
-      }}
-    >
-      {runs.map((run, index) => {
-        const height = Math.max(12, Math.round((run.wpm / maxWpm) * 120));
+    <div style={{ display: "grid", gap: "10px" }}>
+      <div
+        style={{
+          border: "1px solid var(--border-soft)",
+          borderRadius: "8px",
+          padding: "10px 12px",
+          backgroundColor: "var(--surface-soft)"
+        }}
+      >
+        <span style={{ color: "var(--muted)", fontSize: "12px", fontWeight: 700 }}>Average WPM</span>
+        <strong style={{ display: "block", fontSize: "26px" }}>{averageWpm}</strong>
+      </div>
 
-        return (
-          <div key={`${run.id}-${index}`} title={`${run.wpm} WPM on ${formatDate(run.created_at)}`}>
-            <div
-              style={{
-                height: `${height}px`,
-                borderRadius: "6px 6px 3px 3px",
-                backgroundColor: "var(--primary)"
-              }}
-            />
-            <div
-              style={{
-                marginTop: "6px",
-                color: "var(--muted)",
-                fontSize: "11px",
-                textAlign: "center"
-              }}
-            >
-              {run.wpm}
+      <div
+        style={{
+          minHeight: "170px",
+          display: "grid",
+          gridTemplateColumns: `repeat(${buckets.length}, minmax(42px, 1fr))`,
+          gap: "8px",
+          alignItems: "end"
+        }}
+      >
+        {buckets.map((bucket) => {
+          const height = Math.max(16, Math.round((bucket.count / maxCount) * 130));
+
+          return (
+            <div key={bucket.label} title={`${bucket.label}: ${bucket.count} runs`}>
+              <div
+                style={{
+                  height: `${height}px`,
+                  borderRadius: "6px 6px 3px 3px",
+                  backgroundColor: "var(--primary)"
+                }}
+              />
+              <div style={{ marginTop: "6px", color: "var(--muted)", fontSize: "11px", textAlign: "center" }}>
+                {bucket.label}
+              </div>
+              <div style={{ color: "var(--muted-strong)", fontSize: "11px", textAlign: "center", fontWeight: 700 }}>
+                {bucket.count}x
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -393,8 +440,8 @@ export default function StatsPanel() {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px" }}>
-            <SectionCard title="WPM History">
-              <WpmHistoryChart runs={stats.wpmHistory} />
+            <SectionCard title="Average WPM">
+              <AverageWpmRangeChart runs={stats.wpmHistory} averageWpm={stats.averageWpm} />
             </SectionCard>
 
             <SectionCard title="Daily Activity">
