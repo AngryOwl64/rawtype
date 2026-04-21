@@ -2,4 +2,4 @@
 
 - Multiple game modes and texts
 - Free to play
-- Project language is English
+- work in progress
