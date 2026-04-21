@@ -1,0 +1,18 @@
+{
+  "name": "RawType - Free Typing Practice Game",
+  "short_name": "RawType",
+  "description": "Practice typing with prose and word drills, track your speed and accuracy, and keep improving.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#863bff",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "48x46",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
