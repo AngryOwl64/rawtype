@@ -2,16 +2,57 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="index, follow" />
+    <meta name="application-name" content="RawType" />
+    <meta name="theme-color" content="#863bff" />
     <meta
       name="description"
-      content="RawType is a single-player typing game with multiple modes and texts."
+      content="RawType is a free typing practice game for improving speed and accuracy with prose and word drills."
     />
-    <title>RawType</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RawType" />
+    <meta property="og:title" content="RawType - Free Typing Practice Game" />
+    <meta
+      property="og:description"
+      content="Practice typing with prose and word drills, track your speed and accuracy, and keep improving."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="RawType - Free Typing Practice Game" />
+    <meta
+      name="twitter:description"
+      content="Practice typing with prose and word drills, track your speed and accuracy, and keep improving."
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "RawType",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Any",
+        "description": "RawType is a free typing practice game for improving speed and accuracy with prose and word drills.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
+    <title>RawType - Free Typing Practice Game</title>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <main>
+        <h1>RawType Typing Practice</h1>
+        <p>
+          RawType is a free single-player typing game with prose and word drills for practicing
+          speed, accuracy, and consistency.
+        </p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

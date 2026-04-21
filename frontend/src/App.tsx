@@ -226,7 +226,7 @@ function App() {
                 flexWrap: "wrap"
               }}
             >
-              <h1 style={{ margin: 0, fontSize: "34px" }}>Start Menu</h1>
+              <h1 style={{ margin: 0, fontSize: "34px" }}>Typing Practice</h1>
               {user && (
                 <div
                   style={{
