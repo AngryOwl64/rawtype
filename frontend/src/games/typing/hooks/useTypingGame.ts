@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { getRandomTypingText, getRandomTypingWordsText } from "../services/texts";
 import {
@@ -50,6 +50,7 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
   const [isTextLoading, setIsTextLoading] = useState(true);
   const [textLoadError, setTextLoadError] = useState("");
   const [failedByMistake, setFailedByMistake] = useState(false);
+  const countedMistakeWordNumbersRef = useRef<Set<number>>(new Set());
 
   const words = useMemo(() => normalizeTypingText(text).split(/\s+/).filter(Boolean), [text]);
   const finished = (!isTextLoading && words.length > 0 && currentWordIndex >= words.length) || failedByMistake;
@@ -82,6 +83,7 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
     setElapsedMs(0);
     setErrorEvents([]);
     setFailedByMistake(false);
+    countedMistakeWordNumbersRef.current = new Set();
     setIsTextLoading(false);
   }, [language, mode, wordsCount, wordDifficulty]);
 
@@ -155,20 +157,26 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
     const expectedChar = currentWord[charIndex];
     const nextInput = currentInput + event.key;
     const isLastWord = currentWordIndex === words.length - 1;
+    const wordNumber = currentWordIndex + 1;
 
     if (!expectedChar || event.key !== expectedChar) {
-      setMistakes((prev) => prev + 1);
-      setErrorEvents((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          wordNumber: currentWordIndex + 1,
-          word: currentWord,
-          charPosition: charIndex + 1,
-          expected: expectedChar ?? "(none)",
-          typed: event.key
-        }
-      ]);
+      const alreadyCountedWordMistake = countedMistakeWordNumbersRef.current.has(wordNumber);
+
+      if (!alreadyCountedWordMistake) {
+        countedMistakeWordNumbersRef.current.add(wordNumber);
+        setMistakes((prev) => prev + 1);
+        setErrorEvents((prev) => [
+          ...prev,
+          {
+            id: prev.length + 1,
+            wordNumber,
+            word: currentWord,
+            charPosition: charIndex + 1,
+            expected: expectedChar ?? "(none)",
+            typed: event.key
+          }
+        ]);
+      }
 
       if (noMistakeActive) {
         setTypedChars((prev) => prev + 1);
