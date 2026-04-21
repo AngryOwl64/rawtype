@@ -57,3 +57,9 @@ public/
 3. Run the SQL in `supabase/words.sql` (for the dedicated word pool table).
 4. Ensure `public.texts` has rows with `content`, `language`, `category`, and `difficulty`.
 5. Ensure `public.words` has rows with `word` and `language`.
+
+## SEO Setup
+
+Set `VITE_SITE_URL` to the public production origin before deploying, for example
+`https://rawtype.example`. The build uses it to generate `sitemap.xml`, add the sitemap entry
+to `robots.txt`, and inject the canonical URL into `index.html`.
