@@ -8,3 +8,5 @@ top/sub 5 words
 
 farbe anpassen bei whitemode (grün)
 animationen hinzufügen
+
+commit
