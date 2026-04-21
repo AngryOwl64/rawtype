@@ -67,24 +67,24 @@ export type Database = {
         Row: {
           user_id: string;
           username: string;
-          display_name: string | null;
           avatar_url: string | null;
+          public_profile: boolean;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           user_id: string;
           username: string;
-          display_name?: string | null;
           avatar_url?: string | null;
+          public_profile?: boolean;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           user_id?: string;
           username?: string;
-          display_name?: string | null;
           avatar_url?: string | null;
+          public_profile?: boolean;
           created_at?: string;
           updated_at?: string;
         };

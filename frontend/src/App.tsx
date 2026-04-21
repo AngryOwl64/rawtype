@@ -32,6 +32,19 @@ const headerTabs: Array<{ id: HeaderTab; label: string }> = [
   { id: "settings", label: "Settings" }
 ];
 
+function getStoredFlag(key: string, defaultValue: boolean): boolean {
+  if (typeof window === "undefined") return defaultValue;
+  const storedValue = window.localStorage.getItem(key);
+  if (storedValue === null) return defaultValue;
+  return storedValue === "true";
+}
+
+function getStoredColor(key: string, defaultValue: string): string {
+  if (typeof window === "undefined") return defaultValue;
+  const storedValue = window.localStorage.getItem(key);
+  return storedValue && /^#[0-9a-fA-F]{6}$/.test(storedValue) ? storedValue : defaultValue;
+}
+
 function App() {
   const { configured, loading: authLoading, profile, settings, updateSettings, user } = useAuth();
   const [activeTab, setActiveTab] = useState<HeaderTab>("games");
@@ -40,6 +53,21 @@ function App() {
   const [wordsCount, setWordsCount] = useState(25);
   const [wordDifficulty, setWordDifficulty] = useState<WordModeDifficulty>("mixed");
   const [wordNoMistakeMode, setWordNoMistakeMode] = useState<WordNoMistakeMode>("off");
+  const [highlightCorrectWords, setHighlightCorrectWords] = useState<boolean>(() =>
+    getStoredFlag("rawtype-highlight-correct-words", true)
+  );
+  const [highlightErrorFromPoint, setHighlightErrorFromPoint] = useState<boolean>(() =>
+    getStoredFlag("rawtype-highlight-error-from-point", true)
+  );
+  const [showOnScreenKeyboard, setShowOnScreenKeyboard] = useState<boolean>(() =>
+    getStoredFlag("rawtype-show-onscreen-keyboard", false)
+  );
+  const [correctMarkerColor, setCorrectMarkerColor] = useState<string>(() =>
+    getStoredColor("rawtype-correct-marker-color", "#6fbf73")
+  );
+  const [errorMarkerColor, setErrorMarkerColor] = useState<string>(() =>
+    getStoredColor("rawtype-error-marker-color", "#c86b73")
+  );
   const [theme, setTheme] = useState<ThemeMode>(getStoredTheme);
   const [font, setFont] = useState<TypingFont>(getStoredFont);
   const [localLanguage, setLocalLanguage] = useState<TypingLanguage>(getStoredLanguage);
@@ -75,6 +103,26 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem("rawtype-font", font);
   }, [font]);
+
+  useEffect(() => {
+    window.localStorage.setItem("rawtype-highlight-correct-words", String(highlightCorrectWords));
+  }, [highlightCorrectWords]);
+
+  useEffect(() => {
+    window.localStorage.setItem("rawtype-highlight-error-from-point", String(highlightErrorFromPoint));
+  }, [highlightErrorFromPoint]);
+
+  useEffect(() => {
+    window.localStorage.setItem("rawtype-show-onscreen-keyboard", String(showOnScreenKeyboard));
+  }, [showOnScreenKeyboard]);
+
+  useEffect(() => {
+    window.localStorage.setItem("rawtype-correct-marker-color", correctMarkerColor);
+  }, [correctMarkerColor]);
+
+  useEffect(() => {
+    window.localStorage.setItem("rawtype-error-marker-color", errorMarkerColor);
+  }, [errorMarkerColor]);
 
   useEffect(() => {
     if (!configured || authLoading || !user) {
@@ -513,6 +561,11 @@ function App() {
               wordDifficulty={wordDifficulty}
               wordNoMistakeMode={wordNoMistakeMode}
               language={language}
+              highlightCorrectWords={highlightCorrectWords}
+              highlightErrorFromPoint={highlightErrorFromPoint}
+              showOnScreenKeyboard={showOnScreenKeyboard}
+              correctMarkerColor={correctMarkerColor}
+              errorMarkerColor={errorMarkerColor}
             />
           </section>
         )}
@@ -523,12 +576,22 @@ function App() {
 
         {activeTab === "settings" && (
           <SettingsPanel
-            darkMode={theme === "dark"}
+            theme={theme}
             font={font}
             language={language}
-            onDarkModeChange={(enabled) => setTheme(enabled ? "dark" : "light")}
+            highlightCorrectWords={highlightCorrectWords}
+            highlightErrorFromPoint={highlightErrorFromPoint}
+            showOnScreenKeyboard={showOnScreenKeyboard}
+            correctMarkerColor={correctMarkerColor}
+            errorMarkerColor={errorMarkerColor}
+            onThemeChange={setTheme}
             onFontChange={setFont}
             onLanguageChange={handleLanguageChange}
+            onHighlightCorrectWordsChange={setHighlightCorrectWords}
+            onHighlightErrorFromPointChange={setHighlightErrorFromPoint}
+            onShowOnScreenKeyboardChange={setShowOnScreenKeyboard}
+            onCorrectMarkerColorChange={setCorrectMarkerColor}
+            onErrorMarkerColorChange={setErrorMarkerColor}
           />
         )}
       </main>

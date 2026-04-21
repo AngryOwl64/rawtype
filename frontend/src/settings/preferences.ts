@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
 import type { TypingFont, TypingLanguage } from "../games/typing/types";
+import type { ThemeId } from "../themes/types";
 
-export type ThemeMode = "light" | "dark";
+export type ThemeMode = ThemeId;
 
 export type SelectOption<T extends string> = {
   value: T;
@@ -28,8 +29,12 @@ export function isTypingFont(value: string | null | undefined): value is TypingF
 }
 
 export function getStoredTheme(): ThemeMode {
-  if (typeof window === "undefined") return "light";
-  return window.localStorage.getItem("rawtype-theme") === "dark" ? "dark" : "light";
+  if (typeof window === "undefined") return "pergament";
+  const storedTheme = window.localStorage.getItem("rawtype-theme");
+
+  if (storedTheme === "monokai" || storedTheme === "obsidian" || storedTheme === "dark") return "monokai";
+  if (storedTheme === "pergament" || storedTheme === "light") return "pergament";
+  return "pergament";
 }
 
 export function getStoredLanguage(): TypingLanguage {
@@ -49,27 +54,27 @@ export function getLanguageLabel(language: TypingLanguage): string {
 }
 
 export function getThemeVariables(theme: ThemeMode): CSSProperties {
-  const dark = theme === "dark";
+  const isMonokai = theme === "monokai";
 
   return {
-    "--page-bg": dark ? "#272822" : "#ece8df",
-    "--header-bg": dark ? "rgba(39, 40, 34, 0.96)" : "rgba(244, 239, 229, 0.94)",
-    "--text": dark ? "#f8f8f2" : "#232a33",
-    "--muted": dark ? "#a8a8a3" : "#5e6670",
-    "--muted-strong": dark ? "#f8f8f2" : "#38414d",
-    "--surface": dark ? "#313327" : "#f7f4ee",
-    "--surface-soft": dark ? "#3e3d32" : "#f1ece4",
-    "--input-bg": dark ? "#3b3a32" : "#fdfaf3",
-    "--input-muted": dark ? "#46463b" : "#ece6dc",
-    "--border": dark ? "#4c4b42" : "#c4c0b7",
-    "--border-soft": dark ? "#3f3e35" : "#d7d2c8",
-    "--border-strong": dark ? "#59574d" : "#a8b0b8",
-    "--primary": dark ? "#66d9ef" : "#2f3742",
-    "--primary-text": dark ? "#272822" : "#f8fafc",
-    "--success": dark ? "#a6e22e" : "#3b7b4f",
-    "--danger": dark ? "#f92672" : "#8f4a54",
-    "--danger-bg": dark ? "#3a2030" : "#f3e7e8",
-    "--danger-border": dark ? "#6b3853" : "#d7c3c6"
+    "--page-bg": isMonokai ? "#272822" : "#ece8df",
+    "--header-bg": isMonokai ? "rgba(39, 40, 34, 0.96)" : "rgba(244, 239, 229, 0.94)",
+    "--text": isMonokai ? "#f8f8f2" : "#232a33",
+    "--muted": isMonokai ? "#a8a8a3" : "#5e6670",
+    "--muted-strong": isMonokai ? "#f8f8f2" : "#38414d",
+    "--surface": isMonokai ? "#313327" : "#f7f4ee",
+    "--surface-soft": isMonokai ? "#3e3d32" : "#f1ece4",
+    "--input-bg": isMonokai ? "#3b3a32" : "#fdfaf3",
+    "--input-muted": isMonokai ? "#46463b" : "#ece6dc",
+    "--border": isMonokai ? "#4c4b42" : "#c4c0b7",
+    "--border-soft": isMonokai ? "#3f3e35" : "#d7d2c8",
+    "--border-strong": isMonokai ? "#59574d" : "#a8b0b8",
+    "--primary": isMonokai ? "#66d9ef" : "#2f3742",
+    "--primary-text": isMonokai ? "#272822" : "#f8fafc",
+    "--success": isMonokai ? "#a6e22e" : "#2f7a3f",
+    "--danger": isMonokai ? "#f92672" : "#a03a46",
+    "--danger-bg": isMonokai ? "#3a2030" : "#f8e8ea",
+    "--danger-border": isMonokai ? "#6b3853" : "#d8b2b8"
   } as CSSProperties;
 }
 
