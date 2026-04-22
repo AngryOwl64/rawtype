@@ -69,7 +69,7 @@ async function fetchWordsBatchFromDb(language: string, batchSize: number): Promi
     }
 
     for (const row of data) {
-      const normalized = normalizeWord(String(row.word ?? ""));
+      const normalized = normalizeWord(String(row.word ?? ""), language);
       if (normalized.length < MIN_WORD_LENGTH) continue;
 
       const lengthBasedDifficulty = classifyWordDifficultyFromLength(normalized);

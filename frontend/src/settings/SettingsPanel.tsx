@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { TypingFont, TypingLanguage } from "../games/typing/types";
+import { getLocalizedThemeDescription, getSettingsTexts } from "../i18n/messages";
 import { BUILT_IN_THEMES, getBuiltInThemeName } from "../themes/registry";
 import type { ThemeId } from "../themes/types";
 import { FONT_OPTIONS, LANGUAGE_OPTIONS, type SelectOption } from "./preferences";
@@ -161,6 +162,7 @@ function ColorSetting({
 }
 
 function ThemePickerWindow({
+  language,
   open,
   activeTheme,
   selectedTheme,
@@ -168,6 +170,7 @@ function ThemePickerWindow({
   onClose,
   onApply
 }: {
+  language: TypingLanguage;
   open: boolean;
   activeTheme: ThemeId;
   selectedTheme: ThemeId;
@@ -175,6 +178,8 @@ function ThemePickerWindow({
   onClose: () => void;
   onApply: () => void;
 }) {
+  const text = getSettingsTexts(language);
+
   useEffect(() => {
     if (!open) return;
 
@@ -206,7 +211,7 @@ function ThemePickerWindow({
       <section
         role="dialog"
         aria-modal="true"
-        aria-label="Theme Window"
+        aria-label={text.themeWindow.ariaLabel}
         onClick={(event) => event.stopPropagation()}
         style={{
           width: "min(860px, 100%)",
@@ -222,9 +227,9 @@ function ThemePickerWindow({
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: "24px" }}>Theme</h2>
+            <h2 style={{ margin: 0, fontSize: "24px" }}>{text.themeWindow.title}</h2>
             <p style={{ margin: "4px 0 0", color: "var(--muted)", fontSize: "13px" }}>
-              Active: {getBuiltInThemeName(activeTheme)}
+              {text.themeWindow.active}: {getBuiltInThemeName(activeTheme)}
             </p>
           </div>
           <button
@@ -240,12 +245,12 @@ function ThemePickerWindow({
               cursor: "pointer"
             }}
           >
-            Close
+            {text.themeWindow.close}
           </button>
         </div>
 
         <section style={groupStyle}>
-          <h3 style={{ margin: 0, fontSize: "17px" }}>Built-in</h3>
+          <h3 style={{ margin: 0, fontSize: "17px" }}>{text.themeWindow.builtIn}</h3>
           <div
             style={{
               display: "grid",
@@ -285,7 +290,7 @@ function ThemePickerWindow({
                   <div>
                     <div style={{ fontWeight: 700, color: "var(--text)" }}>{themeOption.name}</div>
                     <div style={{ marginTop: "4px", color: "var(--muted)", fontSize: "12px" }}>
-                      {themeOption.description}
+                      {getLocalizedThemeDescription(themeOption.id, themeOption.description, language)}
                     </div>
                   </div>
                 </button>
@@ -295,13 +300,13 @@ function ThemePickerWindow({
         </section>
 
         <section style={groupStyle}>
-          <h3 style={{ margin: 0, fontSize: "17px" }}>Community</h3>
-          <div style={{ color: "var(--muted)", fontSize: "13px" }}>Coming soon</div>
+          <h3 style={{ margin: 0, fontSize: "17px" }}>{text.themeWindow.community}</h3>
+          <div style={{ color: "var(--muted)", fontSize: "13px" }}>{text.themeWindow.comingSoon}</div>
         </section>
 
         <section style={groupStyle}>
-          <h3 style={{ margin: 0, fontSize: "17px" }}>Creator Uploads</h3>
-          <div style={{ color: "var(--muted)", fontSize: "13px" }}>Upload support scaffolded, UI coming soon</div>
+          <h3 style={{ margin: 0, fontSize: "17px" }}>{text.themeWindow.creatorUploads}</h3>
+          <div style={{ color: "var(--muted)", fontSize: "13px" }}>{text.themeWindow.uploadComingSoon}</div>
         </section>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
@@ -318,7 +323,7 @@ function ThemePickerWindow({
               cursor: "pointer"
             }}
           >
-            Cancel
+            {text.themeWindow.cancel}
           </button>
           <button
             type="button"
@@ -333,7 +338,7 @@ function ThemePickerWindow({
               cursor: "pointer"
             }}
           >
-            Apply Theme
+            {text.themeWindow.applyTheme}
           </button>
         </div>
       </section>
@@ -342,12 +347,15 @@ function ThemePickerWindow({
 }
 
 function ThemeSetting({
+  language,
   theme,
   onThemeChange
 }: {
+  language: TypingLanguage;
   theme: ThemeId;
   onThemeChange: (theme: ThemeId) => void;
 }) {
+  const text = getSettingsTexts(language);
   const [themeWindowOpen, setThemeWindowOpen] = useState(false);
   const [draftTheme, setDraftTheme] = useState<ThemeId>(theme);
   const [themeBeforePreview, setThemeBeforePreview] = useState<ThemeId>(theme);
@@ -396,9 +404,9 @@ function ThemeSetting({
         }}
       >
         <div>
-          <h2 style={{ margin: 0, fontSize: "19px" }}>Theme</h2>
+          <h2 style={{ margin: 0, fontSize: "19px" }}>{text.themeSection.title}</h2>
           <p style={{ margin: "4px 0 0", color: "var(--muted)", fontSize: "13px" }}>
-            Active: {getBuiltInThemeName(theme)}
+            {text.themeSection.active}: {getBuiltInThemeName(theme)}
           </p>
         </div>
 
@@ -415,11 +423,12 @@ function ThemeSetting({
             cursor: "pointer"
           }}
         >
-          Open Theme Window
+          {text.themeSection.openWindow}
         </button>
       </section>
 
       <ThemePickerWindow
+        language={language}
         open={themeWindowOpen}
         activeTheme={theme}
         selectedTheme={draftTheme}
@@ -468,6 +477,8 @@ export default function SettingsPanel({
   onCorrectMarkerColorChange,
   onErrorMarkerColorChange
 }: SettingsPanelProps) {
+  const text = getSettingsTexts(language);
+
   return (
     <section
       style={{
@@ -478,7 +489,7 @@ export default function SettingsPanel({
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "14px" }}>
-        <h1 style={{ margin: 0, fontSize: "32px" }}>Settings</h1>
+        <h1 style={{ margin: 0, fontSize: "32px" }}>{text.page.title}</h1>
         <span
           style={{
             border: "1px solid var(--border-soft)",
@@ -489,23 +500,23 @@ export default function SettingsPanel({
             fontWeight: 700
           }}
         >
-          Preview
+          {text.page.preview}
         </span>
       </div>
 
       <div style={{ display: "grid", gap: "14px", marginTop: "18px" }}>
-        <ThemeSetting theme={theme} onThemeChange={onThemeChange} />
+        <ThemeSetting language={language} theme={theme} onThemeChange={onThemeChange} />
 
-        <SettingGroup title="General Settings">
+        <SettingGroup title={text.page.generalSettings}>
           <SelectSetting
-            label="Language"
+            label={text.page.language}
             value={language}
             disabled={false}
             onChange={onLanguageChange}
             options={LANGUAGE_OPTIONS}
           />
           <SelectSetting
-            label="Font"
+            label={text.page.font}
             value={font}
             disabled={false}
             onChange={onFontChange}
@@ -513,17 +524,17 @@ export default function SettingsPanel({
           />
         </SettingGroup>
 
-        <SettingGroup title="Typing Defaults">
+        <SettingGroup title={text.page.typingDefaults}>
           <SelectSetting
-            label="Mode"
-            value="Sentences"
+            label={text.page.mode}
+            value={text.page.modeSentences}
             options={[
-              { value: "Sentences", label: "Sentences" },
-              { value: "Words", label: "Words" }
+              { value: text.page.modeSentences, label: text.page.modeSentences },
+              { value: text.page.modeWords, label: text.page.modeWords }
             ]}
           />
           <SelectSetting
-            label="Word Count"
+            label={text.page.wordCount}
             value="25"
             options={[
               { value: "10", label: "10" },
@@ -533,24 +544,24 @@ export default function SettingsPanel({
             ]}
           />
           <SelectSetting
-            label="Difficulty"
-            value="Mixed"
+            label={text.page.difficulty}
+            value={text.page.mixed}
             options={[
-              { value: "Easy", label: "Easy" },
-              { value: "Medium", label: "Medium" },
-              { value: "Hard", label: "Hard" },
-              { value: "Mixed", label: "Mixed" }
+              { value: text.page.easy, label: text.page.easy },
+              { value: text.page.medium, label: text.page.medium },
+              { value: text.page.hard, label: text.page.hard },
+              { value: text.page.mixed, label: text.page.mixed }
             ]}
           />
         </SettingGroup>
 
-        <SettingGroup title="Training">
-          <ToggleSetting label="No Mistake Mode" checked={false} />
-          <ToggleSetting label="Auto Focus Typing Area" checked />
-          <ToggleSetting label="Show Error Breakdown" checked />
+        <SettingGroup title={text.page.training}>
+          <ToggleSetting label={text.page.noMistakeMode} checked={false} />
+          <ToggleSetting label={text.page.autoFocus} checked />
+          <ToggleSetting label={text.page.showErrorBreakdown} checked />
         </SettingGroup>
 
-        <SettingGroup title="Word Marking" singleColumn>
+        <SettingGroup title={text.page.wordMarking} singleColumn>
           <div
             style={{
               display: "grid",
@@ -560,14 +571,14 @@ export default function SettingsPanel({
           >
             <div style={{ display: "grid", gap: "8px", alignContent: "start" }}>
               <ToggleSetting
-                label="Correct Word Marker (Green)"
+                label={text.page.correctWordMarker}
                 checked={highlightCorrectWords}
                 disabled={false}
                 onChange={onHighlightCorrectWordsChange}
               />
               {highlightCorrectWords && (
                 <ColorSetting
-                  label="Change Color (Correct)"
+                  label={text.page.changeCorrectColor}
                   value={correctMarkerColor}
                   onChange={onCorrectMarkerColorChange}
                 />
@@ -576,14 +587,14 @@ export default function SettingsPanel({
 
             <div style={{ display: "grid", gap: "8px", alignContent: "start" }}>
               <ToggleSetting
-                label="Error Marker From First Mistake (Red)"
+                label={text.page.errorMarker}
                 checked={highlightErrorFromPoint}
                 disabled={false}
                 onChange={onHighlightErrorFromPointChange}
               />
               {highlightErrorFromPoint && (
                 <ColorSetting
-                  label="Change Color (Error)"
+                  label={text.page.changeErrorColor}
                   value={errorMarkerColor}
                   onChange={onErrorMarkerColorChange}
                 />
@@ -592,19 +603,19 @@ export default function SettingsPanel({
           </div>
         </SettingGroup>
 
-        <SettingGroup title="Keyboard">
+        <SettingGroup title={text.page.keyboard}>
           <ToggleSetting
-            label="Show On-Screen Keyboard"
+            label={text.page.showOnScreenKeyboard}
             checked={showOnScreenKeyboard}
             disabled={false}
             onChange={onShowOnScreenKeyboardChange}
           />
         </SettingGroup>
 
-        <SettingGroup title="Privacy And Data">
-          <ToggleSetting label="Save Runs To Account" checked />
-          <ToggleSetting label="Save Error Words" checked />
-          <ToggleSetting label="Public Profile" checked={false} />
+        <SettingGroup title={text.page.privacyData}>
+          <ToggleSetting label={text.page.saveRuns} checked />
+          <ToggleSetting label={text.page.saveErrorWords} checked />
+          <ToggleSetting label={text.page.publicProfile} checked={false} />
         </SettingGroup>
       </div>
     </section>

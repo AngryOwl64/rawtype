@@ -1,5 +1,7 @@
 import { supabase } from "../../../lib/supabase";
 import type { Database } from "../../../lib/database.types";
+import { getStoredUiLanguage } from "../../../i18n/language";
+import { translateAuthText } from "../../../i18n/messages";
 import type {
   SavedTypingDayStats,
   SavedTypingModeStats,
@@ -65,20 +67,17 @@ function isUuid(value: string | null): value is string {
 
 function requireSupabaseClient() {
   if (!supabase) {
-    throw new Error("Supabase is not configured.");
+    throw new Error(translateAuthText(getStoredUiLanguage(), "Supabase is not configured."));
   }
 
   return supabase;
 }
 
 function getDatabaseErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  if (typeof error === "object" && error && "message" in error) {
-    const message = (error as { message?: unknown }).message;
-    if (typeof message === "string" && message.length > 0) return message;
-  }
-
-  return "Database request failed.";
+  const fallback = translateAuthText(getStoredUiLanguage(), "Database request failed.");
+  if (error instanceof Error && error.message) return fallback;
+  if (typeof error === "object" && error && "message" in error) return fallback;
+  return fallback;
 }
 
 export async function saveTypingRun(result: CompletedTypingRun): Promise<string> {

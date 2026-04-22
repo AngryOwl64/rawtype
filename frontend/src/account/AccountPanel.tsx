@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useAuth } from "../auth/authContext";
 import { getUsernameValidationMessage, normalizeUsername } from "../auth/usernameAuth";
 import { fetchTypingStats } from "../games/typing/services/runResults";
-import type { SavedTypingStats } from "../games/typing/types";
+import type { SavedTypingStats, TypingLanguage } from "../games/typing/types";
+import { getLocaleForLanguage } from "../i18n/language";
+import { translateAccountText } from "../i18n/messages";
 
 type AuthMode = "login" | "register";
 type ActionState = "idle" | "saving" | "saved";
@@ -54,10 +56,10 @@ const emptyStats: Pick<
   totalDurationMs: 0
 };
 
-function formatDate(value: string | null | undefined): string {
-  if (!value) return "New account";
+function formatDate(value: string | null | undefined, language: TypingLanguage): string {
+  if (!value) return translateAccountText(language, "New account");
 
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat(getLocaleForLanguage(language), {
     month: "short",
     day: "numeric",
     year: "numeric"
@@ -115,7 +117,9 @@ function StatusPill({ children }: { children: ReactNode }) {
   );
 }
 
-export default function AccountPanel() {
+export default function AccountPanel({ language = "en" }: { language?: TypingLanguage }) {
+  const t = (en: string) => translateAccountText(language, en);
+
   const {
     configured,
     loading,
@@ -155,12 +159,12 @@ export default function AccountPanel() {
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
   const normalizedAccountUsername = useMemo(() => normalizeUsername(accountUsername), [accountUsername]);
   const usernameHint =
-    mode === "register" && username.length > 0 ? getUsernameValidationMessage(username) : "";
+    mode === "register" && username.length > 0 ? getUsernameValidationMessage(username, language) : "";
   const accountUsernameHint =
-    accountUsername.length > 0 ? getUsernameValidationMessage(accountUsername) : "";
-  const title = user ? "Account" : mode === "login" ? "Login" : "Register";
-  const displayUsername = profile?.username || "Account";
-  const accountCreated = formatDate(profile?.created_at ?? user?.created_at);
+    accountUsername.length > 0 ? getUsernameValidationMessage(accountUsername, language) : "";
+  const title = user ? t("Account") : mode === "login" ? "Login" : t("Register");
+  const displayUsername = profile?.username || t("Account");
+  const accountCreated = formatDate(profile?.created_at ?? user?.created_at, language);
   const publicProfile = profile?.public_profile ?? false;
   const usernameChanged = normalizedAccountUsername !== (profile?.username ?? "");
 
@@ -205,7 +209,9 @@ export default function AccountPanel() {
       })
       .catch((error: unknown) => {
         if (!active) return;
-        setStatsError(error instanceof Error ? error.message : "Could not load account stats.");
+        setStatsError(
+          error instanceof Error ? error.message : t("Could not load account stats.")
+        );
       })
       .finally(() => {
         if (active) setStatsLoading(false);
@@ -221,7 +227,7 @@ export default function AccountPanel() {
     setFormError("");
 
     if (normalizedEmail.length === 0) {
-      setFormError("Email is required.");
+      setFormError(t("Email is required."));
       return;
     }
     if (mode === "register" && usernameHint) {
@@ -229,11 +235,11 @@ export default function AccountPanel() {
       return;
     }
     if (password.length === 0) {
-      setFormError("Password is required.");
+      setFormError(t("Password is required."));
       return;
     }
     if (mode === "register" && password !== confirmPassword) {
-      setFormError("Passwords do not match.");
+      setFormError(t("Passwords do not match."));
       return;
     }
 
@@ -249,7 +255,7 @@ export default function AccountPanel() {
       setPassword("");
       setConfirmPassword("");
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Authentication failed.");
+      setFormError(error instanceof Error ? error.message : t("Authentication failed."));
     } finally {
       setSubmitting(false);
     }
@@ -262,7 +268,7 @@ export default function AccountPanel() {
     try {
       await signOut();
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Could not sign out.");
+      setFormError(error instanceof Error ? error.message : t("Could not sign out."));
     } finally {
       setSubmitting(false);
     }
@@ -273,7 +279,7 @@ export default function AccountPanel() {
     setFormError("");
 
     if (nextPassword !== nextPasswordConfirm) {
-      setFormError("New passwords do not match.");
+      setFormError(t("New passwords do not match."));
       return;
     }
 
@@ -287,7 +293,7 @@ export default function AccountPanel() {
       setPasswordState("saved");
     } catch (error) {
       setPasswordState("idle");
-      setFormError(error instanceof Error ? error.message : "Could not change password.");
+      setFormError(error instanceof Error ? error.message : t("Could not change password."));
     }
   }
 
@@ -300,7 +306,7 @@ export default function AccountPanel() {
       return;
     }
     if (usernamePassword.length === 0) {
-      setFormError("Current password is required.");
+      setFormError(t("Current password is required."));
       return;
     }
 
@@ -312,7 +318,7 @@ export default function AccountPanel() {
       setUsernameState("saved");
     } catch (error) {
       setUsernameState("idle");
-      setFormError(error instanceof Error ? error.message : "Could not update username.");
+      setFormError(error instanceof Error ? error.message : t("Could not update username."));
     }
   }
 
@@ -323,7 +329,7 @@ export default function AccountPanel() {
     if (!profile) {
       setVisibilityState("idle");
       setFormError(
-        "Your profile row is missing in the database. Run frontend/supabase/backfill_existing_auth_accounts.sql once, then refresh account."
+        t("Your profile row is missing in the database. Run frontend/supabase/backfill_existing_auth_accounts.sql once, then refresh account.")
       );
       return;
     }
@@ -333,7 +339,9 @@ export default function AccountPanel() {
       setVisibilityState("saved");
     } catch (error) {
       setVisibilityState("idle");
-      setFormError(error instanceof Error ? error.message : "Could not update profile visibility.");
+      setFormError(
+        error instanceof Error ? error.message : t("Could not update profile visibility.")
+      );
     }
   }
 
@@ -358,7 +366,7 @@ export default function AccountPanel() {
     try {
       await refreshAccount();
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Could not refresh account.");
+      setFormError(error instanceof Error ? error.message : t("Could not refresh account."));
     } finally {
       setRefreshing(false);
     }
@@ -380,11 +388,13 @@ export default function AccountPanel() {
 
       {!configured && (
         <p style={{ margin: 0, color: "var(--danger)", lineHeight: 1.5 }}>
-          Supabase is not configured. Add your Vite Supabase environment variables first.
+          {t("Supabase is not configured. Add your Vite Supabase environment variables first.")}
         </p>
       )}
 
-      {configured && loading && <p style={{ marginBottom: 0, color: "var(--muted)" }}>Loading account...</p>}
+      {configured && loading && (
+        <p style={{ marginBottom: 0, color: "var(--muted)" }}>{t("Loading account...")}</p>
+      )}
 
       {configured && !loading && user && (
         <div style={{ display: "grid", gap: "16px" }}>
@@ -418,7 +428,7 @@ export default function AccountPanel() {
               </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ color: "var(--muted)", fontSize: "13px", marginBottom: "4px" }}>
-                  Signed in as
+                  {t("Signed in as")}
                 </div>
                 <strong
                   style={{
@@ -432,7 +442,7 @@ export default function AccountPanel() {
                   {displayUsername}
                 </strong>
                 <div style={{ color: "var(--muted)", fontSize: "13px", marginTop: "4px" }}>
-                  Member since {accountCreated}
+                  {t("Member since")} {accountCreated}
                 </div>
               </div>
             </div>
@@ -446,8 +456,8 @@ export default function AccountPanel() {
                 justifyContent: "flex-end"
               }}
             >
-              <StatusPill>Synced</StatusPill>
-              <StatusPill>{publicProfile ? "Public" : "Private"}</StatusPill>
+              <StatusPill>{t("Synced")}</StatusPill>
+              <StatusPill>{publicProfile ? t("Public") : t("Private")}</StatusPill>
               <button
                 type="button"
                 onClick={() => void handleRefreshAccount()}
@@ -458,7 +468,7 @@ export default function AccountPanel() {
                   backgroundColor: refreshing ? "var(--border-strong)" : "var(--surface)"
                 }}
               >
-                {refreshing ? "Refreshing..." : "Refresh Account"}
+                {refreshing ? t("Refreshing...") : t("Refresh Account")}
               </button>
             </div>
           </div>
@@ -468,15 +478,15 @@ export default function AccountPanel() {
           {statsError && <p style={{ margin: 0, color: "var(--danger)" }}>{statsError}</p>}
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "10px" }}>
-            <InfoTile label="Runs" value={statsLoading ? "..." : stats.totalRuns} />
-            <InfoTile label="Best WPM" value={statsLoading ? "..." : stats.bestWpm} />
-            <InfoTile label="Accuracy" value={statsLoading ? "..." : `${stats.averageAccuracy}%`} />
-            <InfoTile label="Streak" value={statsLoading ? "..." : `${stats.currentStreakDays}d`} />
-            <InfoTile label="Practice" value={statsLoading ? "..." : formatDuration(stats.totalDurationMs)} />
+            <InfoTile label={t("Runs")} value={statsLoading ? "..." : stats.totalRuns} />
+            <InfoTile label={t("Best WPM")} value={statsLoading ? "..." : stats.bestWpm} />
+            <InfoTile label={t("Accuracy")} value={statsLoading ? "..." : `${stats.averageAccuracy}%`} />
+            <InfoTile label={t("Streak")} value={statsLoading ? "..." : `${stats.currentStreakDays}d`} />
+            <InfoTile label={t("Practice")} value={statsLoading ? "..." : formatDuration(stats.totalDurationMs)} />
           </div>
 
           <div style={{ display: "grid", gap: "14px" }}>
-            <SectionCard title="Account Settings">
+            <SectionCard title={t("Account Settings")}>
               <form
                 onSubmit={handleUsernameSave}
                 style={{
@@ -489,7 +499,7 @@ export default function AccountPanel() {
                 }}
               >
                 <label style={{ display: "grid", gap: "6px", color: "var(--muted-strong)", fontWeight: 700 }}>
-                  <span style={{ fontSize: "13px" }}>Username</span>
+                  <span style={{ fontSize: "13px" }}>{t("Username")}</span>
                   <input
                     value={accountUsername}
                     onChange={(event) => {
@@ -502,7 +512,7 @@ export default function AccountPanel() {
                   />
                 </label>
                 <label style={{ display: "grid", gap: "6px", color: "var(--muted-strong)", fontWeight: 700 }}>
-                  <span style={{ fontSize: "13px" }}>Current Password</span>
+                  <span style={{ fontSize: "13px" }}>{t("Current Password")}</span>
                   <input
                     value={usernamePassword}
                     onChange={(event) => {
@@ -515,7 +525,7 @@ export default function AccountPanel() {
                   />
                 </label>
                 <p style={{ margin: 0, color: "var(--muted)", fontSize: "13px", lineHeight: 1.45 }}>
-                  After changing username, use the new username for login.
+                  {t("After changing username, use the new username for login.")}
                 </p>
                 {accountUsernameHint && (
                   <p style={{ margin: 0, color: "var(--danger)", fontSize: "13px", lineHeight: 1.45 }}>
@@ -542,10 +552,10 @@ export default function AccountPanel() {
                   }}
                 >
                   {usernameState === "saving"
-                    ? "Updating..."
+                    ? t("Updating...")
                     : usernameState === "saved"
-                      ? "Username Updated"
-                      : "Update Username"}
+                      ? t("Username Updated")
+                      : t("Update Username")}
                 </button>
               </form>
 
@@ -567,12 +577,12 @@ export default function AccountPanel() {
                   }}
                 >
                   <div>
-                    <strong>Profile Visibility</strong>
+                    <strong>{t("Profile Visibility")}</strong>
                     <p style={{ margin: "4px 0 0", color: "var(--muted)", fontSize: "13px", lineHeight: 1.45 }}>
-                      Public profiles can be used by profile pages to show your saved typing stats.
+                      {t("Public profiles can be used by profile pages to show your saved typing stats.")}
                     </p>
                   </div>
-                  <StatusPill>{publicProfile ? "Public" : "Private"}</StatusPill>
+                  <StatusPill>{publicProfile ? t("Public") : t("Private")}</StatusPill>
                 </div>
 
                 <button
@@ -592,10 +602,10 @@ export default function AccountPanel() {
                   }}
                 >
                   {visibilityState === "saving"
-                    ? "Updating..."
+                    ? t("Updating...")
                     : publicProfile
-                      ? "Make Profile Private"
-                      : "Make Profile Public"}
+                      ? t("Make Profile Private")
+                      : t("Make Profile Public")}
                 </button>
               </div>
 
@@ -609,7 +619,7 @@ export default function AccountPanel() {
                 }}
               >
                 <label style={{ display: "grid", gap: "6px", color: "var(--muted-strong)", fontWeight: 700 }}>
-                  <span style={{ fontSize: "13px" }}>Current Password</span>
+                  <span style={{ fontSize: "13px" }}>{t("Current Password")}</span>
                   <input
                     value={currentPassword}
                     onChange={(event) => {
@@ -622,7 +632,7 @@ export default function AccountPanel() {
                   />
                 </label>
                 <label style={{ display: "grid", gap: "6px", color: "var(--muted-strong)", fontWeight: 700 }}>
-                  <span style={{ fontSize: "13px" }}>New Password</span>
+                  <span style={{ fontSize: "13px" }}>{t("New Password")}</span>
                   <input
                     value={nextPassword}
                     onChange={(event) => {
@@ -635,7 +645,7 @@ export default function AccountPanel() {
                   />
                 </label>
                 <label style={{ display: "grid", gap: "6px", color: "var(--muted-strong)", fontWeight: 700 }}>
-                  <span style={{ fontSize: "13px" }}>Confirm New Password</span>
+                  <span style={{ fontSize: "13px" }}>{t("Confirm New Password")}</span>
                   <input
                     value={nextPasswordConfirm}
                     onChange={(event) => {
@@ -667,24 +677,24 @@ export default function AccountPanel() {
                   }}
                 >
                   {passwordState === "saving"
-                    ? "Changing..."
+                    ? t("Changing...")
                     : passwordState === "saved"
-                      ? "Password Changed"
-                      : "Change Password"}
+                      ? t("Password Changed")
+                      : t("Change Password")}
                 </button>
               </form>
 
               <div style={{ borderTop: "1px solid var(--border-soft)", paddingTop: "12px", display: "grid", gap: "8px" }}>
                 <label style={{ display: "grid", gap: "6px", color: "var(--muted-strong)", fontWeight: 700 }}>
-                  <span style={{ fontSize: "13px" }}>Email Address</span>
-                  <input value={user?.email ?? "No email connected"} readOnly disabled style={fieldStyle} />
+                  <span style={{ fontSize: "13px" }}>{t("Email Address")}</span>
+                  <input value={user?.email ?? t("No email connected")} readOnly disabled style={fieldStyle} />
                 </label>
                 <button
                   type="button"
                   disabled
                   style={{ ...secondaryButtonStyle, cursor: "not-allowed", opacity: 0.72 }}
                 >
-                  Change Email Unavailable
+                  {t("Change Email Unavailable")}
                 </button>
               </div>
             </SectionCard>
@@ -699,7 +709,7 @@ export default function AccountPanel() {
               backgroundColor: submitting ? "var(--border-strong)" : "var(--danger)"
             }}
           >
-            {submitting ? "Signing out..." : "Logout"}
+            {submitting ? t("Signing out...") : t("Logout")}
           </button>
 
           {visibilityConfirmationOpen && (
@@ -733,11 +743,10 @@ export default function AccountPanel() {
                 }}
               >
                 <h2 id="public-profile-title" style={{ margin: 0, fontSize: "22px" }}>
-                  Make Profile Public?
+                  {t("Make Profile Public?")}
                 </h2>
                 <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.5 }}>
-                  Are you sure you want to do this? After this, other people can see your public profile and saved
-                  typing stats.
+                  {t("Are you sure you want to do this? After this, other people can see your public profile and saved typing stats.")}
                 </p>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", flexWrap: "wrap" }}>
                   <button
@@ -745,10 +754,10 @@ export default function AccountPanel() {
                     onClick={() => setVisibilityConfirmationOpen(false)}
                     style={secondaryButtonStyle}
                   >
-                    Cancel
+                    {t("Cancel")}
                   </button>
                   <button type="button" onClick={handleConfirmPublicProfile} style={buttonStyle}>
-                    Make Public
+                    {t("Make Public")}
                   </button>
                 </div>
               </section>
@@ -785,21 +794,21 @@ export default function AccountPanel() {
                   cursor: "pointer"
                 }}
               >
-                {nextMode === "login" ? "Login" : "Register"}
+                {nextMode === "login" ? "Login" : t("Register")}
               </button>
             ))}
           </div>
 
           <form onSubmit={handleSubmit} style={{ display: "grid", gap: "12px" }}>
             <label style={{ display: "grid", gap: "6px", fontWeight: 700 }}>
-              Email
+              {t("Email")}
               <input
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 type="email"
                 autoComplete="email"
                 autoCapitalize="none"
-                placeholder="name@example.com"
+                placeholder={t("name@example.com")}
                 spellCheck={false}
                 style={fieldStyle}
               />
@@ -807,7 +816,7 @@ export default function AccountPanel() {
 
             {mode === "register" && (
               <label style={{ display: "grid", gap: "6px", fontWeight: 700 }}>
-                Username
+                {t("Username")}
                 <input
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
@@ -821,7 +830,7 @@ export default function AccountPanel() {
             )}
 
             <label style={{ display: "grid", gap: "6px", fontWeight: 700 }}>
-              Password
+                {t("Password")}
               <input
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
@@ -833,7 +842,7 @@ export default function AccountPanel() {
 
             {mode === "register" && (
               <label style={{ display: "grid", gap: "6px", fontWeight: 700 }}>
-                Confirm password
+                {t("Confirm password")}
                 <input
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
@@ -846,7 +855,7 @@ export default function AccountPanel() {
 
             {mode === "register" && (
               <p style={{ margin: 0, color: usernameHint ? "var(--danger)" : "var(--muted)", fontSize: "13px" }}>
-                {usernameHint || "Username only. Use 3-20 letters, numbers, or underscores."}
+                {usernameHint || t("Username only. Use 3-20 letters, numbers, or underscores.")}
               </p>
             )}
 
@@ -863,7 +872,7 @@ export default function AccountPanel() {
                 backgroundColor: submitting ? "var(--border-strong)" : "var(--primary)"
               }}
             >
-              {submitting ? "Please wait..." : mode === "login" ? "Login" : "Create account"}
+              {submitting ? t("Please wait...") : mode === "login" ? "Login" : t("Create account")}
             </button>
           </form>
         </div>
@@ -871,3 +880,4 @@ export default function AccountPanel() {
     </section>
   );
 }
+

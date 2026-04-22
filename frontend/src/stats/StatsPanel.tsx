@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../auth/authContext";
 import { fetchTypingStats } from "../games/typing/services/runResults";
-import type { SavedTypingStats } from "../games/typing/types";
+import type { SavedTypingStats, TypingLanguage } from "../games/typing/types";
+import { getLocaleForLanguage } from "../i18n/language";
+import { getStatsTexts } from "../i18n/messages";
 
 const emptyStats: SavedTypingStats = {
   totalRuns: 0,
@@ -37,8 +39,8 @@ function formatDuration(totalMs: number): string {
   return `${minutes}m ${seconds}s`;
 }
 
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("en", {
+function formatDate(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -46,16 +48,16 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
-function formatDay(value: string): string {
-  return new Intl.DateTimeFormat("en", {
+function formatDay(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric"
   }).format(new Date(`${value}T00:00:00`));
 }
 
-function formatTrend(value: number): string {
-  if (value === 0) return "No change";
-  return value > 0 ? `${value} WPM faster` : `${Math.abs(value)} WPM slower`;
+function formatTrend(value: number, text: ReturnType<typeof getStatsTexts>): string {
+  if (value === 0) return text.noChange;
+  return value > 0 ? `${value} ${text.fasterSuffix}` : `${Math.abs(value)} ${text.slowerSuffix}`;
 }
 
 function StatTile({ label, value }: { label: string; value: string | number }) {
@@ -129,16 +131,19 @@ function buildWpmRangeBuckets(runs: SavedTypingStats["wpmHistory"]): WpmRangeBuc
 
 function AverageWpmRangeChart({
   runs,
-  averageWpm
+  averageWpm,
+  language
 }: {
   runs: SavedTypingStats["wpmHistory"];
   averageWpm: number;
+  language: TypingLanguage;
 }) {
+  const text = getStatsTexts(language);
   const buckets = buildWpmRangeBuckets(runs);
   const maxCount = Math.max(1, ...buckets.map((bucket) => bucket.count));
 
   if (runs.length === 0) {
-    return <p style={{ margin: 0, color: "var(--muted)" }}>No WPM data yet.</p>;
+    return <p style={{ margin: 0, color: "var(--muted)" }}>{text.noWpmData}</p>;
   }
 
   return (
@@ -151,7 +156,7 @@ function AverageWpmRangeChart({
           backgroundColor: "var(--surface-soft)"
         }}
       >
-        <span style={{ color: "var(--muted)", fontSize: "12px", fontWeight: 700 }}>Average WPM</span>
+        <span style={{ color: "var(--muted)", fontSize: "12px", fontWeight: 700 }}>{text.averageWpm}</span>
         <strong style={{ display: "block", fontSize: "26px" }}>{averageWpm}</strong>
       </div>
 
@@ -190,11 +195,19 @@ function AverageWpmRangeChart({
   );
 }
 
-export function DailyActivityChart({ days }: { days: SavedTypingStats["dailyActivity"] }) {
+export function DailyActivityChart({
+  days,
+  language = "en"
+}: {
+  days: SavedTypingStats["dailyActivity"];
+  language?: TypingLanguage;
+}) {
+  const text = getStatsTexts(language);
+  const locale = getLocaleForLanguage(language);
   const maxRuns = Math.max(1, ...days.map((day) => day.runs));
 
   if (days.length === 0) {
-    return <p style={{ margin: 0, color: "var(--muted)" }}>No daily activity yet.</p>;
+    return <p style={{ margin: 0, color: "var(--muted)" }}>{text.noDailyActivity}</p>;
   }
 
   return (
@@ -209,7 +222,7 @@ export function DailyActivityChart({ days }: { days: SavedTypingStats["dailyActi
             alignItems: "center"
           }}
         >
-          <span style={{ color: "var(--muted)", fontSize: "12px" }}>{formatDay(day.date)}</span>
+          <span style={{ color: "var(--muted)", fontSize: "12px" }}>{formatDay(day.date, locale)}</span>
           <div
             style={{
               height: "10px",
@@ -227,7 +240,7 @@ export function DailyActivityChart({ days }: { days: SavedTypingStats["dailyActi
             />
           </div>
           <strong style={{ fontSize: "12px" }}>
-            {day.runs} {day.runs === 1 ? "run" : "runs"}
+            {day.runs} {day.runs === 1 ? text.run : text.runs}
           </strong>
         </div>
       ))}
@@ -235,11 +248,12 @@ export function DailyActivityChart({ days }: { days: SavedTypingStats["dailyActi
   );
 }
 
-function WorstWordsChart({ words }: { words: SavedTypingStats["worstWords"] }) {
+function WorstWordsChart({ words, language }: { words: SavedTypingStats["worstWords"]; language: TypingLanguage }) {
+  const text = getStatsTexts(language);
   const maxMistakes = Math.max(1, ...words.map((entry) => entry.mistakes));
 
   if (words.length === 0) {
-    return <p style={{ margin: 0, color: "var(--muted)" }}>No recurring mistakes yet.</p>;
+    return <p style={{ margin: 0, color: "var(--muted)" }}>{text.noRecurringMistakes}</p>;
   }
 
   return (
@@ -274,7 +288,7 @@ function WorstWordsChart({ words }: { words: SavedTypingStats["worstWords"] }) {
             />
           </div>
           <span style={{ color: "var(--muted-strong)", fontSize: "13px", fontWeight: 700 }}>
-            {entry.mistakes} {entry.mistakes === 1 ? "error" : "errors"}
+            {entry.mistakes} {entry.mistakes === 1 ? text.errorSingular : text.errorPlural}
           </span>
         </div>
       ))}
@@ -282,9 +296,11 @@ function WorstWordsChart({ words }: { words: SavedTypingStats["worstWords"] }) {
   );
 }
 
-function ModeBreakdown({ modes }: { modes: SavedTypingStats["modeStats"] }) {
+function ModeBreakdown({ modes, language }: { modes: SavedTypingStats["modeStats"]; language: TypingLanguage }) {
+  const text = getStatsTexts(language);
+
   if (modes.length === 0) {
-    return <p style={{ margin: 0, color: "var(--muted)" }}>No mode data yet.</p>;
+    return <p style={{ margin: 0, color: "var(--muted)" }}>{text.noModeData}</p>;
   }
 
   return (
@@ -299,7 +315,7 @@ function ModeBreakdown({ modes }: { modes: SavedTypingStats["modeStats"] }) {
             backgroundColor: "var(--surface-soft)"
           }}
         >
-          <strong>{mode.mode === "words" ? "Word Mode" : "Sentences"}</strong>
+          <strong>{mode.mode === "words" ? text.modeWords : text.modeSentences}</strong>
           <div
             style={{
               display: "grid",
@@ -308,12 +324,12 @@ function ModeBreakdown({ modes }: { modes: SavedTypingStats["modeStats"] }) {
               marginTop: "10px"
             }}
           >
-            <RunMetric label="Runs" value={mode.runs} />
-            <RunMetric label="Best WPM" value={mode.bestWpm} />
-            <RunMetric label="Avg WPM" value={mode.averageWpm} />
-            <RunMetric label="Accuracy" value={`${mode.averageAccuracy}%`} />
-            <RunMetric label="Error-Free" value={mode.cleanRuns} />
-            <RunMetric label="Time" value={formatDuration(mode.totalDurationMs)} />
+            <RunMetric label={text.runsLabel} value={mode.runs} />
+            <RunMetric label={text.bestWpmLabel} value={mode.bestWpm} />
+            <RunMetric label={text.avgWpmLabel} value={mode.averageWpm} />
+            <RunMetric label={text.accuracyLabel} value={`${mode.averageAccuracy}%`} />
+            <RunMetric label={text.errorFreeLabel} value={mode.cleanRuns} />
+            <RunMetric label={text.timeLabel} value={formatDuration(mode.totalDurationMs)} />
           </div>
         </article>
       ))}
@@ -321,8 +337,10 @@ function ModeBreakdown({ modes }: { modes: SavedTypingStats["modeStats"] }) {
   );
 }
 
-export default function StatsPanel() {
+export default function StatsPanel({ language = "en" }: { language?: TypingLanguage }) {
   const { configured, loading: authLoading, user } = useAuth();
+  const text = getStatsTexts(language);
+  const locale = getLocaleForLanguage(language);
   const [stats, setStats] = useState<SavedTypingStats>(emptyStats);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -346,7 +364,7 @@ export default function StatsPanel() {
       })
       .catch((statsError: unknown) => {
         if (active) {
-          setError(statsError instanceof Error ? statsError.message : "Could not load stats.");
+          setError(statsError instanceof Error ? statsError.message : text.couldNotLoad);
         }
       })
       .finally(() => {
@@ -356,13 +374,13 @@ export default function StatsPanel() {
     return () => {
       active = false;
     };
-  }, [authLoading, configured, user]);
+  }, [authLoading, configured, user, text.couldNotLoad]);
 
   if (!configured) {
     return (
       <section style={{ border: "1px solid var(--border)", borderRadius: "8px", backgroundColor: "var(--surface)", padding: "20px" }}>
-        <h1 style={{ marginTop: 0, marginBottom: "10px", fontSize: "32px" }}>Stats</h1>
-        <p style={{ margin: 0, color: "var(--danger)" }}>Supabase is not configured.</p>
+        <h1 style={{ marginTop: 0, marginBottom: "10px", fontSize: "32px" }}>{text.title}</h1>
+        <p style={{ margin: 0, color: "var(--danger)" }}>{text.supabaseNotConfigured}</p>
       </section>
     );
   }
@@ -370,8 +388,8 @@ export default function StatsPanel() {
   if (authLoading) {
     return (
       <section style={{ border: "1px solid var(--border)", borderRadius: "8px", backgroundColor: "var(--surface)", padding: "20px" }}>
-        <h1 style={{ marginTop: 0, marginBottom: "10px", fontSize: "32px" }}>Stats</h1>
-        <p style={{ margin: 0, color: "var(--muted)" }}>Loading account...</p>
+        <h1 style={{ marginTop: 0, marginBottom: "10px", fontSize: "32px" }}>{text.title}</h1>
+        <p style={{ margin: 0, color: "var(--muted)" }}>{text.loadingAccount}</p>
       </section>
     );
   }
@@ -379,8 +397,8 @@ export default function StatsPanel() {
   if (!user) {
     return (
       <section style={{ border: "1px solid var(--border)", borderRadius: "8px", backgroundColor: "var(--surface)", padding: "20px" }}>
-        <h1 style={{ marginTop: 0, marginBottom: "10px", fontSize: "32px" }}>Stats</h1>
-        <p style={{ margin: 0, color: "var(--muted)" }}>Login to save runs and build your typing history.</p>
+        <h1 style={{ marginTop: 0, marginBottom: "10px", fontSize: "32px" }}>{text.title}</h1>
+        <p style={{ margin: 0, color: "var(--muted)" }}>{text.loginPrompt}</p>
       </section>
     );
   }
@@ -395,14 +413,14 @@ export default function StatsPanel() {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px" }}>
-        <h1 style={{ margin: 0, fontSize: "32px" }}>Stats</h1>
-        {loading && <span style={{ color: "var(--muted)", fontSize: "13px" }}>Loading...</span>}
+        <h1 style={{ margin: 0, fontSize: "32px" }}>{text.title}</h1>
+        {loading && <span style={{ color: "var(--muted)", fontSize: "13px" }}>{text.loading}</span>}
       </div>
 
       {error && <p style={{ marginBottom: 0, color: "var(--danger)" }}>{error}</p>}
 
       {!error && stats.totalRuns === 0 && !loading && (
-        <p style={{ marginBottom: 0, color: "var(--muted)" }}>No saved runs yet. Finish a run while logged in.</p>
+        <p style={{ marginBottom: 0, color: "var(--muted)" }}>{text.noSavedRuns}</p>
       )}
 
       {stats.totalRuns > 0 && (
@@ -414,15 +432,15 @@ export default function StatsPanel() {
               gap: "10px"
             }}
           >
-            <StatTile label="Runs" value={stats.totalRuns} />
-            <StatTile label="Best WPM" value={stats.bestWpm} />
-            <StatTile label="Best CPM" value={stats.bestCpm} />
-            <StatTile label="Best Accuracy" value={`${stats.bestAccuracy}%`} />
-            <StatTile label="Average WPM" value={stats.averageWpm} />
-            <StatTile label="Average CPM" value={stats.averageCpm} />
-            <StatTile label="Accuracy" value={`${stats.averageAccuracy}%`} />
-            <StatTile label="Practice Time" value={formatDuration(stats.totalDurationMs)} />
-            <StatTile label="Mistakes" value={stats.totalMistakes} />
+            <StatTile label={text.runsLabel} value={stats.totalRuns} />
+            <StatTile label={text.bestWpmLabel} value={stats.bestWpm} />
+            <StatTile label={text.bestCpm} value={stats.bestCpm} />
+            <StatTile label={text.bestAccuracy} value={`${stats.bestAccuracy}%`} />
+            <StatTile label={text.averageWpm} value={stats.averageWpm} />
+            <StatTile label={text.averageCpm} value={stats.averageCpm} />
+            <StatTile label={text.accuracyLabel} value={`${stats.averageAccuracy}%`} />
+            <StatTile label={text.practiceTime} value={formatDuration(stats.totalDurationMs)} />
+            <StatTile label={text.mistakes} value={stats.totalMistakes} />
           </div>
 
           <div
@@ -432,32 +450,32 @@ export default function StatsPanel() {
               gap: "10px"
             }}
           >
-            <StatTile label="Last 5 Avg" value={`${stats.lastFiveAverageWpm} WPM`} />
-            <StatTile label="Recent Speed" value={formatTrend(stats.wpmTrend)} />
-            <StatTile label="Streak" value={`${stats.currentStreakDays}d`} />
-            <StatTile label="Error-Free Runs" value={`${stats.cleanRuns} (${stats.cleanRunRate}%)`} />
-            <StatTile label="Failed Runs" value={stats.failedRuns} />
+            <StatTile label={text.last5Avg} value={`${stats.lastFiveAverageWpm} WPM`} />
+            <StatTile label={text.recentSpeed} value={formatTrend(stats.wpmTrend, text)} />
+            <StatTile label={text.streak} value={`${stats.currentStreakDays}d`} />
+            <StatTile label={text.errorFreeRuns} value={`${stats.cleanRuns} (${stats.cleanRunRate}%)`} />
+            <StatTile label={text.failedRuns} value={stats.failedRuns} />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px" }}>
-            <SectionCard title="Average WPM">
-              <AverageWpmRangeChart runs={stats.wpmHistory} averageWpm={stats.averageWpm} />
+            <SectionCard title={text.averageWpm}>
+              <AverageWpmRangeChart runs={stats.wpmHistory} averageWpm={stats.averageWpm} language={language} />
             </SectionCard>
 
-            <SectionCard title="Daily Activity">
-              <DailyActivityChart days={stats.dailyActivity} />
+            <SectionCard title={text.dailyActivity}>
+              <DailyActivityChart days={stats.dailyActivity} language={language} />
             </SectionCard>
           </div>
 
-          <SectionCard title="Mode Breakdown">
-            <ModeBreakdown modes={stats.modeStats} />
+          <SectionCard title={text.modeBreakdown}>
+            <ModeBreakdown modes={stats.modeStats} language={language} />
           </SectionCard>
 
-          <SectionCard title="Worst Words">
-            <WorstWordsChart words={stats.worstWords} />
+          <SectionCard title={text.worstWords}>
+            <WorstWordsChart words={stats.worstWords} language={language} />
           </SectionCard>
 
-          <SectionCard title="Recent Runs">
+          <SectionCard title={text.recentRuns}>
             <div style={{ display: "grid", gap: "8px" }}>
               {stats.recentRuns.map((run) => (
                 <article
@@ -474,8 +492,8 @@ export default function StatsPanel() {
                   }}
                 >
                   <div style={{ minWidth: "150px", flex: "1 1 180px" }}>
-                    <strong>{run.mode === "words" ? "Word Mode" : "Sentences"}</strong>
-                    <div style={{ color: "var(--muted)", fontSize: "12px" }}>{formatDate(run.created_at)}</div>
+                    <strong>{run.mode === "words" ? text.modeWords : text.modeSentences}</strong>
+                    <div style={{ color: "var(--muted)", fontSize: "12px" }}>{formatDate(run.created_at, locale)}</div>
                   </div>
                   <div
                     style={{
@@ -485,11 +503,11 @@ export default function StatsPanel() {
                       flex: "3 1 430px"
                     }}
                   >
-                    <RunMetric label="WPM" value={run.wpm} />
-                    <RunMetric label="CPM" value={run.cpm} />
-                    <RunMetric label="Accuracy" value={`${run.accuracy}%`} />
-                    <RunMetric label="Errors" value={run.mistakes} />
-                    <RunMetric label="Words" value={`${run.completed_words}/${run.total_words}`} />
+                    <RunMetric label={text.wpm} value={run.wpm} />
+                    <RunMetric label={text.cpm} value={run.cpm} />
+                    <RunMetric label={text.accuracyLabel} value={`${run.accuracy}%`} />
+                    <RunMetric label={text.errors} value={run.mistakes} />
+                    <RunMetric label={text.words} value={`${run.completed_words}/${run.total_words}`} />
                   </div>
                 </article>
               ))}

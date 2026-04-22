@@ -21,16 +21,11 @@ import {
   isTypingLanguage,
   type ThemeMode
 } from "./settings/preferences";
+import { getAppTexts } from "./i18n/messages";
 import SettingsPanel from "./settings/SettingsPanel";
 import StatsPanel, { DailyActivityChart } from "./stats/StatsPanel";
 
 type HeaderTab = "games" | "stats" | "account" | "settings";
-
-const headerTabs: Array<{ id: HeaderTab; label: string }> = [
-  { id: "games", label: "Games" },
-  { id: "stats", label: "Stats" },
-  { id: "settings", label: "Settings" }
-];
 
 function getStoredFlag(key: string, defaultValue: boolean): boolean {
   if (typeof window === "undefined") return defaultValue;
@@ -74,12 +69,31 @@ function App() {
   const [pendingAccountLanguage, setPendingAccountLanguage] = useState<TypingLanguage | null>(null);
   const [currentStreakDays, setCurrentStreakDays] = useState(0);
   const [dailyActivity, setDailyActivity] = useState<SavedTypingDayStats[]>([]);
-  const accountLabel = authLoading ? "Account" : user ? profile?.username ?? "Account" : "Login";
   const themeVariables = useMemo(() => getThemeVariables(theme), [theme]);
   const fontVariables = useMemo(() => getFontVariables(font), [font]);
   const accountLanguage = isTypingLanguage(settings?.language) ? settings.language : null;
   const language = pendingAccountLanguage ?? (user ? accountLanguage : null) ?? localLanguage;
+  const appText = useMemo(() => getAppTexts(language), [language]);
+  const accountLabel = authLoading
+    ? appText.account.loading
+    : user
+      ? profile?.username ?? appText.account.default
+      : appText.account.login;
   const languageLabel = getLanguageLabel(language);
+  const headerTabs: Array<{ id: HeaderTab; label: string }> = [
+    { id: "games", label: appText.tabs.games },
+    { id: "stats", label: appText.tabs.stats },
+    { id: "settings", label: appText.tabs.settings }
+  ];
+  const wordDifficultyLabel =
+    wordDifficulty === "easy"
+      ? appText.home.easy
+      : wordDifficulty === "medium"
+        ? appText.home.medium
+        : wordDifficulty === "hard"
+          ? appText.home.hard
+          : appText.home.mixed;
+  const noMistakeModeLabel = wordNoMistakeMode === "on" ? appText.home.on : appText.home.off;
   const appStyle = useMemo(
     () => ({
       ...themeVariables,
@@ -274,7 +288,7 @@ function App() {
                 flexWrap: "wrap"
               }}
             >
-              <h1 style={{ margin: 0, fontSize: "34px" }}>Typing Practice</h1>
+              <h1 style={{ margin: 0, fontSize: "34px" }}>{appText.home.title}</h1>
               {user && (
                 <div
                   style={{
@@ -286,7 +300,8 @@ function App() {
                     fontWeight: 700
                   }}
                 >
-                  Streak: {currentStreakDays} {currentStreakDays === 1 ? "day" : "days"}
+                  {appText.home.streak}: {currentStreakDays}{" "}
+                  {currentStreakDays === 1 ? appText.home.day : appText.home.days}
                 </div>
               )}
             </div>
@@ -309,8 +324,8 @@ function App() {
                     gap: "12px"
                   }}
                 >
-                  <h2 style={{ margin: 0, fontSize: "20px" }}>Daily Activity</h2>
-                  <DailyActivityChart days={dailyActivity} />
+                  <h2 style={{ margin: 0, fontSize: "20px" }}>{appText.home.dailyActivity}</h2>
+                  <DailyActivityChart days={dailyActivity} language={language} />
                 </section>
               )}
 
@@ -322,9 +337,9 @@ function App() {
                   padding: "18px"
                 }}
               >
-                <h2 style={{ marginTop: 0, marginBottom: "8px", fontSize: "22px" }}>Typing Classic</h2>
+                <h2 style={{ marginTop: 0, marginBottom: "8px", fontSize: "22px" }}>{appText.home.classicTitle}</h2>
                 <p style={{ marginTop: 0, marginBottom: "14px", color: "var(--muted)", lineHeight: 1.45 }}>
-                  Standard prose mode with random text from the database.
+                  {appText.home.classicDescription}
                 </p>
 
                 <button
@@ -344,7 +359,7 @@ function App() {
                     cursor: "pointer"
                   }}
                 >
-                  Start Typing Classic
+                  {appText.home.startClassic}
                 </button>
               </article>
 
@@ -379,9 +394,9 @@ function App() {
                       gap: "6px"
                     }}
                   >
-                    <span>Word Mode</span>
+                    <span>{appText.home.wordModeTitle}</span>
                     <span style={{ fontSize: "14px", color: "var(--muted)", fontWeight: 400 }}>
-                      Random words generated.
+                      {appText.home.wordModeDescription}
                     </span>
                   </div>
 
@@ -394,7 +409,7 @@ function App() {
                         fontWeight: 600
                       }}
                     >
-                      No Mistake Mode
+                      {appText.home.noMistakeMode}
                     </div>
                     <button
                       type="button"
@@ -417,7 +432,7 @@ function App() {
                         justifyContent: "space-between"
                       }}
                     >
-                      <span>{wordNoMistakeMode === "on" ? "on" : "off"}</span>
+                      <span>{wordNoMistakeMode === "on" ? appText.home.on : appText.home.off}</span>
                       <span
                         style={{
                           width: "42px",
@@ -453,7 +468,7 @@ function App() {
                         fontWeight: 600
                       }}
                     >
-                      Words
+                      {appText.home.words}
                     </div>
                     <select
                       value={wordsCount}
@@ -468,10 +483,10 @@ function App() {
                         fontWeight: 600
                       }}
                     >
-                      <option value={10}>10 words</option>
-                      <option value={25}>25 words</option>
-                      <option value={50}>50 words</option>
-                      <option value={75}>75 words</option>
+                      <option value={10}>10 {appText.home.wordsSuffix}</option>
+                      <option value={25}>25 {appText.home.wordsSuffix}</option>
+                      <option value={50}>50 {appText.home.wordsSuffix}</option>
+                      <option value={75}>75 {appText.home.wordsSuffix}</option>
                     </select>
                   </div>
 
@@ -484,7 +499,7 @@ function App() {
                         fontWeight: 600
                       }}
                     >
-                      Difficulty
+                      {appText.home.difficulty}
                     </div>
                     <select
                       value={wordDifficulty}
@@ -499,10 +514,10 @@ function App() {
                         fontWeight: 600
                       }}
                     >
-                      <option value="easy">easy</option>
-                      <option value="medium">medium</option>
-                      <option value="hard">hard</option>
-                      <option value="mixed">mixed</option>
+                      <option value="easy">{appText.home.easy}</option>
+                      <option value="medium">{appText.home.medium}</option>
+                      <option value="hard">{appText.home.hard}</option>
+                      <option value="mixed">{appText.home.mixed}</option>
                     </select>
                   </div>
                 </div>
@@ -524,7 +539,7 @@ function App() {
                     cursor: "pointer"
                   }}
                 >
-                  Start Word Mode
+                  {appText.home.startWordMode}
                 </button>
               </article>
             </div>
@@ -535,10 +550,10 @@ function App() {
           <section>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h1 style={{ margin: 0, fontSize: "30px" }}>
-                Typing Classic{" "}
+                {appText.gameHeader.title}{" "}
                 {typingMode === "words"
-                  ? `(Words ${wordsCount}, ${wordDifficulty}, no-mistake ${wordNoMistakeMode}, ${languageLabel})`
-                  : `(Prose, ${languageLabel})`}
+                  ? `(${appText.gameHeader.wordsLabel} ${wordsCount}, ${wordDifficultyLabel}, ${appText.gameHeader.noMistakeLabel} ${noMistakeModeLabel}, ${languageLabel})`
+                  : `(${appText.gameHeader.proseLabel}, ${languageLabel})`}
               </h1>
               <button
                 type="button"
@@ -552,7 +567,7 @@ function App() {
                   cursor: "pointer"
                 }}
               >
-                Back to Start Menu
+                {appText.gameHeader.backToMenu}
               </button>
             </div>
             <TypingGame
@@ -570,9 +585,9 @@ function App() {
           </section>
         )}
 
-        {activeTab === "stats" && <StatsPanel />}
+        {activeTab === "stats" && <StatsPanel language={language} />}
 
-        {activeTab === "account" && <AccountPanel />}
+        {activeTab === "account" && <AccountPanel language={language} />}
 
         {activeTab === "settings" && (
           <SettingsPanel
