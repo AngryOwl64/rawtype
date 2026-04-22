@@ -1,4 +1,8 @@
-import type { TypingLanguage, TypingText, WordModeDifficulty } from "../types";
+import type { TypingText, WordModeDifficulty } from "../types";
+import {
+  getTypingServiceMessage as getTypingServiceMessageFromI18n,
+  type TypingServiceMessageKey
+} from "../../../i18n/messages";
 
 export type GetRandomTypingTextOptions = {
   language?: string;
@@ -16,42 +20,8 @@ export type WordDifficulty = Exclude<WordModeDifficulty, "mixed">;
 export type WordsByDifficulty = Record<WordDifficulty, string[]>;
 type WordDifficultyCounts = Record<WordDifficulty, number>;
 
-export type TypingServiceMessageKey =
-  | "supabaseNotConfigured"
-  | "sentencesLoadFailed"
-  | "wordsLoadFailed"
-  | "noProseTextsFound"
-  | "noProseTextsAvailable"
-  | "noWordsFound"
-  | "noWordsAvailable"
-  | "noWordsForDifficulty";
-
-const TYPING_SERVICE_MESSAGES: Record<TypingLanguage, Record<TypingServiceMessageKey, string>> = {
-  en: {
-    supabaseNotConfigured: "Text source is not configured yet.",
-    sentencesLoadFailed: "Texts could not be loaded right now. Please try again.",
-    wordsLoadFailed: "Words could not be loaded right now. Please try again.",
-    noProseTextsFound: "No texts available yet.",
-    noProseTextsAvailable: "No texts available yet.",
-    noWordsFound: "No words available yet.",
-    noWordsAvailable: "No words available yet.",
-    noWordsForDifficulty: "No words available for this difficulty yet."
-  },
-  de: {
-    supabaseNotConfigured: "Textquelle ist noch nicht eingerichtet.",
-    sentencesLoadFailed: "Texte konnten gerade nicht geladen werden. Bitte versuche es erneut.",
-    wordsLoadFailed: "Woerter konnten gerade nicht geladen werden. Bitte versuche es erneut.",
-    noProseTextsFound: "Bisher keine Texte vorhanden.",
-    noProseTextsAvailable: "Bisher keine Texte vorhanden.",
-    noWordsFound: "Bisher keine Woerter vorhanden.",
-    noWordsAvailable: "Bisher keine Woerter vorhanden.",
-    noWordsForDifficulty: "Fuer diesen Schwierigkeitsgrad sind bisher keine Woerter vorhanden."
-  }
-};
-
 export function getTypingServiceMessage(language: string | null | undefined, key: TypingServiceMessageKey) {
-  const normalizedLanguage: TypingLanguage = language === "de" ? "de" : "en";
-  return TYPING_SERVICE_MESSAGES[normalizedLanguage][key];
+  return getTypingServiceMessageFromI18n(language, key);
 }
 
 export const DEFAULT_TEXT_BATCH_SIZE = 24;
@@ -89,12 +59,18 @@ export function normalizeTextContent(content: string): string {
   return content.replace(/\s+/g, " ").trim();
 }
 
-export function normalizeWord(raw: string): string {
-  return raw
+export function normalizeWord(raw: string, language: string = "en"): string {
+  const normalized = raw
     .trim()
-    .toLowerCase()
     .replace(/^[^\p{L}\p{N}]+/gu, "")
     .replace(/[^\p{L}\p{N}]+$/gu, "");
+
+  // Keep capitalization in German word mode (e.g. nouns like "Haus", "Baum").
+  if (language === "de") {
+    return normalized;
+  }
+
+  return normalized.toLowerCase();
 }
 
 export function createEmptyWordsByDifficulty(): WordsByDifficulty {

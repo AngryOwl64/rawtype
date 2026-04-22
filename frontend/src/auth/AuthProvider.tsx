@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { getStoredUiLanguage } from "../i18n/language";
+import { translateAuthText } from "../i18n/messages";
 import {
   getUsernameValidationMessage,
   isValidUsername,
@@ -17,6 +19,8 @@ import {
 } from "./authContext";
 
 function getAuthErrorMessage(error: unknown): string {
+  const language = getStoredUiLanguage();
+  const t = (en: string) => translateAuthText(language, en);
   let rawMessage = "";
 
   if (error instanceof Error && error.message) {
@@ -31,17 +35,19 @@ function getAuthErrorMessage(error: unknown): string {
   }
 
   if (!rawMessage) {
-    return "Something went wrong. Please try again.";
+    return t("Something went wrong. Please try again.");
   }
 
   const message = rawMessage.toLowerCase();
 
   if (message.includes("email rate limit")) {
-    return "Signup is blocked by Supabase's email rate limit. Turn off email confirmation in Supabase Auth, then wait for the current rate limit to reset.";
+    return t(
+      "Signup is blocked by Supabase's email rate limit. Turn off email confirmation in Supabase Auth, then wait for the current rate limit to reset."
+    );
   }
 
   if (message.includes("invalid login credentials")) {
-    return "Username or password is incorrect.";
+    return t("Username or password is incorrect.");
   }
 
   return rawMessage;
@@ -49,7 +55,7 @@ function getAuthErrorMessage(error: unknown): string {
 
 function requireSupabaseClient() {
   if (!supabase) {
-    throw new Error("Supabase is not configured.");
+    throw new Error(translateAuthText(getStoredUiLanguage(), "Supabase is not configured."));
   }
 
   return supabase;
@@ -80,7 +86,7 @@ async function ensureUsernameAvailable(username: string): Promise<void> {
   const { data, error } = await client.rpc("is_username_available", { value: username });
 
   if (error) throw new Error(getAuthErrorMessage(error));
-  if (!data) throw new Error("This username is already taken.");
+  if (!data) throw new Error(translateAuthText(getStoredUiLanguage(), "This username is already taken."));
 }
 
 function normalizeEmail(email: string): string {
@@ -123,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error: sessionError } = await supabase.auth.getSession();
 
     if (sessionError) {
-      setError(sessionError.message);
+      setError(getAuthErrorMessage(sessionError));
       return;
     }
 
@@ -141,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .getSession()
       .then(({ data, error: sessionError }) => {
         if (!active) return;
-        if (sessionError) setError(sessionError.message);
+        if (sessionError) setError(getAuthErrorMessage(sessionError));
         return loadAccount(data.session?.user ?? null);
       })
       .catch((authError: unknown) => {
@@ -166,13 +172,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadAccount]);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    const language = getStoredUiLanguage();
     const normalizedEmail = normalizeEmail(email);
 
     if (!isValidEmail(normalizedEmail)) {
-      throw new Error("Please enter a valid email address.");
+      throw new Error(translateAuthText(language, "Please enter a valid email address."));
     }
     if (password.length === 0) {
-      throw new Error("Password is required.");
+      throw new Error(translateAuthText(language, "Password is required."));
     }
 
     const client = requireSupabaseClient();
@@ -186,16 +193,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadAccount]);
 
   const register = useCallback(async (email: string, username: string, password: string) => {
+    const language = getStoredUiLanguage();
     const normalizedEmail = normalizeEmail(email);
 
     if (!isValidEmail(normalizedEmail)) {
-      throw new Error("Please enter a valid email address.");
+      throw new Error(translateAuthText(language, "Please enter a valid email address."));
     }
     if (!isValidUsername(username)) {
-      throw new Error(getUsernameValidationMessage(username));
+      throw new Error(getUsernameValidationMessage(username, language));
     }
     if (password.length < 8) {
-      throw new Error("Password must be at least 8 characters.");
+      throw new Error(translateAuthText(language, "Password must be at least 8 characters."));
     }
 
     const client = requireSupabaseClient();
@@ -229,17 +237,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadAccount]);
 
   const updateUsername = useCallback(async (nextUsername: string, currentPassword: string) => {
+    const language = getStoredUiLanguage();
     if (!user || !profile?.username) {
-      throw new Error("Account profile is not loaded.");
+      throw new Error(translateAuthText(language, "Account profile is not loaded."));
     }
 
     const normalizedUsername = normalizeUsername(nextUsername);
 
     if (!isValidUsername(normalizedUsername)) {
-      throw new Error(getUsernameValidationMessage(normalizedUsername));
+      throw new Error(getUsernameValidationMessage(normalizedUsername, language));
     }
     if (currentPassword.length === 0) {
-      throw new Error("Current password is required.");
+      throw new Error(translateAuthText(language, "Current password is required."));
     }
     if (normalizedUsername === normalizeUsername(profile.username)) {
       return;
@@ -250,7 +259,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const currentAuthEmail = normalizeEmail(user.email ?? "");
 
     if (!isValidEmail(currentAuthEmail)) {
-      throw new Error("Current account email is missing or invalid.");
+      throw new Error(translateAuthText(language, "Current account email is missing or invalid."));
     }
 
     const client = requireSupabaseClient();
@@ -286,20 +295,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadAccount, profile, user]);
 
   const updatePassword = useCallback(async (currentPassword: string, nextPassword: string) => {
+    const language = getStoredUiLanguage();
     if (!user) {
-      throw new Error("Account user is not loaded.");
+      throw new Error(translateAuthText(language, "Account user is not loaded."));
     }
     if (currentPassword.length === 0) {
-      throw new Error("Current password is required.");
+      throw new Error(translateAuthText(language, "Current password is required."));
     }
     if (nextPassword.length < 8) {
-      throw new Error("New password must be at least 8 characters.");
+      throw new Error(translateAuthText(language, "New password must be at least 8 characters."));
     }
 
     const currentAuthEmail = normalizeEmail(user.email ?? "");
 
     if (!isValidEmail(currentAuthEmail)) {
-      throw new Error("Current account email is missing or invalid.");
+      throw new Error(translateAuthText(language, "Current account email is missing or invalid."));
     }
 
     const client = requireSupabaseClient();
@@ -387,3 +397,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+

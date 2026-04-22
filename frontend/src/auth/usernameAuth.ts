@@ -1,3 +1,6 @@
+import type { TypingLanguage } from "../games/typing/types";
+import { getUsernameValidationMessageText } from "../i18n/messages";
+
 const RAWTYPE_AUTH_DOMAIN = "rawtype.local";
 
 const reservedUsernames = new Set([
@@ -28,15 +31,21 @@ export function isValidUsername(username: string): boolean {
   return /^[a-z0-9_]{3,20}$/.test(normalized) && !reservedUsernames.has(normalized);
 }
 
-export function getUsernameValidationMessage(username: string): string {
+export function getUsernameValidationMessage(username: string, language: TypingLanguage = "en"): string {
   const normalized = normalizeUsername(username);
 
-  if (normalized.length < 3) return "Username must be at least 3 characters.";
-  if (normalized.length > 20) return "Username must be 20 characters or less.";
-  if (!/^[a-z0-9_]+$/.test(normalized)) {
-    return "Use only letters, numbers, and underscores.";
+  if (normalized.length < 3) {
+    return getUsernameValidationMessageText(language, "tooShort");
   }
-  if (reservedUsernames.has(normalized)) return "This username is reserved.";
+  if (normalized.length > 20) {
+    return getUsernameValidationMessageText(language, "tooLong");
+  }
+  if (!/^[a-z0-9_]+$/.test(normalized)) {
+    return getUsernameValidationMessageText(language, "invalidChars");
+  }
+  if (reservedUsernames.has(normalized)) {
+    return getUsernameValidationMessageText(language, "reserved");
+  }
 
   return "";
 }

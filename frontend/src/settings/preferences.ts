@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 import type { TypingFont, TypingLanguage } from "../games/typing/types";
+import { SUPPORTED_TYPING_LANGUAGES } from "../i18n/language";
+import { getLanguageLabelFromMessages, getLanguageOptionsFromMessages } from "../i18n/messages";
 import type { ThemeId } from "../themes/types";
 
 export type ThemeMode = ThemeId;
@@ -9,10 +11,7 @@ export type SelectOption<T extends string> = {
   label: string;
 };
 
-export const LANGUAGE_OPTIONS: Array<SelectOption<TypingLanguage>> = [
-  { value: "en", label: "English" },
-  { value: "de", label: "German" }
-];
+export const LANGUAGE_OPTIONS: Array<SelectOption<TypingLanguage>> = getLanguageOptionsFromMessages();
 
 export const FONT_OPTIONS: Array<SelectOption<TypingFont>> = [
   { value: "system-mono", label: "System mono" },
@@ -21,7 +20,7 @@ export const FONT_OPTIONS: Array<SelectOption<TypingFont>> = [
 ];
 
 export function isTypingLanguage(value: string | null | undefined): value is TypingLanguage {
-  return value === "en" || value === "de";
+  return value ? SUPPORTED_TYPING_LANGUAGES.includes(value as TypingLanguage) : false;
 }
 
 export function isTypingFont(value: string | null | undefined): value is TypingFont {
@@ -50,7 +49,7 @@ export function getStoredFont(): TypingFont {
 }
 
 export function getLanguageLabel(language: TypingLanguage): string {
-  return LANGUAGE_OPTIONS.find((option) => option.value === language)?.label ?? "English";
+  return getLanguageLabelFromMessages(language);
 }
 
 export function getThemeVariables(theme: ThemeMode): CSSProperties {

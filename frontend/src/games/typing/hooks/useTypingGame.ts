@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { getRandomTypingText, getRandomTypingWordsText } from "../services/texts";
+import { getTypingServiceMessage } from "../services/textServiceUtils";
 import {
   calculateAccuracy,
   calculateCorrectChars,
@@ -69,7 +70,7 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
 
     if (error || !dbText) {
       setIsTextLoading(false);
-      setTextLoadError(error ?? "Could not load text from database.");
+      setTextLoadError(error ?? getTypingServiceMessage(language, "sentencesLoadFailed"));
       return;
     }
 

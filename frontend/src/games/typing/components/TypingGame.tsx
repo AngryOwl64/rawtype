@@ -1,5 +1,6 @@
 import { Fragment, memo, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../auth/authContext";
+import { getTypingGameTexts } from "../../../i18n/messages";
 import { saveTypingRun } from "../services/runResults";
 import { useTypingGame } from "../hooks/useTypingGame";
 import type { TypingLanguage, TypingMode, WordModeDifficulty, WordNoMistakeMode } from "../types";
@@ -148,7 +149,13 @@ function normalizePressedKey(key: string): string | null {
   return null;
 }
 
-const OnScreenKeyboard = memo(function OnScreenKeyboard({ activeKeys }: { activeKeys: Set<string> }) {
+const OnScreenKeyboard = memo(function OnScreenKeyboard({
+  activeKeys,
+  title
+}: {
+  activeKeys: Set<string>;
+  title: string;
+}) {
   const keyboardWrapperRef = useRef<HTMLDivElement | null>(null);
   const [keyUnit, setKeyUnit] = useState(KEYBOARD_DEFAULT_UNIT);
   const keyHeight = Math.max(24, Math.round(keyUnit * 0.86));
@@ -209,7 +216,7 @@ const OnScreenKeyboard = memo(function OnScreenKeyboard({ activeKeys }: { active
         gap: "6px"
       }}
     >
-      <div style={{ color: "var(--muted)", fontSize: "12px", fontWeight: 700 }}>On-Screen Keyboard</div>
+      <div style={{ color: "var(--muted)", fontSize: "12px", fontWeight: 700 }}>{title}</div>
 
       <div
         ref={keyboardWrapperRef}
@@ -297,6 +304,7 @@ export default function TypingGame({
   errorMarkerColor = "#c86b73"
 }: TypingGameProps) {
   const { user } = useAuth();
+  const text = useMemo(() => getTypingGameTexts(language), [language]);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
   const [activeKeyboardKeys, setActiveKeyboardKeys] = useState<Set<string>>(new Set());
@@ -463,7 +471,7 @@ export default function TypingGame({
       .catch((error: unknown) => {
         savedRunKeyRef.current = "";
         setSaveState("error");
-        setSaveError(error instanceof Error ? error.message : "Could not save this run.");
+        setSaveError(error instanceof Error ? error.message : text.saveFailed);
       });
   }, [
     accuracy,
@@ -485,7 +493,8 @@ export default function TypingGame({
     wordDifficulty,
     wordNoMistakeMode,
     wordsCount,
-    wpm
+    wpm,
+    text.saveFailed
   ]);
 
   function handleRestart() {
@@ -497,7 +506,7 @@ export default function TypingGame({
 
   const errorSummary = useMemo(() => {
     const errorCountByWord = errorEvents.reduce<Record<string, number>>((acc, entry) => {
-      const key = `Word ${entry.wordNumber}: ${entry.word}`;
+      const key = `${text.wordLabel} ${entry.wordNumber}: ${entry.word}`;
       acc[key] = (acc[key] ?? 0) + 1;
       return acc;
     }, {});
@@ -506,7 +515,7 @@ export default function TypingGame({
       uniqueErrorWords: Object.keys(errorCountByWord).length,
       mostErrorWord: Object.entries(errorCountByWord).sort((a, b) => b[1] - a[1])[0]
     };
-  }, [errorEvents]);
+  }, [errorEvents, text.wordLabel]);
   const displayedSaveState = finished && !user ? "skipped" : saveState;
 
   return (
@@ -541,8 +550,8 @@ export default function TypingGame({
               }}
             >
               {mode === "words"
-                ? "Generating random words from database..."
-                : "Loading text from database..."}
+                ? text.loadingWords
+                : text.loadingText}
             </div>
           )}
 
@@ -562,7 +571,7 @@ export default function TypingGame({
                 onClick={() => void reloadText()}
                 style={{ padding: "10px 16px", cursor: "pointer", borderRadius: "8px" }}
               >
-                Retry
+                {text.retry}
               </button>
             </div>
           )}
@@ -713,11 +722,11 @@ export default function TypingGame({
           >
             <MetricCard label="WPM" value={wpm} />
             <MetricCard label="CPM" value={cpm} />
-            <MetricCard label="Accuracy" value={`${accuracy}%`} />
-            <MetricCard label="Progress" value={`${currentWordIndex}/${totalWords}`} />
-            <MetricCard label="Errors" value={mistakes} />
-            <MetricCard label="Category" value={activeText?.category ?? "-"} compact />
-            <MetricCard label="Difficulty" value={activeText?.difficulty ?? "-"} compact />
+            <MetricCard label={text.metricAccuracy} value={`${accuracy}%`} />
+            <MetricCard label={text.metricProgress} value={`${currentWordIndex}/${totalWords}`} />
+            <MetricCard label={text.metricErrors} value={mistakes} />
+            <MetricCard label={text.metricCategory} value={activeText?.category ?? "-"} compact />
+            <MetricCard label={text.metricDifficulty} value={activeText?.difficulty ?? "-"} compact />
           </div>
 
           <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
@@ -726,12 +735,12 @@ export default function TypingGame({
               onClick={handleRestart}
               style={{ padding: "10px 16px", cursor: "pointer", borderRadius: "8px" }}
             >
-              Reset
+              {text.reset}
             </button>
           </div>
 
           {showOnScreenKeyboard && !isTextLoading && !textLoadError && (
-            <OnScreenKeyboard activeKeys={activeKeyboardKeys} />
+            <OnScreenKeyboard activeKeys={activeKeyboardKeys} title={text.onScreenKeyboard} />
           )}
         </section>
       )}
@@ -746,10 +755,10 @@ export default function TypingGame({
             width: "min(100%, 980px)"
           }}
         >
-          <h2 style={{ marginTop: 0, marginBottom: "10px", fontSize: "28px" }}>Run Complete</h2>
+          <h2 style={{ marginTop: 0, marginBottom: "10px", fontSize: "28px" }}>{text.runComplete}</h2>
           {noMistakeActive && failedByMistake && (
             <p style={{ marginTop: 0, marginBottom: "12px", color: "var(--danger)", fontWeight: 600 }}>
-              No Mistake Mode: run ended after the first mistake.
+              {text.noMistakeEnded}
             </p>
           )}
           {displayedSaveState !== "idle" && (
@@ -761,10 +770,10 @@ export default function TypingGame({
                 fontWeight: 600
               }}
             >
-              {displayedSaveState === "saving" && "Saving run..."}
-              {displayedSaveState === "saved" && "Run saved to your account."}
-              {displayedSaveState === "skipped" && "Login to save this run to your stats."}
-              {displayedSaveState === "error" && `Save failed: ${saveError}`}
+              {displayedSaveState === "saving" && text.savingRun}
+              {displayedSaveState === "saved" && text.runSaved}
+              {displayedSaveState === "skipped" && text.loginToSave}
+              {displayedSaveState === "error" && `${text.saveFailed}: ${saveError}`}
             </p>
           )}
 
@@ -777,15 +786,15 @@ export default function TypingGame({
           >
             <MetricCard label="WPM" value={wpm} />
             <MetricCard label="CPM" value={cpm} />
-            <MetricCard label="Accuracy" value={`${accuracy}%`} />
-            <MetricCard label="Duration" value={`${durationSeconds}s`} />
-            <MetricCard label="Keystrokes" value={typedChars} />
-            <MetricCard label="Correct Keystrokes" value={correctChars} />
-            <MetricCard label="Errors" value={mistakes} />
+            <MetricCard label={text.metricAccuracy} value={`${accuracy}%`} />
+            <MetricCard label={text.metricDuration} value={`${durationSeconds}s`} />
+            <MetricCard label={text.metricKeystrokes} value={typedChars} />
+            <MetricCard label={text.metricCorrectKeystrokes} value={correctChars} />
+            <MetricCard label={text.metricErrors} value={mistakes} />
           </div>
 
-          <h3 style={{ marginBottom: "8px", marginTop: "18px" }}>Error Breakdown</h3>
-          {errorEvents.length === 0 && <p style={{ marginTop: 0 }}>No errors in this run.</p>}
+          <h3 style={{ marginBottom: "8px", marginTop: "18px" }}>{text.errorBreakdown}</h3>
+          {errorEvents.length === 0 && <p style={{ marginTop: 0 }}>{text.noErrors}</p>}
 
           {errorEvents.length > 0 && (
             <section
@@ -813,7 +822,7 @@ export default function TypingGame({
                     backgroundColor: "var(--surface)"
                   }}
                 >
-                  Total Errors: {mistakes}
+                  {text.totalErrors}: {mistakes}
                 </span>
                 <span
                   style={{
@@ -824,7 +833,7 @@ export default function TypingGame({
                     backgroundColor: "var(--surface)"
                   }}
                 >
-                  Words Affected: {errorSummary.uniqueErrorWords}
+                  {text.wordsAffected}: {errorSummary.uniqueErrorWords}
                 </span>
                 {errorSummary.mostErrorWord && (
                   <span
@@ -835,8 +844,8 @@ export default function TypingGame({
                       fontSize: "12px",
                       backgroundColor: "var(--surface)"
                     }}
-                  >
-                    Most Errors: {errorSummary.mostErrorWord[0]} ({errorSummary.mostErrorWord[1]})
+                    >
+                    {text.mostErrors}: {errorSummary.mostErrorWord[0]} ({errorSummary.mostErrorWord[1]})
                   </span>
                 )}
               </div>
@@ -869,10 +878,10 @@ export default function TypingGame({
                         }}
                       >
                         <strong style={{ fontSize: "14px" }}>
-                          Word {entry.wordNumber} ({entry.word})
+                          {text.wordLabel} {entry.wordNumber} ({entry.word})
                         </strong>
                         <span style={{ color: "var(--muted)", fontSize: "12px" }}>
-                          Character {entry.charPosition}
+                          {text.characterLabel} {entry.charPosition}
                         </span>
                       </div>
 
@@ -885,7 +894,7 @@ export default function TypingGame({
                         }}
                       >
                         <div style={{ color: "var(--muted)", fontSize: "11px", marginBottom: "6px" }}>
-                          Word Markup
+                          {text.wordMarkup}
                         </div>
                         <div style={{ display: "inline-flex", alignItems: "flex-end", gap: "1px" }}>
                           {entry.word.split("").map((char, index) => {
@@ -921,7 +930,7 @@ export default function TypingGame({
                                     whiteSpace: "nowrap"
                                   }}
                                 >
-                                  typed: {entry.typed}
+                                  {text.typedLabel}: {entry.typed}
                                 </span>
                                 <span
                                   style={{
@@ -941,7 +950,7 @@ export default function TypingGame({
                           })}
                         </div>
                         <div style={{ marginTop: "8px", color: "var(--muted)", fontSize: "12px" }}>
-                          Expected: <strong>{entry.expected}</strong>
+                          {text.expectedLabel}: <strong>{entry.expected}</strong>
                         </div>
                       </div>
                     </article>
@@ -956,7 +965,7 @@ export default function TypingGame({
             onClick={handleRestart}
             style={{ padding: "10px 16px", cursor: "pointer", borderRadius: "8px" }}
           >
-            Play Again
+            {text.playAgain}
           </button>
         </section>
       )}
