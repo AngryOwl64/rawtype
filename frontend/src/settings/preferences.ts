@@ -2,7 +2,7 @@
 // Also maps selected preferences into CSS variables.
 import type { CSSProperties } from "react";
 import type { TypingFont, TypingLanguage } from "../games/typing/types";
-import { SUPPORTED_TYPING_LANGUAGES } from "../i18n/language";
+import { getPathTypingLanguage, SUPPORTED_TYPING_LANGUAGES } from "../i18n/language";
 import { getLanguageLabelFromMessages, getLanguageOptionsFromMessages } from "../i18n/messages";
 import type { ThemeId } from "../themes/types";
 
@@ -40,6 +40,8 @@ export function getStoredTheme(): ThemeMode {
 
 export function getStoredLanguage(): TypingLanguage {
   if (typeof window === "undefined") return "en";
+  const pathLanguage = getPathTypingLanguage();
+  if (pathLanguage) return pathLanguage;
   const storedLanguage = window.localStorage.getItem("rawtype-language");
   return isTypingLanguage(storedLanguage) ? storedLanguage : "en";
 }
