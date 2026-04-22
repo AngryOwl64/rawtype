@@ -3,7 +3,7 @@ import type { TypingText } from "../types";
 import {
   DEFAULT_TEXT_BATCH_SIZE,
   PREFETCH_THRESHOLD,
-  SUPABASE_MISSING_CONFIG_ERROR,
+  getTypingServiceMessage,
   getSentenceCacheKey,
   normalizeTextRow,
   shuffle,
@@ -21,7 +21,7 @@ async function fetchSentenceBatchFromDb(language: string, batchSize: number): Pr
   if (!supabase) {
     return {
       rows: [],
-      error: SUPABASE_MISSING_CONFIG_ERROR
+      error: getTypingServiceMessage(language, "supabaseNotConfigured")
     };
   }
 
@@ -33,7 +33,7 @@ async function fetchSentenceBatchFromDb(language: string, batchSize: number): Pr
     .limit(batchSize);
 
   if (error) {
-    return { rows: [], error: error.message };
+    return { rows: [], error: getTypingServiceMessage(language, "sentencesLoadFailed") };
   }
 
   const validRows = (data ?? [])
@@ -67,7 +67,7 @@ async function ensureSentenceBatchLoaded(language: string, batchSize: number): P
   }
 
   if (result.rows.length === 0) {
-    return `No prose texts found in database for language "${language}".`;
+    return getTypingServiceMessage(language, "noProseTextsFound");
   }
 
   textCache.set(key, result.rows);
@@ -143,7 +143,7 @@ export async function getRandomTypingText(options: GetRandomTypingTextOptions = 
   if (!picked) {
     return {
       text: null,
-      error: `No prose texts available for language "${language}".`
+      error: getTypingServiceMessage(language, "noProseTextsAvailable")
     };
   }
 

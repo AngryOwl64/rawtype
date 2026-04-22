@@ -4,13 +4,13 @@ import {
   DEFAULT_WORD_BATCH_SIZE,
   DEFAULT_WORDS_COUNT,
   MIN_WORD_LENGTH,
-  SUPABASE_MISSING_CONFIG_ERROR,
   WORD_DIFFICULTIES,
   WORD_FETCH_PAGE_SIZE,
   buildWordDifficultyTargetCounts,
   classifyWordDifficultyFromLength,
   countWordsInDifficultyPools,
   createEmptyWordsByDifficulty,
+  getTypingServiceMessage,
   getWordsCacheKey,
   normalizeWord,
   normalizeWordDifficulty,
@@ -39,7 +39,7 @@ async function fetchWordsBatchFromDb(language: string, batchSize: number): Promi
   if (!supabase) {
     return {
       wordsByDifficulty: createEmptyWordsByDifficulty(),
-      error: SUPABASE_MISSING_CONFIG_ERROR
+      error: getTypingServiceMessage(language, "supabaseNotConfigured")
     };
   }
 
@@ -60,7 +60,7 @@ async function fetchWordsBatchFromDb(language: string, batchSize: number): Promi
     if (error) {
       return {
         wordsByDifficulty: createEmptyWordsByDifficulty(),
-        error: error.message
+        error: getTypingServiceMessage(language, "wordsLoadFailed")
       };
     }
 
@@ -122,7 +122,7 @@ async function ensureWordsBatchLoaded(language: string, batchSize: number): Prom
   }
 
   if (countWordsInDifficultyPools(result.wordsByDifficulty) === 0) {
-    return `No words found in database for language "${language}".`;
+    return getTypingServiceMessage(language, "noWordsFound");
   }
 
   wordsCache.set(key, result.wordsByDifficulty);
@@ -322,7 +322,7 @@ export async function getRandomTypingWordsText(
   if (!poolByDifficulty || countWordsInDifficultyPools(poolByDifficulty) === 0) {
     return {
       text: null,
-      error: `No words available for language "${language}".`
+      error: getTypingServiceMessage(language, "noWordsAvailable")
     };
   }
 
@@ -334,7 +334,7 @@ export async function getRandomTypingWordsText(
   if (words.length === 0) {
     return {
       text: null,
-      error: `No words available for difficulty "${difficultyMode}" in language "${language}".`
+      error: getTypingServiceMessage(language, "noWordsForDifficulty")
     };
   }
 
