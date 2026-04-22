@@ -1,3 +1,5 @@
+-- Generated word insert statements for seeding the word table.
+-- Source data for the typing word mode.
 INSERT INTO words (word, language, created_at) VALUES ('jährig', 'de', NOW());
 INSERT INTO words (word, language, created_at) VALUES ('stündig', 'de', NOW());
 INSERT INTO words (word, language, created_at) VALUES ('tägig', 'de', NOW());

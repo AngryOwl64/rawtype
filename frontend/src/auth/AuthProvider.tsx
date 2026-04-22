@@ -1,4 +1,6 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+// Provides Supabase auth state and profile settings to the app.
+// Keeps account loading, refresh, and update logic in one place.
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";

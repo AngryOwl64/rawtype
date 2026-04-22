@@ -1,3 +1,5 @@
+// Supabase client setup shared by auth, stats, and typing services.
+// Reads browser-safe configuration from Vite environment variables.
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 

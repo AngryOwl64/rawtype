@@ -1,3 +1,5 @@
+-- Adds database support for changing usernames safely.
+-- Keeps username updates consistent across profile records.
 -- RawType: allow profile username changes.
 --
 -- Run this once on existing databases if username updates are currently blocked.

@@ -1,3 +1,5 @@
+// Tracks currently pressed keys for the on-screen keyboard.
+// Smooths key release so highlights are visible while typing.
 import { useEffect, useRef, useState } from "react";
 
 const EMPTY_ACTIVE_KEYS = new Set<string>();

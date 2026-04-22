@@ -1,3 +1,5 @@
+# Small scraping experiment for collecting source text.
+# Kept as a quick helper for building text datasets.
 from playwright.sync_api import sync_playwright
 import time
 import re

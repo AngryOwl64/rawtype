@@ -1,3 +1,5 @@
+// Boots the React app and mounts it into the page.
+// Wraps the UI with authentication state before rendering RawType.
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";

@@ -1,4 +1,6 @@
-﻿import { useEffect, useMemo, useState } from "react";
+// Account screen for login, profile display, and account actions.
+// Handles the username/password flow used by RawType.
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useAuth } from "../auth/authContext";
 import { getUsernameValidationMessage, normalizeUsername } from "../auth/usernameAuth";

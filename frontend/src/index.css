@@ -1,3 +1,5 @@
+/* Base document styles for the RawType frontend. */
+/* Component-specific styling stays inline with the React views. */
 html,
 body,
 #root {

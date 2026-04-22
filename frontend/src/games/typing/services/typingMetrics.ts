@@ -1,3 +1,5 @@
+// Metric calculations for typing speed and accuracy.
+// Keeps WPM, CPM, and accuracy formulas reusable.
 export function calculateCpm(typedChars: number, durationMs: number): number {
   if (typedChars <= 0 || durationMs <= 0) return 0;
   return Math.round(typedChars / (durationMs / 60000));

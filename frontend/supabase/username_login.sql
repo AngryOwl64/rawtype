@@ -1,3 +1,5 @@
+-- Adds username lookup support for the login flow.
+-- Maps a public username to the backing auth account.
 -- RawType: allow password login with either username or email.
 --
 -- Run this once on existing databases after account_username_password.sql.

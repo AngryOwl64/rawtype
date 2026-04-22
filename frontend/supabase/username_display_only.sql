@@ -1,3 +1,5 @@
+-- Adds display-only username fields for public profiles.
+-- Lets the UI show names without changing login behavior.
 -- RawType: make profile display names use username only.
 --
 -- Run this once on existing databases if you previously had editable display

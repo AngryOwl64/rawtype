@@ -1,3 +1,5 @@
+// Settings UI for theme, language, font, and typing highlights.
+// Keeps user-facing preference controls grouped in one panel.
 import { useEffect, useState } from "react";
 import type { TypingFont, TypingLanguage } from "../games/typing/types";
 import { getLocalizedThemeDescription, getSettingsTexts } from "../i18n/messages";

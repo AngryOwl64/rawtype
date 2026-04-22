@@ -1,3 +1,5 @@
+-- Defines public profile data exposed to the frontend.
+-- Keeps display names separate from private auth details.
 -- RawType: add public profile visibility to an existing database.
 --
 -- Run this once if you already applied account_username_password.sql before

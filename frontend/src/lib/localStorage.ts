@@ -1,3 +1,5 @@
+// Small localStorage helpers for persisted UI preferences.
+// Handles browser checks and simple value validation in one place.
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
 export function getStoredBoolean(key: string, defaultValue: boolean): boolean {

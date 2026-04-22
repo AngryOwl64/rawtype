@@ -1,3 +1,5 @@
+-- Creates and seeds word data used by word typing mode.
+-- Stores difficulty and language metadata for prompts.
 create table if not exists public.words (
   id uuid primary key default gen_random_uuid(),
   word text not null,

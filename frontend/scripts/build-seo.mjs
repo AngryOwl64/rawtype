@@ -1,3 +1,5 @@
+// Post-build SEO helper for static deployment output.
+// Adds robots and sitemap files when a site URL is configured.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

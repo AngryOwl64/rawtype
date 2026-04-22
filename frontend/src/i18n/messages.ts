@@ -1,3 +1,5 @@
+// UI copy for RawType in each supported language.
+// Exposes small getters so screens can resolve text by language.
 import type { TypingLanguage } from "../games/typing/types";
 import type { ThemeId } from "../themes/types";
 import { resolveTypingLanguage } from "./language";
