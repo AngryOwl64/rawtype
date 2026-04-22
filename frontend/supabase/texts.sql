@@ -1,3 +1,5 @@
+-- Creates and seeds prose texts used by sentence typing mode.
+-- Stores language, category, and difficulty metadata.
 create table if not exists public.texts (
   id uuid primary key default gen_random_uuid(),
   content text not null,

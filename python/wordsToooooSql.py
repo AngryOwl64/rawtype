@@ -1,3 +1,5 @@
+# Older word-list conversion script kept for reference.
+# Writes SQL inserts from a plain text word source.
 #!/usr/bin/env python3
 
 import sys

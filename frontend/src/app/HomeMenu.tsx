@@ -1,3 +1,5 @@
+// Start menu for choosing a typing mode and word-mode options.
+// Also shows signed-in activity highlights before a run starts.
 import type { getAppTexts } from "../i18n/messages";
 import { DailyActivityChart } from "../stats/StatsPanel";
 import type { SavedTypingDayStats, TypingLanguage, WordModeDifficulty, WordNoMistakeMode } from "../games/typing/types";

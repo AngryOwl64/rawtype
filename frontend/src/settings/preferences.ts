@@ -1,3 +1,5 @@
+// Preference options and local defaults for themes, fonts, and language.
+// Also maps selected preferences into CSS variables.
 import type { CSSProperties } from "react";
 import type { TypingFont, TypingLanguage } from "../games/typing/types";
 import { SUPPORTED_TYPING_LANGUAGES } from "../i18n/language";

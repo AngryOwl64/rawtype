@@ -1,3 +1,5 @@
+// Builds word-mode typing prompts from Supabase or fallback words.
+// Filters by language and difficulty before selecting random words.
 import { supabase } from "../../../lib/supabase";
 import type { TypingText, WordModeDifficulty } from "../types";
 import {

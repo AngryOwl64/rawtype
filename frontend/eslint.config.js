@@ -1,3 +1,5 @@
+// ESLint rules for the TypeScript React frontend.
+// Combines the recommended JS, TS, React Hooks, and Vite refresh rules.
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'

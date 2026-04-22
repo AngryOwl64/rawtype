@@ -1,3 +1,5 @@
+-- Scratch SQL for checking local database queries.
+-- Kept separate from frontend Supabase migrations.
 INSERT INTO words (word, language, created_at) VALUES ('Abgaben', 'de', '2026-04-22 07:35:39') ON CONFLICT DO NOTHING;
 INSERT INTO words (word, language, created_at) VALUES ('Abgabenlast', 'de', '2026-04-22 07:35:39') ON CONFLICT DO NOTHING;
 INSERT INTO words (word, language, created_at) VALUES ('Abgabenquote', 'de', '2026-04-22 07:35:39') ON CONFLICT DO NOTHING;

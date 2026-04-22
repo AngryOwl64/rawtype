@@ -1,3 +1,5 @@
+// Loads sentence-mode typing texts from Supabase with local fallback.
+// Picks a random prose text for the selected language.
 import { supabase } from "../../../lib/supabase";
 import type { TypingText } from "../types";
 import {

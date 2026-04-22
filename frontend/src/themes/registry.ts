@@ -1,3 +1,5 @@
+// Built-in theme registry for RawType.
+// Provides the known theme list and lookup helpers.
 import type { ThemeId } from "./types";
 
 export type BuiltInTheme = {

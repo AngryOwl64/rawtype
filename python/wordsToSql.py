@@ -1,3 +1,5 @@
+# Converts word lists into SQL insert statements.
+# Used for preparing RawType seed data.
 import argparse
 from pathlib import Path
 

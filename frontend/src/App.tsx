@@ -1,3 +1,5 @@
+// Coordinates the RawType app shell, tabs, and shared preferences.
+// Passes account, language, and game settings into the active screen.
 import { useEffect, useMemo, useState } from "react";
 import AccountPanel from "./account/AccountPanel";
 import AppHeader from "./app/AppHeader";

@@ -1,3 +1,5 @@
+// Username-based auth helpers built on top of Supabase email login.
+// Translates display usernames into the backing account identifier.
 import type { TypingLanguage } from "../games/typing/types";
 import { getUsernameValidationMessageText } from "../i18n/messages";
 

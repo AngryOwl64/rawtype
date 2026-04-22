@@ -1,3 +1,5 @@
+// Shared helpers for typing text services.
+// Handles Supabase checks, fallbacks, and random selection.
 import type { TypingText, WordModeDifficulty } from "../types";
 import {
   getTypingServiceMessage as getTypingServiceMessageFromI18n,

@@ -1,3 +1,5 @@
+// Core typing game state machine for words and prose modes.
+// Tracks input, timing, mistakes, and completion metrics.
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { getRandomTypingText, getRandomTypingWordsText } from "../services/texts";

@@ -1,3 +1,5 @@
+-- German seed data inserts for the typing database.
+-- Loads language-specific content outside the app code.
 INSERT INTO words (word, language, created_at) VALUES ('jährig', 'de', NOW()) ON CONFLICT DO NOTHING;
 INSERT INTO words (word, language, created_at) VALUES ('stündig', 'de', NOW()) ON CONFLICT DO NOTHING;
 INSERT INTO words (word, language, created_at) VALUES ('tägig', 'de', NOW()) ON CONFLICT DO NOTHING;

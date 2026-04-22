@@ -1,3 +1,5 @@
+# Converts sentence lists into SQL insert statements.
+# Used to prepare prose typing texts for the database.
 import requests
 import re
 import random

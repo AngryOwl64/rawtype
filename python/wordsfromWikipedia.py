@@ -1,3 +1,5 @@
+# Extracts candidate words from Wikipedia-style text sources.
+# Helps build raw word lists before SQL conversion.
 #!/usr/bin/env python3
 """
 wiki_to_words.py

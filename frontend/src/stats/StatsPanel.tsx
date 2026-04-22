@@ -1,3 +1,5 @@
+// Stats dashboard for saved typing runs and daily activity.
+// Formats Supabase results into charts, tiles, and recent-run summaries.
 import { useEffect, useState } from "react";
 import { useAuth } from "../auth/authContext";
 import { fetchTypingStats } from "../games/typing/services/runResults";

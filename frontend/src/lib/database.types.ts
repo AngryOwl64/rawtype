@@ -1,3 +1,5 @@
+// Supabase database types used by the frontend data layer.
+// Keep this aligned with the live schema when tables change.
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
 export type Database = {

@@ -1,3 +1,5 @@
+// Top navigation for switching between RawType sections.
+// Keeps the header markup separate from the app state container.
 import type { getAppTexts } from "../i18n/messages";
 import type { AppTab } from "./types";
 

@@ -1,3 +1,5 @@
+// Language helpers for supported typing languages and browser locale use.
+// Keeps language fallback rules consistent across the app.
 import type { TypingLanguage } from "../games/typing/types";
 
 export const SUPPORTED_TYPING_LANGUAGES: TypingLanguage[] = ["en", "de"];

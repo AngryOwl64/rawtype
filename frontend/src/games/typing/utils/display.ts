@@ -1,3 +1,5 @@
+// Display helpers for typing highlights and saved-run labels.
+// Keeps small formatting rules out of the main game view.
 import type { TypingMode, WordModeDifficulty } from "../types";
 
 export function getSavedDifficulty(mode: TypingMode, wordDifficulty: WordModeDifficulty): WordModeDifficulty | null {

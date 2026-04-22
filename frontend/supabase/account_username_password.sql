@@ -1,3 +1,5 @@
+-- Creates account username/password support for RawType auth.
+-- Adds the database pieces needed by the custom login flow.
 -- RawType: email + password auth with separate username profile.
 --
 -- This is a setup/reset script for the RawType account + stats tables.

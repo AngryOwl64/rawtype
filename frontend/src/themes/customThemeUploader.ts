@@ -1,3 +1,5 @@
+// Validation and registration hooks for future custom theme uploads.
+// The upload path is stubbed until custom themes are fully wired in.
 import type { ThemeManifest, ThemeUploadPackage } from "./types";
 
 export type ThemeValidationResult = {

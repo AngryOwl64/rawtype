@@ -1,3 +1,5 @@
+// Main typing game view and run-completion screen.
+// Connects the game hook, persistence, metrics, and word rendering.
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../auth/authContext";
 import { getTypingGameTexts } from "../../../i18n/messages";

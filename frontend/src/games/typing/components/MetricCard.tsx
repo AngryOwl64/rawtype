@@ -1,3 +1,5 @@
+// Small reusable metric tile for typing stats.
+// Used by both live runs and completed-run summaries.
 import { memo } from "react";
 
 export const MetricCard = memo(function MetricCard({

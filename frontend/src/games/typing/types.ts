@@ -1,3 +1,5 @@
+// Shared types for typing modes, texts, runs, and stats.
+// Keeps game data contracts consistent across hooks and services.
 export type TypingError = {
   id: number;
   wordNumber: number;

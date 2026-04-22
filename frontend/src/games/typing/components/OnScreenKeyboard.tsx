@@ -1,3 +1,5 @@
+// Responsive on-screen keyboard used as a visual typing aid.
+// Sizes keys to fit the available game width.
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 
 type KeyboardKey = {

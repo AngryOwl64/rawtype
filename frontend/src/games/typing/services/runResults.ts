@@ -1,3 +1,5 @@
+// Supabase read/write helpers for typing run results and stats.
+// Converts database rows into frontend-friendly summary objects.
 import { supabase } from "../../../lib/supabase";
 import type { Database } from "../../../lib/database.types";
 import { getStoredUiLanguage } from "../../../i18n/language";

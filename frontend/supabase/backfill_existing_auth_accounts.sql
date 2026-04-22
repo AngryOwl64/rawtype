@@ -1,3 +1,5 @@
+-- Backfills profile rows for auth accounts that already exist.
+-- Useful after enabling profile tables on an existing project.
 -- RawType: backfill profile and settings rows for already-existing auth users.
 --
 -- Run this once if account_username_password.sql was applied after users already
