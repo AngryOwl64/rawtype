@@ -1,6 +1,7 @@
-UPDATE texts
+UPDATE words
+Where language = 'de'
 SET difficulty = CASE
-  WHEN word_count <= 5 THEN 'easy'
-  WHEN word_count <= 10 THEN 'medium'
-  ELSE 'hard'
+  WHEN LENGTH(word) <= 5 THEN 'easy'::text_difficulty
+  WHEN LENGTH(word) <= 10 THEN 'medium'::text_difficulty
+  ELSE 'hard'::text_difficulty
 END;

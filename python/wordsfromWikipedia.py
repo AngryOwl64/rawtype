@@ -79,12 +79,13 @@ def extract_words(text: str, min_len: int = 4, max_len: int = 20) -> list[str]:
     words: list[str] = []
 
     for w in raw:
-        w = w.lower().strip("-")
+        w = w.strip("-")
         if len(w) < min_len or len(w) > max_len:
             continue
-        if w in seen:
+        key = w.lower()
+        if key in seen:
             continue
-        seen.add(w)
+        seen.add(key)
         words.append(w)
 
     return sorted(words)
@@ -94,12 +95,12 @@ def extract_words(text: str, min_len: int = 4, max_len: int = 20) -> list[str]:
 # SQL-Generierung
 # ---------------------------------------------------------------------------
 
-def generate_sql(words: list[str], lang: str, ts: str) -> str:
+def generate_sql(words: list[str], language: str, ts: str) -> str:
     lines = []
     for word in words:
         escaped = word.replace("'", "''")
         lines.append(
-            f"INSERT INTO words (word, lang, created_at) VALUES ('{escaped}', '{lang}', '{ts}');"
+            f"INSERT INTO words (word, language, created_at) VALUES ('{escaped}', '{language}', '{ts}') ON CONFLICT DO NOTHING;"
         )
     return "\n".join(lines)
 
@@ -116,10 +117,10 @@ def main():
     if not url.startswith("http"):
         url = "https://" + url
 
-    lang = ""
-    while len(lang) != 2 or not lang.isalpha():
-        lang = input("Sprachcode (2 Buchstaben, z.B. de / en): ").strip().lower()
-        if len(lang) != 2 or not lang.isalpha():
+    language = ""
+    while len(language) != 2 or not language.isalpha():
+        language = input("Sprachcode (2 Buchstaben, z.B. de / en): ").strip().lower()
+        if len(language) != 2 or not language.isalpha():
             print("  → Bitte genau 2 Buchstaben eingeben.")
 
     # Scrapen
@@ -140,11 +141,14 @@ def main():
 
     # SQL erzeugen
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    sql = generate_sql(words, lang, ts)
+    sql = generate_sql(words, language, ts)
 
     # Ausgabe-Dateiname
     slug = re.sub(r"[^a-z0-9]+", "_", url.split("/")[-1].lower())[:40]
-    out_file = f"sql/words_{lang}_{slug}.sql"
+    out_file = f"sql/words_{language}_{slug}.sql"
+
+    import os
+    os.makedirs(os.path.dirname(out_file) or ".", exist_ok=True)
 
     with open(out_file, "w", encoding="utf-8") as f:
         f.write(sql)
