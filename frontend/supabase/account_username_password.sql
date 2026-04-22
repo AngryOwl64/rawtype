@@ -6,7 +6,7 @@
 --
 -- Do not run this on production data you want to keep.
 --
--- Login is email-based.
+-- Login accepts email or username in the app.
 -- Username is stored in public.profiles and can be changed independently.
 
 begin;
@@ -90,6 +90,21 @@ as $$
       from public.profiles
       where lower(username) = public.normalize_username(value)
     );
+$$;
+
+create or replace function public.get_auth_email_for_username(value text)
+returns text
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select users.email
+  from public.profiles
+  join auth.users as users on users.id = profiles.user_id
+  where public.is_valid_username(value)
+    and lower(profiles.username) = public.normalize_username(value)
+  limit 1;
 $$;
 
 create table if not exists public.user_settings (
@@ -312,6 +327,7 @@ grant usage on schema public to anon, authenticated;
 grant execute on function public.normalize_username(text) to anon, authenticated;
 grant execute on function public.is_valid_username(text) to anon, authenticated;
 grant execute on function public.is_username_available(text) to anon, authenticated;
+grant execute on function public.get_auth_email_for_username(text) to anon, authenticated;
 grant select on public.profiles to anon, authenticated;
 grant update on public.profiles to authenticated;
 grant select, update on public.user_settings to authenticated;
