@@ -6,85 +6,6 @@ import type { SavedTypingDayStats, TypingLanguage, WordModeDifficulty, WordNoMis
 
 type AppTexts = ReturnType<typeof getAppTexts>;
 
-const SEO_CONTENT = {
-  en: {
-    heading: "Free typing practice for speed, accuracy, and consistency",
-    intro:
-      "RawType is a single-player typing practice game for building everyday keyboard skill. Practice with prose passages or focused word drills, then use your results to understand speed, accuracy, mistakes, and consistency over time.",
-    sections: [
-      {
-        title: "Typing Classic",
-        body:
-          "Typing Classic gives you prose-like text instead of isolated letters. This helps you train rhythm, punctuation, capitalization, and real sentence flow while measuring practical typing performance."
-      },
-      {
-        title: "Word Mode",
-        body:
-          "Word Mode creates short typing runs from random words. Choose the number of words and difficulty, then focus on clean keystrokes, fast recovery, and fewer repeated mistakes."
-      },
-      {
-        title: "Progress Tracking",
-        body:
-          "Signed-in players can save runs, review WPM and CPM, compare accuracy, build a daily streak, and spot words that cause recurring errors."
-      }
-    ],
-    faqHeading: "Typing Practice FAQ",
-    faqs: [
-      {
-        question: "Is RawType free?",
-        answer: "Yes. RawType is a free typing practice game designed for quick practice sessions."
-      },
-      {
-        question: "Can I practice in English and German?",
-        answer: "Yes. RawType supports English and German typing practice, with a dedicated German entry page at /de/."
-      },
-      {
-        question: "What does RawType measure?",
-        answer:
-          "RawType measures typing speed, characters per minute, accuracy, progress, mistakes, and completed words during a run."
-      }
-    ]
-  },
-  de: {
-    heading: "Kostenloses Tipptraining für Geschwindigkeit, Genauigkeit und Konstanz",
-    intro:
-      "RawType ist ein Einzelspieler-Tippspiel für besseres Tippen im Alltag. Trainiere mit Prosa-Texten oder gezielten Wortübungen und nutze deine Ergebnisse, um Tippgeschwindigkeit, Genauigkeit, Fehler und Konstanz besser zu verstehen.",
-    sections: [
-      {
-        title: "Typing Classic",
-        body:
-          "Typing Classic nutzt zusammenhängende Texte statt einzelner Buchstaben. So trainierst du Rhythmus, Satzzeichen, Großschreibung und echten Schreibfluss."
-      },
-      {
-        title: "Wortmodus",
-        body:
-          "Der Wortmodus erstellt kurze Tippübungen aus zufälligen Wörtern. Wähle Wortanzahl und Schwierigkeit und konzentriere dich auf saubere Anschläge und weniger wiederholte Fehler."
-      },
-      {
-        title: "Fortschritt verfolgen",
-        body:
-          "Eingeloggte Spieler können Runs speichern, WPM und CPM vergleichen, Genauigkeit prüfen, eine tägliche Serie aufbauen und schwierige Wörter erkennen."
-      }
-    ],
-    faqHeading: "FAQ zum Tipptraining",
-    faqs: [
-      {
-        question: "Ist RawType kostenlos?",
-        answer: "Ja. RawType ist ein kostenloses Tipptraining für kurze und regelmäßige Übungseinheiten."
-      },
-      {
-        question: "Kann ich auf Englisch und Deutsch üben?",
-        answer: "Ja. RawType unterstützt englisches und deutsches Tipptraining, inklusive einer deutschen Einstiegsseite unter /de/."
-      },
-      {
-        question: "Was misst RawType?",
-        answer:
-          "RawType misst Tippgeschwindigkeit, Zeichen pro Minute, Genauigkeit, Fortschritt, Fehler und abgeschlossene Wörter während eines Runs."
-      }
-    ]
-  }
-} as const;
-
 type HomeMenuProps = {
   appText: AppTexts;
   currentStreakDays: number;
@@ -116,8 +37,6 @@ export default function HomeMenu({
   onWordNoMistakeModeChange,
   onWordsCountChange
 }: HomeMenuProps) {
-  const seoContent = SEO_CONTENT[language];
-
   return (
     <section>
       <div
@@ -377,56 +296,6 @@ export default function HomeMenu({
           </button>
         </article>
       </div>
-
-      <section
-        aria-labelledby="typing-practice-info"
-        style={{
-          marginTop: "34px",
-          paddingTop: "24px",
-          borderTop: "1px solid var(--border)",
-          color: "var(--muted-strong)"
-        }}
-      >
-        <h2
-          id="typing-practice-info"
-          style={{
-            margin: "0 0 10px",
-            color: "var(--text)",
-            fontSize: "24px",
-            lineHeight: 1.2
-          }}
-        >
-          {seoContent.heading}
-        </h2>
-        <p style={{ margin: "0 0 18px", maxWidth: "760px", color: "var(--muted)", lineHeight: 1.6 }}>
-          {seoContent.intro}
-        </p>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: "14px"
-          }}
-        >
-          {seoContent.sections.map((section) => (
-            <article key={section.title}>
-              <h3 style={{ margin: "0 0 6px", color: "var(--text)", fontSize: "18px" }}>{section.title}</h3>
-              <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.55 }}>{section.body}</p>
-            </article>
-          ))}
-        </div>
-
-        <h2 style={{ margin: "28px 0 12px", color: "var(--text)", fontSize: "22px" }}>{seoContent.faqHeading}</h2>
-        <div style={{ display: "grid", gap: "10px" }}>
-          {seoContent.faqs.map((faq) => (
-            <details key={faq.question} style={{ borderBottom: "1px solid var(--border-soft)", paddingBottom: "10px" }}>
-              <summary style={{ color: "var(--text)", cursor: "pointer", fontWeight: 700 }}>{faq.question}</summary>
-              <p style={{ margin: "8px 0 0", color: "var(--muted)", lineHeight: 1.55 }}>{faq.answer}</p>
-            </details>
-          ))}
-        </div>
-      </section>
     </section>
   );
 }
