@@ -98,6 +98,7 @@ function App() {
 
   useEffect(() => {
     setStoredValue("rawtype-language", language);
+    document.documentElement.lang = language === "de" ? "de" : "en";
   }, [language]);
 
   useEffect(() => {

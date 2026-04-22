@@ -15,8 +15,18 @@ export function getLocaleForLanguage(language: string | null | undefined): strin
   return resolveTypingLanguage(language) === "de" ? "de-DE" : "en-US";
 }
 
+export function getPathTypingLanguage(): TypingLanguage | null {
+  if (typeof window === "undefined") return null;
+  const firstPathSegment = window.location.pathname.split("/").filter(Boolean)[0];
+  return SUPPORTED_TYPING_LANGUAGES.includes(firstPathSegment as TypingLanguage)
+    ? (firstPathSegment as TypingLanguage)
+    : null;
+}
+
 export function getStoredUiLanguage(): TypingLanguage {
   if (typeof window === "undefined") return "en";
+  const pathLanguage = getPathTypingLanguage();
+  if (pathLanguage) return pathLanguage;
   const value = window.localStorage.getItem("rawtype-language");
   return resolveTypingLanguage(value);
 }
