@@ -18,6 +18,7 @@ export function validateThemeManifest(manifest: ThemeManifest): ThemeValidationR
   };
 }
 
-export async function registerCustomTheme(_pkg: ThemeUploadPackage): Promise<void> {
+export async function registerCustomTheme(pkg: ThemeUploadPackage): Promise<void> {
+  void pkg;
   throw new Error("Custom theme upload is not implemented yet.");
 }

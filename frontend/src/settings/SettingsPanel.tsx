@@ -360,13 +360,6 @@ function ThemeSetting({
   const [draftTheme, setDraftTheme] = useState<ThemeId>(theme);
   const [themeBeforePreview, setThemeBeforePreview] = useState<ThemeId>(theme);
 
-  useEffect(() => {
-    if (!themeWindowOpen) {
-      setDraftTheme(theme);
-      setThemeBeforePreview(theme);
-    }
-  }, [theme, themeWindowOpen]);
-
   function openThemeWindow() {
     setThemeBeforePreview(theme);
     setDraftTheme(theme);
