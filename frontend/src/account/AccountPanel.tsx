@@ -118,7 +118,7 @@ function StatusPill({ children }: { children: ReactNode }) {
 }
 
 export default function AccountPanel({ language = "en" }: { language?: TypingLanguage }) {
-  const t = (en: string) => translateAccountText(language, en);
+  const t = useMemo(() => (en: string) => translateAccountText(language, en), [language]);
 
   const {
     configured,
@@ -220,14 +220,14 @@ export default function AccountPanel({ language = "en" }: { language?: TypingLan
     return () => {
       active = false;
     };
-  }, [configured, loading, user]);
+  }, [configured, loading, t, user]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError("");
 
     if (normalizedEmail.length === 0) {
-      setFormError(t("Email is required."));
+      setFormError(mode === "login" ? t("Username or email is required.") : t("Email is required."));
       return;
     }
     if (mode === "register" && usernameHint) {
@@ -525,7 +525,7 @@ export default function AccountPanel({ language = "en" }: { language?: TypingLan
                   />
                 </label>
                 <p style={{ margin: 0, color: "var(--muted)", fontSize: "13px", lineHeight: 1.45 }}>
-                  {t("After changing username, use the new username for login.")}
+                  {t("After changing username, use the new username or your email for login.")}
                 </p>
                 {accountUsernameHint && (
                   <p style={{ margin: 0, color: "var(--danger)", fontSize: "13px", lineHeight: 1.45 }}>
@@ -801,14 +801,14 @@ export default function AccountPanel({ language = "en" }: { language?: TypingLan
 
           <form onSubmit={handleSubmit} style={{ display: "grid", gap: "12px" }}>
             <label style={{ display: "grid", gap: "6px", fontWeight: 700 }}>
-              {t("Email")}
+              {mode === "login" ? t("Username or Email") : t("Email")}
               <input
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                type="email"
-                autoComplete="email"
+                type={mode === "login" ? "text" : "email"}
+                autoComplete={mode === "login" ? "username" : "email"}
                 autoCapitalize="none"
-                placeholder={t("name@example.com")}
+                placeholder={mode === "login" ? t("player_one or name@example.com") : t("name@example.com")}
                 spellCheck={false}
                 style={fieldStyle}
               />

@@ -399,6 +399,7 @@ const DE_ACCOUNT_TRANSLATIONS: Record<string, string> = {
   Register: "Registrieren",
   "Could not load account stats.": "Kontostatistiken konnten nicht geladen werden.",
   "Email is required.": "E-Mail ist erforderlich.",
+  "Username or email is required.": "Benutzername oder E-Mail ist erforderlich.",
   "Password is required.": "Passwort ist erforderlich.",
   "Passwords do not match.": "Passwörter stimmen nicht überein.",
   "Authentication failed.": "Authentifizierung fehlgeschlagen.",
@@ -429,8 +430,8 @@ const DE_ACCOUNT_TRANSLATIONS: Record<string, string> = {
   "Account Settings": "Kontoeinstellungen",
   Username: "Benutzername",
   "Current Password": "Aktuelles Passwort",
-  "After changing username, use the new username for login.":
-    "Nach der Änderung beim Login den neuen Benutzernamen verwenden.",
+  "After changing username, use the new username or your email for login.":
+    "Nach der Änderung beim Login den neuen Benutzernamen oder deine E-Mail verwenden.",
   "Updating...": "Aktualisiere...",
   "Username Updated": "Benutzername aktualisiert",
   "Update Username": "Benutzername aktualisieren",
@@ -455,7 +456,9 @@ const DE_ACCOUNT_TRANSLATIONS: Record<string, string> = {
   Cancel: "Abbrechen",
   "Make Public": "Öffentlich machen",
   Email: "E-Mail",
+  "Username or Email": "Benutzername oder E-Mail",
   "name@example.com": "name@beispiel.de",
+  "player_one or name@example.com": "player_one oder name@beispiel.de",
   Password: "Passwort",
   "Confirm password": "Passwort bestätigen",
   "Username only. Use 3-20 letters, numbers, or underscores.":
@@ -472,6 +475,7 @@ const DE_AUTH_TRANSLATIONS: Record<string, string> = {
   "Supabase is not configured.": "Supabase ist nicht konfiguriert.",
   "This username is already taken.": "Dieser Benutzername ist bereits vergeben.",
   "Please enter a valid email address.": "Bitte gib eine gültige E-Mail-Adresse ein.",
+  "Please enter a valid username or email address.": "Bitte gib einen gültigen Benutzernamen oder eine gültige E-Mail-Adresse ein.",
   "Password is required.": "Passwort ist erforderlich.",
   "Password must be at least 8 characters.": "Passwort muss mindestens 8 Zeichen lang sein.",
   "Account profile is not loaded.": "Kontoprofil ist nicht geladen.",

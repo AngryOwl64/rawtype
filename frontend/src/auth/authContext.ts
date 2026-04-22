@@ -14,7 +14,7 @@ export type AuthContextValue = {
   loading: boolean;
   error: string;
   configured: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (identifier: string, password: string) => Promise<void>;
   register: (email: string, username: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateUsername: (nextUsername: string, currentPassword: string) => Promise<void>;

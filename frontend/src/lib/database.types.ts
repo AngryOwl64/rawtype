@@ -228,6 +228,12 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      get_auth_email_for_username: {
+        Args: {
+          value: string;
+        };
+        Returns: string | null;
+      };
       is_username_available: {
         Args: {
           value: string;

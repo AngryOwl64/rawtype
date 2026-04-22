@@ -89,6 +89,33 @@ async function ensureUsernameAvailable(username: string): Promise<void> {
   if (!data) throw new Error(translateAuthText(getStoredUiLanguage(), "This username is already taken."));
 }
 
+async function resolveLoginEmail(identifier: string): Promise<string> {
+  const language = getStoredUiLanguage();
+  const normalizedIdentifier = identifier.trim().toLowerCase();
+
+  if (isValidEmail(normalizedIdentifier)) {
+    return normalizedIdentifier;
+  }
+
+  if (normalizedIdentifier.includes("@")) {
+    throw new Error(translateAuthText(language, "Please enter a valid username or email address."));
+  }
+
+  if (!isValidUsername(normalizedIdentifier)) {
+    throw new Error(translateAuthText(language, "Please enter a valid username or email address."));
+  }
+
+  const client = requireSupabaseClient();
+  const { data, error } = await client.rpc("get_auth_email_for_username", {
+    value: normalizeUsername(normalizedIdentifier)
+  });
+
+  if (error) throw new Error(getAuthErrorMessage(error));
+  if (!data) throw new Error(translateAuthText(language, "Username or password is incorrect."));
+
+  return normalizeEmail(data);
+}
+
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -171,20 +198,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [loadAccount]);
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (identifier: string, password: string) => {
     const language = getStoredUiLanguage();
-    const normalizedEmail = normalizeEmail(email);
-
-    if (!isValidEmail(normalizedEmail)) {
-      throw new Error(translateAuthText(language, "Please enter a valid email address."));
-    }
     if (password.length === 0) {
       throw new Error(translateAuthText(language, "Password is required."));
     }
 
     const client = requireSupabaseClient();
+    const resolvedEmail = await resolveLoginEmail(identifier);
     const { data, error: signInError } = await client.auth.signInWithPassword({
-      email: normalizedEmail,
+      email: resolvedEmail,
       password
     });
 
