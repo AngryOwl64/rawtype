@@ -1,7 +1,5 @@
 // Shared theme types for built-in and uploaded RawType themes.
-// Keeps theme IDs, variables, and upload packages typed consistently.
-export type ThemeId = "pergament" | "monokai";
-
+// Keeps shared token and upload package types typed consistently.
 export type ThemeSource = "built-in" | "community" | "upload";
 
 export type ThemeToken =

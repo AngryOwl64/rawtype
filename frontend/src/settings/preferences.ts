@@ -4,7 +4,12 @@ import type { CSSProperties } from "react";
 import type { OnScreenKeyboardLayout, TypingFont, TypingLanguage } from "../games/typing/types";
 import { getPathTypingLanguage, SUPPORTED_TYPING_LANGUAGES } from "../i18n/language";
 import { getLanguageLabelFromMessages, getLanguageOptionsFromMessages } from "../i18n/messages";
-import type { ThemeId } from "../themes/types";
+import {
+  DEFAULT_THEME_ID,
+  getThemeVariables as getThemeCssVariables,
+  type ThemeId,
+  resolveThemeId
+} from "../themes/registry";
 
 export type ThemeMode = ThemeId;
 
@@ -48,12 +53,9 @@ export function isTypingFont(value: string | null | undefined): value is TypingF
 }
 
 export function getStoredTheme(): ThemeMode {
-  if (typeof window === "undefined") return "pergament";
+  if (typeof window === "undefined") return DEFAULT_THEME_ID;
   const storedTheme = window.localStorage.getItem("rawtype-theme");
-
-  if (storedTheme === "monokai" || storedTheme === "obsidian" || storedTheme === "dark") return "monokai";
-  if (storedTheme === "pergament" || storedTheme === "light") return "pergament";
-  return "pergament";
+  return resolveThemeId(storedTheme);
 }
 
 export function getStoredLanguage(): TypingLanguage {
@@ -75,28 +77,7 @@ export function getLanguageLabel(language: TypingLanguage): string {
 }
 
 export function getThemeVariables(theme: ThemeMode): CSSProperties {
-  const isMonokai = theme === "monokai";
-
-  return {
-    "--page-bg": isMonokai ? "#272822" : "#ece8df",
-    "--header-bg": isMonokai ? "rgba(39, 40, 34, 0.96)" : "rgba(244, 239, 229, 0.94)",
-    "--text": isMonokai ? "#f8f8f2" : "#232a33",
-    "--muted": isMonokai ? "#a8a8a3" : "#5e6670",
-    "--muted-strong": isMonokai ? "#f8f8f2" : "#38414d",
-    "--surface": isMonokai ? "#313327" : "#f7f4ee",
-    "--surface-soft": isMonokai ? "#3e3d32" : "#f1ece4",
-    "--input-bg": isMonokai ? "#3b3a32" : "#fdfaf3",
-    "--input-muted": isMonokai ? "#46463b" : "#ece6dc",
-    "--border": isMonokai ? "#4c4b42" : "#c4c0b7",
-    "--border-soft": isMonokai ? "#3f3e35" : "#d7d2c8",
-    "--border-strong": isMonokai ? "#59574d" : "#a8b0b8",
-    "--primary": isMonokai ? "#66d9ef" : "#2f3742",
-    "--primary-text": isMonokai ? "#272822" : "#f8fafc",
-    "--success": isMonokai ? "#a6e22e" : "#2f7a3f",
-    "--danger": isMonokai ? "#f92672" : "#a03a46",
-    "--danger-bg": isMonokai ? "#3a2030" : "#f8e8ea",
-    "--danger-border": isMonokai ? "#6b3853" : "#d8b2b8"
-  } as CSSProperties;
+  return getThemeCssVariables(theme);
 }
 
 export function getFontVariables(font: TypingFont): CSSProperties {

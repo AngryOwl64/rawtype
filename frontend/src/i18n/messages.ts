@@ -1,7 +1,6 @@
 // UI copy for RawType in each supported language.
 // Exposes small getters so screens can resolve text by language.
 import type { TypingLanguage } from "../games/typing/types";
-import type { ThemeId } from "../themes/types";
 import { resolveTypingLanguage } from "./language";
 
 export type TypingServiceMessageKey =
@@ -573,11 +572,4 @@ export function getLanguageOptionsFromMessages(): Array<{ value: TypingLanguage;
     { value: "en", label: LANGUAGE_LABELS.en },
     { value: "de", label: LANGUAGE_LABELS.de }
   ];
-}
-
-export function getLocalizedThemeDescription(themeId: ThemeId, fallbackDescription: string, language: string) {
-  if (resolve(language) !== "de") return fallbackDescription;
-  if (themeId === "pergament") return "Warmes, papierartiges helles Theme.";
-  if (themeId === "monokai") return "Kontrastreiches dunkles Theme.";
-  return fallbackDescription;
 }

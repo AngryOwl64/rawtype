@@ -1,37 +1,35 @@
-# Themes (Grundgeruest)
+# Themes (Foundation)
 
-Diese Struktur ist absichtlich einfach gehalten, damit wir spaeter ohne Umbau viele Themes ergaenzen koennen.
+This structure is intentionally kept simple so we can add many themes later without refactoring.
 
-## Aktueller Stand
+## Current Status
 
-- `types.ts`: zentrale Typen (`ThemeId`, Manifest-Typen fuer Uploads)
-- `registry.ts`: Built-in Themes, die im Theme-Fenster angezeigt werden
-- `customThemeUploader.ts`: Platzhalter fuer spaetere Upload-Logik
-- `settings/preferences.ts`: CSS-Variablen pro Theme
+- `registry.ts`: central theme source of truth (IDs, colors, aliases, names/descriptions, lookup helpers)
+- `types.ts`: manifest types for future uploads
+- `customThemeUploader.ts`: placeholder for future upload logic
+- `settings/preferences.ts`: reads theme variables only from `registry.ts`
 
-## Neues Built-in Theme hinzufuegen
+## Add a New Built-in Theme
 
-1. In `types.ts` den neuen Key in `ThemeId` aufnehmen.
-2. In `registry.ts` einen neuen Eintrag in `BUILT_IN_THEMES` anlegen (Name, Beschreibung, Swatches).
-3. In `settings/preferences.ts` die Farbwerte in `getThemeVariables` hinterlegen.
-4. Kurz `npm run build` ausfuehren und im Theme-Fenster testen.
+1. Add a new entry to `THEME_DEFINITIONS` in `registry.ts` (id, name, description, colors, optional aliases/localization).
+2. Run `npm run build` and test in the theme window.
 
-## Spaeter: Eigene Themes hochladen
+## Later: Upload Custom Themes
 
-Geplante Richtung:
+Planned direction:
 
-- Upload liefert ein kleines Paket mit `manifest` und optionalen Assets.
-- `manifest` enthaelt Name, Version, Source und Theme-Tokens.
-- Validierung passiert in `customThemeUploader.ts` (`validateThemeManifest`).
-- Registrierung/ Speicherung kommt spaeter in `registerCustomTheme`.
+- Upload provides a small package with `manifest` and optional assets.
+- `manifest` contains name, version, source, and theme tokens.
+- Validation happens in `customThemeUploader.ts` (`validateThemeManifest`).
+- Registration/storage will be added later in `registerCustomTheme`.
 
-## Empfohlenes Upload-Format (spaeter)
+## Recommended Upload Format (Later)
 
-- Eine `theme.json` mit:
+- A `theme.json` with:
   - `id`
   - `name`
   - `version`
-  - `tokens` (Farben fuer bekannte CSS-Variablen)
-- Optional Preview-Bild fuer die Auswahlansicht.
+  - `tokens` (colors for known CSS variables)
+- Optional preview image for the selection UI.
 
-Wichtig: Fuer den Anfang nur bekannte Tokens erlauben. So bleiben Fremd-Themes stabil und koennen das UI nicht kaputt machen.
+Important: For the first version, allow only known tokens. This keeps third-party themes stable and prevents UI breakage.

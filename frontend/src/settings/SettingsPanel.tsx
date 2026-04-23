@@ -2,9 +2,13 @@
 // Keeps user-facing preference controls grouped in one panel.
 import { useEffect, useState } from "react";
 import type { OnScreenKeyboardLayout, TypingFont, TypingLanguage } from "../games/typing/types";
-import { getLocalizedThemeDescription, getSettingsTexts } from "../i18n/messages";
-import { BUILT_IN_THEMES, getBuiltInThemeName } from "../themes/registry";
-import type { ThemeId } from "../themes/types";
+import { getSettingsTexts } from "../i18n/messages";
+import {
+  BUILT_IN_THEMES,
+  getBuiltInThemeDescription,
+  getBuiltInThemeName,
+  type ThemeId
+} from "../themes/registry";
 import { FONT_OPTIONS, LANGUAGE_OPTIONS, type SelectOption } from "./preferences";
 
 const fieldStyle = {
@@ -292,7 +296,7 @@ function ThemePickerWindow({
                   <div>
                     <div style={{ fontWeight: 700, color: "var(--text)" }}>{themeOption.name}</div>
                     <div style={{ marginTop: "4px", color: "var(--muted)", fontSize: "12px" }}>
-                      {getLocalizedThemeDescription(themeOption.id, themeOption.description, language)}
+                      {getBuiltInThemeDescription(themeOption.id, language)}
                     </div>
                   </div>
                 </button>
