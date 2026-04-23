@@ -6,7 +6,7 @@ import type { AppTab } from "./types";
 type AppTexts = ReturnType<typeof getAppTexts>;
 
 type AppHeaderProps = {
-  activeTab: AppTab;
+  activeTab: AppTab | null;
   accountLabel: string;
   appText: AppTexts;
   onSelectTab: (tab: AppTab) => void;

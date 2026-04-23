@@ -40,6 +40,13 @@ export type CompletedTypingRun = {
   errorEvents: TypingError[];
 };
 
+type PublicProfileRow = {
+  user_id: string;
+  username: string;
+  public_profile: boolean;
+  created_at: string;
+};
+
 type WorstWord = {
   word: string;
   mistakes: number;
@@ -325,4 +332,40 @@ export async function fetchTypingDailyActivity(): Promise<SavedTypingDayStats[]>
 
   if (error) throw new Error(getDatabaseErrorMessage(error));
   return buildDailyActivity(data ?? []);
+}
+
+function normalizePublicUsername(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function isPublicUsernamePathValid(value: string): boolean {
+  return /^[a-z0-9_]{3,20}$/.test(value);
+}
+
+export async function fetchPublicTypingStatsByUsername(username: string): Promise<SavedTypingStats | null> {
+  const client = requireSupabaseClient();
+  const normalizedUsername = normalizePublicUsername(username);
+
+  if (!isPublicUsernamePathValid(normalizedUsername)) {
+    return null;
+  }
+
+  const { data: profile, error: profileError } = await client
+    .from("profiles")
+    .select("user_id, username, public_profile, created_at")
+    .eq("username", normalizedUsername)
+    .maybeSingle<PublicProfileRow>();
+
+  if (profileError) throw new Error(getDatabaseErrorMessage(profileError));
+  if (!profile || !profile.public_profile) return null;
+
+  const { data: runs, error: runsError } = await client
+    .from("typing_runs")
+    .select("*")
+    .eq("user_id", profile.user_id)
+    .order("created_at", { ascending: false });
+
+  if (runsError) throw new Error(getDatabaseErrorMessage(runsError));
+
+  return buildStats(runs ?? [], []);
 }
