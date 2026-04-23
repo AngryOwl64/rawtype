@@ -8,6 +8,7 @@ import { fetchTypingStats } from "../games/typing/services/runResults";
 import type { SavedTypingStats, TypingLanguage } from "../games/typing/types";
 import { getLocaleForLanguage } from "../i18n/language";
 import { translateAccountText } from "../i18n/messages";
+import { getRememberSessionPreference } from "../lib/supabase";
 
 type AuthMode = "login" | "register";
 type ActionState = "idle" | "saving" | "saved";
@@ -141,6 +142,7 @@ export default function AccountPanel({ language = "en" }: { language?: TypingLan
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [rememberSession, setRememberSession] = useState(() => getRememberSessionPreference());
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [accountUsername, setAccountUsername] = useState(profile?.username ?? "");
@@ -251,7 +253,7 @@ export default function AccountPanel({ language = "en" }: { language?: TypingLan
 
     try {
       if (mode === "login") {
-        await signIn(normalizedEmail, password);
+        await signIn(normalizedEmail, password, rememberSession);
       } else {
         await register(normalizedEmail, normalizedUsername, password);
       }
@@ -851,6 +853,25 @@ export default function AccountPanel({ language = "en" }: { language?: TypingLan
                 style={fieldStyle}
               />
             </label>
+
+            {mode === "login" && (
+              <label
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  width: "fit-content",
+                  fontWeight: 700
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={rememberSession}
+                  onChange={(event) => setRememberSession(event.target.checked)}
+                />
+                <span>{t("Stay signed in")}</span>
+              </label>
+            )}
 
             {mode === "register" && (
               <label style={{ display: "grid", gap: "6px", fontWeight: 700 }}>

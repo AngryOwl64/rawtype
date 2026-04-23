@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
-import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import {
+  isSupabaseConfigured,
+  setRememberSessionPreference,
+  supabase
+} from "../lib/supabase";
 import { getStoredUiLanguage } from "../i18n/language";
 import { translateAuthText } from "../i18n/messages";
 import {
@@ -200,13 +204,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [loadAccount]);
 
-  const signIn = useCallback(async (identifier: string, password: string) => {
+  const signIn = useCallback(async (identifier: string, password: string, rememberSession = true) => {
     const language = getStoredUiLanguage();
     if (password.length === 0) {
       throw new Error(translateAuthText(language, "Password is required."));
     }
 
     const client = requireSupabaseClient();
+    setRememberSessionPreference(rememberSession);
     const resolvedEmail = await resolveLoginEmail(identifier);
     const { data, error: signInError } = await client.auth.signInWithPassword({
       email: resolvedEmail,
