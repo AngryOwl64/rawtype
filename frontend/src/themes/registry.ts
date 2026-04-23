@@ -88,6 +88,35 @@ const THEME_DEFINITIONS = [
       "--danger-bg": "#3a2030",
       "--danger-border": "#6b3853"
     }
+  },
+  {
+    id: "dracula",
+    name: "Dracula",
+    description: "Vibrant dark theme inspired by Dracula.",
+    localizedDescription: {
+      de: "Lebendiges dunkles Theme inspiriert von Dracula."
+    },
+    aliases: ["violet-night"],
+    colors: {
+      "--page-bg": "#282a36",
+      "--header-bg": "rgba(40, 42, 54, 0.96)",
+      "--text": "#f8f8f2",
+      "--muted": "#9aa3cf",
+      "--muted-strong": "#d8dbe7",
+      "--surface": "#303341",
+      "--surface-soft": "#3a3f53",
+      "--input-bg": "#343746",
+      "--input-muted": "#3e4358",
+      "--border": "#4a4f67",
+      "--border-soft": "#3d4259",
+      "--border-strong": "#5a607c",
+      "--primary": "#bd93f9",
+      "--primary-text": "#1f2130",
+      "--success": "#50fa7b",
+      "--danger": "#ff5555",
+      "--danger-bg": "#3f2a3a",
+      "--danger-border": "#7a4b63"
+    }
   }
 ] as const satisfies ReadonlyArray<ThemeDefinition>;
 
