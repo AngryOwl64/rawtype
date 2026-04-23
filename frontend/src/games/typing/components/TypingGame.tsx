@@ -6,7 +6,13 @@ import { getTypingGameTexts } from "../../../i18n/messages";
 import { saveTypingRun } from "../services/runResults";
 import { useActiveKeyboardKeys } from "../hooks/useActiveKeyboardKeys";
 import { useTypingGame } from "../hooks/useTypingGame";
-import type { TypingLanguage, TypingMode, WordModeDifficulty, WordNoMistakeMode } from "../types";
+import type {
+  OnScreenKeyboardLayout,
+  TypingLanguage,
+  TypingMode,
+  WordModeDifficulty,
+  WordNoMistakeMode
+} from "../types";
 import { getFirstMismatchIndex, getSavedDifficulty, hexToRgba } from "../utils/display";
 import { MetricCard } from "./MetricCard";
 import { OnScreenKeyboard } from "./OnScreenKeyboard";
@@ -20,6 +26,7 @@ type TypingGameProps = {
   highlightCorrectWords?: boolean;
   highlightErrorFromPoint?: boolean;
   showOnScreenKeyboard?: boolean;
+  onScreenKeyboardLayout?: OnScreenKeyboardLayout;
   correctMarkerColor?: string;
   errorMarkerColor?: string;
 };
@@ -33,6 +40,7 @@ export default function TypingGame({
   highlightCorrectWords = true,
   highlightErrorFromPoint = true,
   showOnScreenKeyboard = false,
+  onScreenKeyboardLayout = "us-qwerty",
   correctMarkerColor = "#6fbf73",
   errorMarkerColor = "#c86b73"
 }: TypingGameProps) {
@@ -407,7 +415,11 @@ export default function TypingGame({
           </div>
 
           {showOnScreenKeyboard && !isTextLoading && !textLoadError && (
-            <OnScreenKeyboard activeKeys={activeKeyboardKeys} title={text.onScreenKeyboard} />
+            <OnScreenKeyboard
+              activeKeys={activeKeyboardKeys}
+              title={text.onScreenKeyboard}
+              layout={onScreenKeyboardLayout}
+            />
           )}
         </section>
       )}

@@ -1,6 +1,7 @@
 // Responsive on-screen keyboard used as a visual typing aid.
 // Sizes keys to fit the available game width.
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import type { OnScreenKeyboardLayout } from "../types";
 
 type KeyboardKey = {
   id: string;
@@ -8,78 +9,342 @@ type KeyboardKey = {
   width?: number;
 };
 
-const KEYBOARD_ROWS: ReadonlyArray<ReadonlyArray<KeyboardKey>> = [
-  [
-    { id: "esc", label: "Esc", width: 1.1 },
-    { id: "1", label: "1" },
-    { id: "2", label: "2" },
-    { id: "3", label: "3" },
-    { id: "4", label: "4" },
-    { id: "5", label: "5" },
-    { id: "6", label: "6" },
-    { id: "7", label: "7" },
-    { id: "8", label: "8" },
-    { id: "9", label: "9" },
-    { id: "0", label: "0" },
-    { id: "-", label: "-" },
-    { id: "=", label: "=" },
-    { id: "backspace", label: "Backspace", width: 2.1 }
-  ],
-  [
-    { id: "tab", label: "Tab", width: 1.5 },
-    { id: "q", label: "Q" },
-    { id: "w", label: "W" },
-    { id: "e", label: "E" },
-    { id: "r", label: "R" },
-    { id: "t", label: "T" },
-    { id: "y", label: "Y" },
-    { id: "u", label: "U" },
-    { id: "i", label: "I" },
-    { id: "o", label: "O" },
-    { id: "p", label: "P" },
-    { id: "[", label: "[" },
-    { id: "]", label: "]" },
-    { id: "\\", label: "\\", width: 1.4 }
-  ],
-  [
-    { id: "capslock", label: "Caps", width: 1.8 },
-    { id: "a", label: "A" },
-    { id: "s", label: "S" },
-    { id: "d", label: "D" },
-    { id: "f", label: "F" },
-    { id: "g", label: "G" },
-    { id: "h", label: "H" },
-    { id: "j", label: "J" },
-    { id: "k", label: "K" },
-    { id: "l", label: "L" },
-    { id: ";", label: ";" },
-    { id: "'", label: "'" },
-    { id: "enter", label: "Enter", width: 2.2 }
-  ],
-  [
-    { id: "shift", label: "Shift", width: 2.3 },
-    { id: "z", label: "Z" },
-    { id: "x", label: "X" },
-    { id: "c", label: "C" },
-    { id: "v", label: "V" },
-    { id: "b", label: "B" },
-    { id: "n", label: "N" },
-    { id: "m", label: "M" },
-    { id: ",", label: "," },
-    { id: ".", label: "." },
-    { id: "/", label: "/" },
-    { id: "shiftright", label: "Shift", width: 2.6 }
-  ],
-  [
-    { id: "ctrl", label: "Ctrl", width: 1.4 },
-    { id: "meta", label: "Meta", width: 1.4 },
-    { id: "alt", label: "Alt", width: 1.4 },
-    { id: "space", label: "Space", width: 6.2 },
-    { id: "altgr", label: "AltGr", width: 1.4 },
-    { id: "menu", label: "Menu", width: 1.4 },
-    { id: "ctrlright", label: "Ctrl", width: 1.4 }
-  ]
+const BOTTOM_ROW: ReadonlyArray<KeyboardKey> = [
+  { id: "ctrl", label: "Ctrl", width: 1.4 },
+  { id: "meta", label: "Meta", width: 1.4 },
+  { id: "alt", label: "Alt", width: 1.4 },
+  { id: "space", label: "Space", width: 6.2 },
+  { id: "altgr", label: "AltGr", width: 1.4 },
+  { id: "menu", label: "Menu", width: 1.4 },
+  { id: "ctrlright", label: "Ctrl", width: 1.4 }
 ];
+
+const KEYBOARD_LAYOUT_ROWS: Record<OnScreenKeyboardLayout, ReadonlyArray<ReadonlyArray<KeyboardKey>>> = {
+  "us-qwerty": [
+    [
+      { id: "esc", label: "Esc", width: 1.1 },
+      { id: "1", label: "1" },
+      { id: "2", label: "2" },
+      { id: "3", label: "3" },
+      { id: "4", label: "4" },
+      { id: "5", label: "5" },
+      { id: "6", label: "6" },
+      { id: "7", label: "7" },
+      { id: "8", label: "8" },
+      { id: "9", label: "9" },
+      { id: "0", label: "0" },
+      { id: "-", label: "-" },
+      { id: "=", label: "=" },
+      { id: "backspace", label: "Backspace", width: 2.1 }
+    ],
+    [
+      { id: "tab", label: "Tab", width: 1.5 },
+      { id: "q", label: "Q" },
+      { id: "w", label: "W" },
+      { id: "e", label: "E" },
+      { id: "r", label: "R" },
+      { id: "t", label: "T" },
+      { id: "y", label: "Y" },
+      { id: "u", label: "U" },
+      { id: "i", label: "I" },
+      { id: "o", label: "O" },
+      { id: "p", label: "P" },
+      { id: "[", label: "[" },
+      { id: "]", label: "]" },
+      { id: "\\", label: "\\", width: 1.4 }
+    ],
+    [
+      { id: "capslock", label: "Caps", width: 1.8 },
+      { id: "a", label: "A" },
+      { id: "s", label: "S" },
+      { id: "d", label: "D" },
+      { id: "f", label: "F" },
+      { id: "g", label: "G" },
+      { id: "h", label: "H" },
+      { id: "j", label: "J" },
+      { id: "k", label: "K" },
+      { id: "l", label: "L" },
+      { id: ";", label: ";" },
+      { id: "'", label: "'" },
+      { id: "enter", label: "Enter", width: 2.2 }
+    ],
+    [
+      { id: "shift", label: "Shift", width: 2.3 },
+      { id: "z", label: "Z" },
+      { id: "x", label: "X" },
+      { id: "c", label: "C" },
+      { id: "v", label: "V" },
+      { id: "b", label: "B" },
+      { id: "n", label: "N" },
+      { id: "m", label: "M" },
+      { id: ",", label: "," },
+      { id: ".", label: "." },
+      { id: "/", label: "/" },
+      { id: "shiftright", label: "Shift", width: 2.6 }
+    ],
+    BOTTOM_ROW
+  ],
+  "uk-qwerty": [
+    [
+      { id: "esc", label: "Esc", width: 1.1 },
+      { id: "1", label: "1" },
+      { id: "2", label: "2" },
+      { id: "3", label: "3" },
+      { id: "4", label: "4" },
+      { id: "5", label: "5" },
+      { id: "6", label: "6" },
+      { id: "7", label: "7" },
+      { id: "8", label: "8" },
+      { id: "9", label: "9" },
+      { id: "0", label: "0" },
+      { id: "-", label: "-" },
+      { id: "=", label: "=" },
+      { id: "backspace", label: "Backspace", width: 2.1 }
+    ],
+    [
+      { id: "tab", label: "Tab", width: 1.5 },
+      { id: "q", label: "Q" },
+      { id: "w", label: "W" },
+      { id: "e", label: "E" },
+      { id: "r", label: "R" },
+      { id: "t", label: "T" },
+      { id: "y", label: "Y" },
+      { id: "u", label: "U" },
+      { id: "i", label: "I" },
+      { id: "o", label: "O" },
+      { id: "p", label: "P" },
+      { id: "[", label: "[" },
+      { id: "]", label: "]" },
+      { id: "#", label: "#", width: 1.4 }
+    ],
+    [
+      { id: "capslock", label: "Caps", width: 1.8 },
+      { id: "a", label: "A" },
+      { id: "s", label: "S" },
+      { id: "d", label: "D" },
+      { id: "f", label: "F" },
+      { id: "g", label: "G" },
+      { id: "h", label: "H" },
+      { id: "j", label: "J" },
+      { id: "k", label: "K" },
+      { id: "l", label: "L" },
+      { id: ";", label: ";" },
+      { id: "'", label: "'" },
+      { id: "enter", label: "Enter", width: 2.2 }
+    ],
+    [
+      { id: "shift", label: "Shift", width: 1.8 },
+      { id: "\\", label: "\\" },
+      { id: "z", label: "Z" },
+      { id: "x", label: "X" },
+      { id: "c", label: "C" },
+      { id: "v", label: "V" },
+      { id: "b", label: "B" },
+      { id: "n", label: "N" },
+      { id: "m", label: "M" },
+      { id: ",", label: "," },
+      { id: ".", label: "." },
+      { id: "/", label: "/" },
+      { id: "shiftright", label: "Shift", width: 2.2 }
+    ],
+    BOTTOM_ROW
+  ],
+  "de-qwertz": [
+    [
+      { id: "esc", label: "Esc", width: 1.1 },
+      { id: "^", label: "^" },
+      { id: "1", label: "1" },
+      { id: "2", label: "2" },
+      { id: "3", label: "3" },
+      { id: "4", label: "4" },
+      { id: "5", label: "5" },
+      { id: "6", label: "6" },
+      { id: "7", label: "7" },
+      { id: "8", label: "8" },
+      { id: "9", label: "9" },
+      { id: "0", label: "0" },
+      { id: "ß", label: "ß" },
+      { id: "backspace", label: "Backspace", width: 2.1 }
+    ],
+    [
+      { id: "tab", label: "Tab", width: 1.5 },
+      { id: "q", label: "Q" },
+      { id: "w", label: "W" },
+      { id: "e", label: "E" },
+      { id: "r", label: "R" },
+      { id: "t", label: "T" },
+      { id: "z", label: "Z" },
+      { id: "u", label: "U" },
+      { id: "i", label: "I" },
+      { id: "o", label: "O" },
+      { id: "p", label: "P" },
+      { id: "ü", label: "Ü" },
+      { id: "+", label: "+" },
+      { id: "#", label: "#", width: 1.4 }
+    ],
+    [
+      { id: "capslock", label: "Caps", width: 1.8 },
+      { id: "a", label: "A" },
+      { id: "s", label: "S" },
+      { id: "d", label: "D" },
+      { id: "f", label: "F" },
+      { id: "g", label: "G" },
+      { id: "h", label: "H" },
+      { id: "j", label: "J" },
+      { id: "k", label: "K" },
+      { id: "l", label: "L" },
+      { id: "ö", label: "Ö" },
+      { id: "ä", label: "Ä" },
+      { id: "enter", label: "Enter", width: 2.2 }
+    ],
+    [
+      { id: "shift", label: "Shift", width: 1.8 },
+      { id: "<", label: "<" },
+      { id: "y", label: "Y" },
+      { id: "x", label: "X" },
+      { id: "c", label: "C" },
+      { id: "v", label: "V" },
+      { id: "b", label: "B" },
+      { id: "n", label: "N" },
+      { id: "m", label: "M" },
+      { id: ",", label: "," },
+      { id: ".", label: "." },
+      { id: "-", label: "-" },
+      { id: "shiftright", label: "Shift", width: 2.2 }
+    ],
+    BOTTOM_ROW
+  ],
+  "fr-azerty": [
+    [
+      { id: "esc", label: "Esc", width: 1.1 },
+      { id: "1", label: "1" },
+      { id: "2", label: "2" },
+      { id: "3", label: "3" },
+      { id: "4", label: "4" },
+      { id: "5", label: "5" },
+      { id: "6", label: "6" },
+      { id: "7", label: "7" },
+      { id: "8", label: "8" },
+      { id: "9", label: "9" },
+      { id: "0", label: "0" },
+      { id: "-", label: "-" },
+      { id: "=", label: "=" },
+      { id: "backspace", label: "Backspace", width: 2.1 }
+    ],
+    [
+      { id: "tab", label: "Tab", width: 1.5 },
+      { id: "a", label: "A" },
+      { id: "z", label: "Z" },
+      { id: "e", label: "E" },
+      { id: "r", label: "R" },
+      { id: "t", label: "T" },
+      { id: "y", label: "Y" },
+      { id: "u", label: "U" },
+      { id: "i", label: "I" },
+      { id: "o", label: "O" },
+      { id: "p", label: "P" },
+      { id: "^", label: "^" },
+      { id: "$", label: "$" },
+      { id: "*", label: "*", width: 1.4 }
+    ],
+    [
+      { id: "capslock", label: "Caps", width: 1.8 },
+      { id: "q", label: "Q" },
+      { id: "s", label: "S" },
+      { id: "d", label: "D" },
+      { id: "f", label: "F" },
+      { id: "g", label: "G" },
+      { id: "h", label: "H" },
+      { id: "j", label: "J" },
+      { id: "k", label: "K" },
+      { id: "l", label: "L" },
+      { id: "m", label: "M" },
+      { id: "ù", label: "Ù" },
+      { id: "enter", label: "Enter", width: 2.2 }
+    ],
+    [
+      { id: "shift", label: "Shift", width: 1.8 },
+      { id: "<", label: "<" },
+      { id: "w", label: "W" },
+      { id: "x", label: "X" },
+      { id: "c", label: "C" },
+      { id: "v", label: "V" },
+      { id: "b", label: "B" },
+      { id: "n", label: "N" },
+      { id: ",", label: "," },
+      { id: ";", label: ";" },
+      { id: ":", label: ":" },
+      { id: "!", label: "!" },
+      { id: "shiftright", label: "Shift", width: 2.2 }
+    ],
+    BOTTOM_ROW
+  ],
+  "es-qwerty": [
+    [
+      { id: "esc", label: "Esc", width: 1.1 },
+      { id: "1", label: "1" },
+      { id: "2", label: "2" },
+      { id: "3", label: "3" },
+      { id: "4", label: "4" },
+      { id: "5", label: "5" },
+      { id: "6", label: "6" },
+      { id: "7", label: "7" },
+      { id: "8", label: "8" },
+      { id: "9", label: "9" },
+      { id: "0", label: "0" },
+      { id: "'", label: "'" },
+      { id: "¡", label: "¡" },
+      { id: "backspace", label: "Backspace", width: 2.1 }
+    ],
+    [
+      { id: "tab", label: "Tab", width: 1.5 },
+      { id: "q", label: "Q" },
+      { id: "w", label: "W" },
+      { id: "e", label: "E" },
+      { id: "r", label: "R" },
+      { id: "t", label: "T" },
+      { id: "y", label: "Y" },
+      { id: "u", label: "U" },
+      { id: "i", label: "I" },
+      { id: "o", label: "O" },
+      { id: "p", label: "P" },
+      { id: "`", label: "`" },
+      { id: "+", label: "+" },
+      { id: "ç", label: "Ç", width: 1.4 }
+    ],
+    [
+      { id: "capslock", label: "Caps", width: 1.8 },
+      { id: "a", label: "A" },
+      { id: "s", label: "S" },
+      { id: "d", label: "D" },
+      { id: "f", label: "F" },
+      { id: "g", label: "G" },
+      { id: "h", label: "H" },
+      { id: "j", label: "J" },
+      { id: "k", label: "K" },
+      { id: "l", label: "L" },
+      { id: "ñ", label: "Ñ" },
+      { id: "´", label: "´" },
+      { id: "enter", label: "Enter", width: 2.2 }
+    ],
+    [
+      { id: "shift", label: "Shift", width: 1.8 },
+      { id: "<", label: "<" },
+      { id: "z", label: "Z" },
+      { id: "x", label: "X" },
+      { id: "c", label: "C" },
+      { id: "v", label: "V" },
+      { id: "b", label: "B" },
+      { id: "n", label: "N" },
+      { id: "m", label: "M" },
+      { id: ",", label: "," },
+      { id: ".", label: "." },
+      { id: "-", label: "-" },
+      { id: "shiftright", label: "Shift", width: 2.2 }
+    ],
+    BOTTOM_ROW
+  ]
+};
 
 const KEYBOARD_GAP = 5;
 const KEYBOARD_MIN_UNIT = 12;
@@ -88,22 +353,25 @@ const KEYBOARD_DEFAULT_UNIT = 28;
 
 export const OnScreenKeyboard = memo(function OnScreenKeyboard({
   activeKeys,
-  title
+  title,
+  layout
 }: {
   activeKeys: Set<string>;
   title: string;
+  layout: OnScreenKeyboardLayout;
 }) {
+  const keyboardRows = KEYBOARD_LAYOUT_ROWS[layout];
   const keyboardWrapperRef = useRef<HTMLDivElement | null>(null);
   const [keyUnit, setKeyUnit] = useState(KEYBOARD_DEFAULT_UNIT);
   const keyHeight = Math.max(24, Math.round(keyUnit * 0.86));
   const keyFontSize = Math.max(10, Math.min(13, Math.round(keyUnit * 0.36)));
   const rowGeometry = useMemo(
     () =>
-      KEYBOARD_ROWS.map((row) => ({
+      keyboardRows.map((row) => ({
         units: row.reduce((sum, keyDef) => sum + (keyDef.width ?? 1), 0),
         gaps: Math.max(0, row.length - 1)
       })),
-    []
+    [keyboardRows]
   );
 
   useEffect(() => {
@@ -164,7 +432,7 @@ export const OnScreenKeyboard = memo(function OnScreenKeyboard({
           justifyItems: "center"
         }}
       >
-        {KEYBOARD_ROWS.map((row, rowIndex) => (
+        {keyboardRows.map((row, rowIndex) => (
           <div key={rowIndex} style={{ display: "flex", gap: `${KEYBOARD_GAP}px`, justifyContent: "center" }}>
             {row.map((keyDef, keyIndex) => {
               const width = keyDef.width ?? 1;
