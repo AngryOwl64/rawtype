@@ -474,6 +474,7 @@ const DE_ACCOUNT_TRANSLATIONS: Record<string, string> = {
   "name@example.com": "name@beispiel.de",
   "player_one or name@example.com": "player_one oder name@beispiel.de",
   Password: "Passwort",
+  "Stay signed in": "Angemeldet bleiben",
   "Confirm password": "Passwort bestätigen",
   "Username only. Use 3-20 letters, numbers, or underscores.":
     "Nur Benutzername. Verwende 3-20 Buchstaben, Zahlen oder Unterstriche.",
