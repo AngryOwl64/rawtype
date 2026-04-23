@@ -10,4 +10,12 @@ body,
 body {
   min-height: 100vh;
   background: #272822;
+  font-family: "Segoe UI", "Aptos", "Trebuchet MS", sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }

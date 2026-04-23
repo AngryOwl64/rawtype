@@ -1,7 +1,7 @@
 // Preference options and local defaults for themes, fonts, and language.
 // Also maps selected preferences into CSS variables.
 import type { CSSProperties } from "react";
-import type { OnScreenKeyboardLayout, TypingFont, TypingLanguage } from "../games/typing/types";
+import type { AppFont, OnScreenKeyboardLayout, TextFont, TypingLanguage } from "../games/typing/types";
 import { getPathTypingLanguage, SUPPORTED_TYPING_LANGUAGES } from "../i18n/language";
 import { getLanguageLabelFromMessages, getLanguageOptionsFromMessages } from "../i18n/messages";
 import {
@@ -20,13 +20,37 @@ export type SelectOption<T extends string> = {
 
 export const LANGUAGE_OPTIONS: Array<SelectOption<TypingLanguage>> = getLanguageOptionsFromMessages();
 
-export const FONT_OPTIONS: Array<SelectOption<TypingFont>> = [
-  { value: "system-mono", label: "System mono" },
-  { value: "sans", label: "Sans" },
-  { value: "serif", label: "Serif" }
+export const APP_FONT_OPTIONS: Array<SelectOption<AppFont>> = [
+  { value: "system-sans", label: "Standard Sans" },
+  { value: "libre-baskerville", label: "Libre Baskerville" },
+  { value: "smooch-sans", label: "Smooch Sans" },
+  { value: "manrope", label: "Manrope" },
+  { value: "nunito-sans", label: "Nunito Sans" }
+];
+
+export const TEXT_FONT_OPTIONS: Array<SelectOption<TextFont>> = [
+  { value: "system-mono", label: "System Mono" },
+  { value: "system-sans", label: "Standard Sans" },
+  { value: "serif", label: "Classic Serif" },
+  { value: "libre-baskerville", label: "Libre Baskerville" },
+  { value: "smooch-sans", label: "Smooch Sans" },
+  { value: "manrope", label: "Manrope" },
+  { value: "nunito-sans", label: "Nunito Sans" },
+  { value: "sekuya", label: "Sekuya" }
 ];
 
 const DEFAULT_ON_SCREEN_KEYBOARD_LAYOUT: OnScreenKeyboardLayout = "us-qwerty";
+
+const FONT_STACKS: Record<AppFont | TextFont, string> = {
+  "system-sans": '"Segoe UI", "Aptos", "Trebuchet MS", sans-serif',
+  "system-mono": 'Consolas, Menlo, Monaco, "Segoe UI Mono", monospace',
+  serif: 'Georgia, "Times New Roman", serif',
+  "libre-baskerville": '"Libre Baskerville", Georgia, serif',
+  "smooch-sans": '"Smooch Sans", "Trebuchet MS", sans-serif',
+  manrope: 'Manrope, "Segoe UI", sans-serif',
+  "nunito-sans": '"Nunito Sans", "Segoe UI", sans-serif',
+  sekuya: '"Sekuya", system-ui'
+};
 
 export function isOnScreenKeyboardLayout(value: string | null | undefined): value is OnScreenKeyboardLayout {
   return (
@@ -48,8 +72,27 @@ export function isTypingLanguage(value: string | null | undefined): value is Typ
   return value ? SUPPORTED_TYPING_LANGUAGES.includes(value as TypingLanguage) : false;
 }
 
-export function isTypingFont(value: string | null | undefined): value is TypingFont {
-  return value === "system-mono" || value === "sans" || value === "serif";
+export function isAppFont(value: string | null | undefined): value is AppFont {
+  return (
+    value === "system-sans" ||
+    value === "libre-baskerville" ||
+    value === "smooch-sans" ||
+    value === "manrope" ||
+    value === "nunito-sans"
+  );
+}
+
+export function isTextFont(value: string | null | undefined): value is TextFont {
+  return (
+    value === "system-mono" ||
+    value === "system-sans" ||
+    value === "serif" ||
+    value === "libre-baskerville" ||
+    value === "smooch-sans" ||
+    value === "manrope" ||
+    value === "nunito-sans" ||
+    value === "sekuya"
+  );
 }
 
 export function getStoredTheme(): ThemeMode {
@@ -66,10 +109,26 @@ export function getStoredLanguage(): TypingLanguage {
   return isTypingLanguage(storedLanguage) ? storedLanguage : "en";
 }
 
-export function getStoredFont(): TypingFont {
+export function getStoredAppFont(): AppFont {
+  if (typeof window === "undefined") return "system-sans";
+  const storedAppFont = window.localStorage.getItem("rawtype-app-font");
+  return isAppFont(storedAppFont) ? storedAppFont : "system-sans";
+}
+
+export function getStoredTextFont(): TextFont {
   if (typeof window === "undefined") return "system-mono";
-  const storedFont = window.localStorage.getItem("rawtype-font");
-  return isTypingFont(storedFont) ? storedFont : "system-mono";
+  const storedTextFont = window.localStorage.getItem("rawtype-text-font");
+
+  if (isTextFont(storedTextFont)) {
+    return storedTextFont;
+  }
+
+  const legacyFont = window.localStorage.getItem("rawtype-font");
+  if (legacyFont === "sans") return "system-sans";
+  if (legacyFont === "serif") return "serif";
+  if (legacyFont === "system-mono") return "system-mono";
+
+  return "system-mono";
 }
 
 export function getLanguageLabel(language: TypingLanguage): string {
@@ -80,23 +139,10 @@ export function getThemeVariables(theme: ThemeMode): CSSProperties {
   return getThemeCssVariables(theme);
 }
 
-export function getFontVariables(font: TypingFont): CSSProperties {
-  if (font === "sans") {
-    return {
-      "--app-font": "'Segoe UI', 'Aptos', 'Trebuchet MS', sans-serif",
-      "--typing-font": "'Segoe UI', 'Aptos', 'Trebuchet MS', sans-serif"
-    } as CSSProperties;
-  }
-
-  if (font === "serif") {
-    return {
-      "--app-font": "Georgia, 'Times New Roman', serif",
-      "--typing-font": "Georgia, 'Times New Roman', serif"
-    } as CSSProperties;
-  }
-
+export function getFontVariables(appFont: AppFont, textFont: TextFont): CSSProperties {
   return {
-    "--app-font": "'Segoe UI', 'Aptos', 'Trebuchet MS', sans-serif",
-    "--typing-font": "Consolas, Menlo, Monaco, 'Segoe UI Mono', monospace"
+    "--app-font": FONT_STACKS[appFont],
+    "--typing-font": FONT_STACKS[textFont],
+    "--brand-font": FONT_STACKS.sekuya
   } as CSSProperties;
 }

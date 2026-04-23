@@ -27,8 +27,14 @@ supabase/
   texts.sql
   words.sql
 public/
-  favicon.svg
-  icons.svg
+  favicon.ico
+  favicon-96x96.png
+  apple-touch-icon.png
+  site.webmanifest
+src/
+  assets/
+    branding/
+      rawtype-logo-mark.png
 ```
 
 ## Notes

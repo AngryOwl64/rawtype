@@ -1,5 +1,6 @@
 // Top navigation for switching between RawType sections.
 // Keeps the header markup separate from the app state container.
+import logoMark from "../assets/branding/rawtype-logo-mark.png";
 import type { getAppTexts } from "../i18n/messages";
 import type { AppTab } from "./types";
 
@@ -48,6 +49,9 @@ export default function AppHeader({ activeTab, accountLabel, appText, onSelectTa
             background: "transparent",
             padding: 0,
             margin: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
             fontSize: "24px",
             letterSpacing: "0.4px",
             fontWeight: 700,
@@ -55,7 +59,30 @@ export default function AppHeader({ activeTab, accountLabel, appText, onSelectTa
             cursor: "pointer"
           }}
         >
-          RawType
+          <img
+            src={logoMark}
+            alt=""
+            width={36}
+            height={36}
+            style={{
+              display: "block",
+              width: "36px",
+              height: "36px",
+              borderRadius: "10px",
+              objectFit: "cover"
+            }}
+          />
+          <span
+            style={{
+              fontFamily: "var(--brand-font)",
+              fontWeight: 400,
+              fontSize: "30px",
+              lineHeight: 1,
+              letterSpacing: "0.02em"
+            }}
+          >
+            RawType
+          </span>
         </button>
         <nav style={{ display: "flex", gap: "10px" }}>
           {headerTabs.map((tab) => (

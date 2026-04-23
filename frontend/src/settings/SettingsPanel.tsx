@@ -1,7 +1,7 @@
 // Settings UI for theme, language, font, and typing highlights.
 // Keeps user-facing preference controls grouped in one panel.
 import { useEffect, useState } from "react";
-import type { OnScreenKeyboardLayout, TypingFont, TypingLanguage } from "../games/typing/types";
+import type { AppFont, OnScreenKeyboardLayout, TextFont, TypingLanguage } from "../games/typing/types";
 import { getSettingsTexts } from "../i18n/messages";
 import {
   BUILT_IN_THEMES,
@@ -9,7 +9,7 @@ import {
   getBuiltInThemeName,
   type ThemeId
 } from "../themes/registry";
-import { FONT_OPTIONS, LANGUAGE_OPTIONS, type SelectOption } from "./preferences";
+import { APP_FONT_OPTIONS, LANGUAGE_OPTIONS, TEXT_FONT_OPTIONS, type SelectOption } from "./preferences";
 
 const fieldStyle = {
   width: "100%",
@@ -441,7 +441,8 @@ function ThemeSetting({
 
 type SettingsPanelProps = {
   theme: ThemeId;
-  font: TypingFont;
+  appFont: AppFont;
+  textFont: TextFont;
   language: TypingLanguage;
   highlightCorrectWords: boolean;
   highlightErrorFromPoint: boolean;
@@ -450,7 +451,8 @@ type SettingsPanelProps = {
   correctMarkerColor: string;
   errorMarkerColor: string;
   onThemeChange: (theme: ThemeId) => void;
-  onFontChange: (font: TypingFont) => void;
+  onAppFontChange: (font: AppFont) => void;
+  onTextFontChange: (font: TextFont) => void;
   onLanguageChange: (language: TypingLanguage) => void;
   onHighlightCorrectWordsChange: (enabled: boolean) => void;
   onHighlightErrorFromPointChange: (enabled: boolean) => void;
@@ -462,7 +464,8 @@ type SettingsPanelProps = {
 
 export default function SettingsPanel({
   theme,
-  font,
+  appFont,
+  textFont,
   language,
   highlightCorrectWords,
   highlightErrorFromPoint,
@@ -471,7 +474,8 @@ export default function SettingsPanel({
   correctMarkerColor,
   errorMarkerColor,
   onThemeChange,
-  onFontChange,
+  onAppFontChange,
+  onTextFontChange,
   onLanguageChange,
   onHighlightCorrectWordsChange,
   onHighlightErrorFromPointChange,
@@ -499,7 +503,17 @@ export default function SettingsPanel({
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "14px" }}>
-        <h1 style={{ margin: 0, fontSize: "32px" }}>{text.page.title}</h1>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: "32px",
+            fontFamily: "var(--brand-font)",
+            fontWeight: 400,
+            letterSpacing: "0.02em"
+          }}
+        >
+          {text.page.title}
+        </h1>
         <span
           style={{
             border: "1px solid var(--border-soft)",
@@ -526,11 +540,18 @@ export default function SettingsPanel({
             options={LANGUAGE_OPTIONS}
           />
           <SelectSetting
-            label={text.page.font}
-            value={font}
+            label={text.page.generalFont}
+            value={appFont}
             disabled={false}
-            onChange={onFontChange}
-            options={FONT_OPTIONS}
+            onChange={onAppFontChange}
+            options={APP_FONT_OPTIONS}
+          />
+          <SelectSetting
+            label={text.page.textFont}
+            value={textFont}
+            disabled={false}
+            onChange={onTextFontChange}
+            options={TEXT_FONT_OPTIONS}
           />
         </SettingGroup>
 

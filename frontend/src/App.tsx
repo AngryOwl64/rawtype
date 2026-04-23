@@ -9,9 +9,10 @@ import { useAuth } from "./auth/authContext";
 import TypingGame from "./games/typing/components/TypingGame";
 import { fetchTypingDailyActivity, fetchTypingStreakDays } from "./games/typing/services/runResults";
 import type {
+  AppFont,
   OnScreenKeyboardLayout,
   SavedTypingDayStats,
-  TypingFont,
+  TextFont,
   TypingLanguage,
   TypingMode,
   WordModeDifficulty,
@@ -20,9 +21,10 @@ import type {
 import {
   getFontVariables,
   getLanguageLabel,
+  getStoredAppFont,
   getStoredOnScreenKeyboardLayout,
-  getStoredFont,
   getStoredLanguage,
+  getStoredTextFont,
   getStoredTheme,
   getThemeVariables,
   isTypingLanguage,
@@ -115,13 +117,14 @@ function App() {
     getStoredHexColor("rawtype-error-marker-color", "#c86b73")
   );
   const [theme, setTheme] = useState<ThemeMode>(getStoredTheme);
-  const [font, setFont] = useState<TypingFont>(getStoredFont);
+  const [appFont, setAppFont] = useState<AppFont>(getStoredAppFont);
+  const [textFont, setTextFont] = useState<TextFont>(getStoredTextFont);
   const [localLanguage, setLocalLanguage] = useState<TypingLanguage>(getStoredLanguage);
   const [pendingAccountLanguage, setPendingAccountLanguage] = useState<TypingLanguage | null>(null);
   const [currentStreakDays, setCurrentStreakDays] = useState(0);
   const [dailyActivity, setDailyActivity] = useState<SavedTypingDayStats[]>([]);
   const themeVariables = useMemo(() => getThemeVariables(theme), [theme]);
-  const fontVariables = useMemo(() => getFontVariables(font), [font]);
+  const fontVariables = useMemo(() => getFontVariables(appFont, textFont), [appFont, textFont]);
   const accountLanguage = isTypingLanguage(settings?.language) ? settings.language : null;
   const language = pendingAccountLanguage ?? (user ? accountLanguage : null) ?? localLanguage;
   const appText = useMemo(() => getAppTexts(language), [language]);
@@ -163,8 +166,12 @@ function App() {
   }, [language]);
 
   useEffect(() => {
-    setStoredValue("rawtype-font", font);
-  }, [font]);
+    setStoredValue("rawtype-app-font", appFont);
+  }, [appFont]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-text-font", textFont);
+  }, [textFont]);
 
   useEffect(() => {
     setStoredValue("rawtype-highlight-correct-words", highlightCorrectWords);
@@ -345,7 +352,8 @@ function App() {
         {route.kind === "settings" && (
           <SettingsPanel
             theme={theme}
-            font={font}
+            appFont={appFont}
+            textFont={textFont}
             language={language}
             highlightCorrectWords={highlightCorrectWords}
             highlightErrorFromPoint={highlightErrorFromPoint}
@@ -354,7 +362,8 @@ function App() {
             correctMarkerColor={correctMarkerColor}
             errorMarkerColor={errorMarkerColor}
             onThemeChange={setTheme}
-            onFontChange={setFont}
+            onAppFontChange={setAppFont}
+            onTextFontChange={setTextFont}
             onLanguageChange={handleLanguageChange}
             onHighlightCorrectWordsChange={setHighlightCorrectWords}
             onHighlightErrorFromPointChange={setHighlightErrorFromPoint}
