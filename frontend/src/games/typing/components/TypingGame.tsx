@@ -197,7 +197,6 @@ export default function TypingGame({
     <div
       style={{
         padding: "32px 16px 40px",
-        fontFamily: "var(--typing-font)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -272,6 +271,7 @@ export default function TypingGame({
             >
               <div
                 style={{
+                  fontFamily: "var(--typing-font)",
                   fontSize: "24px",
                   lineHeight: 1.8,
                   display: "flex",

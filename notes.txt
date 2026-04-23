@@ -19,3 +19,11 @@ leaderboard
 level system
 pfp
 profile schöner machen
+custom anzahl abgefragter wörter 
+code mode
+quote mode
+daily challange
+import font
+footer
+impressum
+DSGVO
