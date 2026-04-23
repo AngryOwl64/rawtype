@@ -168,6 +168,8 @@ export default function AccountPanel({ language = "en" }: { language?: TypingLan
   const displayUsername = profile?.username || t("Account");
   const accountCreated = formatDate(profile?.created_at ?? user?.created_at, language);
   const publicProfile = profile?.public_profile ?? false;
+  const publicProfilePath = profile?.username ? `/${profile.username}` : null;
+  const publicProfileUrl = publicProfilePath ? `${window.location.origin}${publicProfilePath}` : null;
   const usernameChanged = normalizedAccountUsername !== (profile?.username ?? "");
 
   useEffect(() => {
@@ -583,6 +585,14 @@ export default function AccountPanel({ language = "en" }: { language?: TypingLan
                     <p style={{ margin: "4px 0 0", color: "var(--muted)", fontSize: "13px", lineHeight: 1.45 }}>
                       {t("Public profiles can be used by profile pages to show your saved typing stats.")}
                     </p>
+                    {publicProfile && publicProfilePath && publicProfileUrl && (
+                      <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: "13px", lineHeight: 1.45 }}>
+                        {t("Public URL")}:{" "}
+                        <a href={publicProfilePath} style={{ color: "var(--primary)" }}>
+                          {publicProfileUrl}
+                        </a>
+                      </p>
+                    )}
                   </div>
                   <StatusPill>{publicProfile ? t("Public") : t("Private")}</StatusPill>
                 </div>

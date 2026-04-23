@@ -19,3 +19,4 @@ leaderboard
 level system
 pfp
 profile schöner machen
+einstellungen lang != game lang

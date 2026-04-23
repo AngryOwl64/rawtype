@@ -28,12 +28,67 @@ import {
 } from "./settings/preferences";
 import { getAppTexts } from "./i18n/messages";
 import { getStoredBoolean, getStoredHexColor, setStoredValue } from "./lib/localStorage";
+import PublicProfilePanel from "./profile/PublicProfilePanel";
 import SettingsPanel from "./settings/SettingsPanel";
 import StatsPanel from "./stats/StatsPanel";
 
+type RouteState =
+  | { kind: "games" | "stats" | "account" | "settings" }
+  | { kind: "publicProfile"; username: string };
+
+const routePathsByTab: Record<AppTab, string> = {
+  games: "/",
+  stats: "/stats",
+  account: "/profile",
+  settings: "/settings"
+};
+
+function normalizePathname(pathname: string): string {
+  const trimmed = pathname.replace(/\/+$/, "");
+  return trimmed === "" ? "/" : trimmed;
+}
+
+function parseRoute(pathname: string): RouteState {
+  const normalizedPath = normalizePathname(pathname);
+
+  if (normalizedPath === "/" || normalizedPath === "/de") {
+    return { kind: "games" };
+  }
+
+  if (normalizedPath === "/profile" || normalizedPath === "/account") {
+    return { kind: "account" };
+  }
+
+  if (normalizedPath === "/settings") {
+    return { kind: "settings" };
+  }
+
+  if (normalizedPath === "/stats") {
+    return { kind: "stats" };
+  }
+
+  const segments = normalizedPath.split("/").filter(Boolean);
+  if (segments.length === 1) {
+    return {
+      kind: "publicProfile",
+      username: decodeURIComponent(segments[0]).trim().toLowerCase()
+    };
+  }
+
+  return { kind: "games" };
+}
+
+function getActiveTabFromRoute(route: RouteState): AppTab | null {
+  if (route.kind === "publicProfile") {
+    return null;
+  }
+
+  return route.kind;
+}
+
 function App() {
   const { configured, loading: authLoading, profile, settings, updateSettings, user } = useAuth();
-  const [activeTab, setActiveTab] = useState<AppTab>("games");
+  const [route, setRoute] = useState<RouteState>(() => parseRoute(window.location.pathname));
   const [playingTypingGame, setPlayingTypingGame] = useState(false);
   const [typingMode, setTypingMode] = useState<TypingMode>("sentences");
   const [wordsCount, setWordsCount] = useState(25);
@@ -65,6 +120,7 @@ function App() {
   const accountLanguage = isTypingLanguage(settings?.language) ? settings.language : null;
   const language = pendingAccountLanguage ?? (user ? accountLanguage : null) ?? localLanguage;
   const appText = useMemo(() => getAppTexts(language), [language]);
+  const activeTab = useMemo(() => getActiveTabFromRoute(route), [route]);
   const accountLabel = authLoading
     ? appText.account.loading
     : user
@@ -126,6 +182,17 @@ function App() {
   }, [errorMarkerColor]);
 
   useEffect(() => {
+    function handlePopState() {
+      setRoute(parseRoute(window.location.pathname));
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!configured || authLoading || !user) {
       return;
     }
@@ -169,9 +236,20 @@ function App() {
       });
   }
 
+  function navigateToPath(pathname: string) {
+    const nextPath = normalizePathname(pathname);
+    const currentPath = normalizePathname(window.location.pathname);
+
+    if (nextPath !== currentPath) {
+      window.history.pushState(null, "", nextPath);
+    }
+
+    setRoute(parseRoute(nextPath));
+  }
+
   function handleSelectTab(tab: AppTab) {
-    setActiveTab(tab);
     setPlayingTypingGame(false);
+    navigateToPath(routePathsByTab[tab]);
   }
 
   return (
@@ -187,7 +265,7 @@ function App() {
       />
 
       <main style={{ maxWidth: "980px", margin: "0 auto", padding: "28px 24px 40px" }}>
-        {activeTab === "games" && !playingTypingGame && (
+        {route.kind === "games" && !playingTypingGame && (
           <HomeMenu
             appText={appText}
             currentStreakDays={currentStreakDays}
@@ -211,7 +289,7 @@ function App() {
           />
         )}
 
-        {activeTab === "games" && playingTypingGame && (
+        {route.kind === "games" && playingTypingGame && (
           <section>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h1 style={{ margin: 0, fontSize: "30px" }}>
@@ -250,11 +328,11 @@ function App() {
           </section>
         )}
 
-        {activeTab === "stats" && <StatsPanel language={language} />}
+        {route.kind === "stats" && <StatsPanel language={language} />}
 
-        {activeTab === "account" && <AccountPanel language={language} />}
+        {route.kind === "account" && <AccountPanel language={language} />}
 
-        {activeTab === "settings" && (
+        {route.kind === "settings" && (
           <SettingsPanel
             theme={theme}
             font={font}
@@ -273,6 +351,10 @@ function App() {
             onCorrectMarkerColorChange={setCorrectMarkerColor}
             onErrorMarkerColorChange={setErrorMarkerColor}
           />
+        )}
+
+        {route.kind === "publicProfile" && (
+          <PublicProfilePanel username={route.username} language={language} />
         )}
       </main>
     </div>
