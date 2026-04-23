@@ -1,6 +1,6 @@
 // Main typing game view and run-completion screen.
 // Connects the game hook, persistence, metrics, and word rendering.
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../auth/authContext";
 import { getTypingGameTexts } from "../../../i18n/messages";
 import { saveTypingRun } from "../services/runResults";
@@ -278,42 +278,42 @@ export default function TypingGame({
 
                   if (wordIndex < currentWordIndex) {
                     return (
-                      <Fragment key={wordIndex}>
+                      <span key={wordIndex} style={{ display: "inline-flex" }}>
                         <span
-                        style={{
-                          color: highlightCorrectWords ? "var(--text)" : "var(--success)",
-                          backgroundColor: highlightCorrectWords ? correctMarkerBackground : "transparent",
-                          borderRadius: 0,
-                          padding: 0,
-                          display: "inline-flex"
-                        }}
-                      >
+                          style={{
+                            color: highlightCorrectWords ? "var(--text)" : "var(--success)",
+                            backgroundColor: highlightCorrectWords ? correctMarkerBackground : "transparent",
+                            borderRadius: 0,
+                            padding: 0,
+                            display: "inline-flex"
+                          }}
+                        >
                           {word}
                         </span>
                         {hasTrailingSpace && (
                           <span
                             aria-hidden="true"
-                        style={{
-                          display: "inline-flex",
-                          color: "transparent",
-                          backgroundColor: highlightCorrectWords ? correctMarkerBackground : "transparent",
-                          borderRadius: 0,
-                          padding: 0
-                        }}
-                      >
-                        {"\u00A0"}
+                            style={{
+                              display: "inline-flex",
+                              color: "transparent",
+                              backgroundColor: highlightCorrectWords ? correctMarkerBackground : "transparent",
+                              borderRadius: 0,
+                              padding: 0
+                            }}
+                          >
+                            {"\u00A0"}
                           </span>
                         )}
-                      </Fragment>
+                      </span>
                     );
                   }
 
                   if (wordIndex > currentWordIndex || finished) {
                     return (
-                      <Fragment key={wordIndex}>
+                      <span key={wordIndex} style={{ display: "inline-flex" }}>
                         <span style={{ color: "var(--muted)", display: "inline-flex" }}>{word}</span>
                         {hasTrailingSpace && <span aria-hidden="true">{"\u00A0"}</span>}
-                      </Fragment>
+                      </span>
                     );
                   }
 
@@ -323,7 +323,7 @@ export default function TypingGame({
                     : -1;
 
                   return (
-                    <Fragment key={wordIndex}>
+                    <span key={wordIndex} style={{ display: "inline-flex" }}>
                       <span
                         style={{
                           alignItems: "center",
@@ -372,7 +372,7 @@ export default function TypingGame({
                         })}
                       </span>
                       {hasTrailingSpace && <span aria-hidden="true">{"\u00A0"}</span>}
-                    </Fragment>
+                    </span>
                   );
                 })}
               </div>
