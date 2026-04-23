@@ -9,6 +9,7 @@ import { useAuth } from "./auth/authContext";
 import TypingGame from "./games/typing/components/TypingGame";
 import { fetchTypingDailyActivity, fetchTypingStreakDays } from "./games/typing/services/runResults";
 import type {
+  OnScreenKeyboardLayout,
   SavedTypingDayStats,
   TypingFont,
   TypingLanguage,
@@ -19,6 +20,7 @@ import type {
 import {
   getFontVariables,
   getLanguageLabel,
+  getStoredOnScreenKeyboardLayout,
   getStoredFont,
   getStoredLanguage,
   getStoredTheme,
@@ -103,6 +105,9 @@ function App() {
   const [showOnScreenKeyboard, setShowOnScreenKeyboard] = useState<boolean>(() =>
     getStoredBoolean("rawtype-show-onscreen-keyboard", false)
   );
+  const [onScreenKeyboardLayout, setOnScreenKeyboardLayout] = useState<OnScreenKeyboardLayout>(
+    getStoredOnScreenKeyboardLayout
+  );
   const [correctMarkerColor, setCorrectMarkerColor] = useState<string>(() =>
     getStoredHexColor("rawtype-correct-marker-color", "#6fbf73")
   );
@@ -172,6 +177,10 @@ function App() {
   useEffect(() => {
     setStoredValue("rawtype-show-onscreen-keyboard", showOnScreenKeyboard);
   }, [showOnScreenKeyboard]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-onscreen-keyboard-layout", onScreenKeyboardLayout);
+  }, [onScreenKeyboardLayout]);
 
   useEffect(() => {
     setStoredValue("rawtype-correct-marker-color", correctMarkerColor);
@@ -322,6 +331,7 @@ function App() {
               highlightCorrectWords={highlightCorrectWords}
               highlightErrorFromPoint={highlightErrorFromPoint}
               showOnScreenKeyboard={showOnScreenKeyboard}
+              onScreenKeyboardLayout={onScreenKeyboardLayout}
               correctMarkerColor={correctMarkerColor}
               errorMarkerColor={errorMarkerColor}
             />
@@ -340,6 +350,7 @@ function App() {
             highlightCorrectWords={highlightCorrectWords}
             highlightErrorFromPoint={highlightErrorFromPoint}
             showOnScreenKeyboard={showOnScreenKeyboard}
+            onScreenKeyboardLayout={onScreenKeyboardLayout}
             correctMarkerColor={correctMarkerColor}
             errorMarkerColor={errorMarkerColor}
             onThemeChange={setTheme}
@@ -348,6 +359,7 @@ function App() {
             onHighlightCorrectWordsChange={setHighlightCorrectWords}
             onHighlightErrorFromPointChange={setHighlightErrorFromPoint}
             onShowOnScreenKeyboardChange={setShowOnScreenKeyboard}
+            onOnScreenKeyboardLayoutChange={setOnScreenKeyboardLayout}
             onCorrectMarkerColorChange={setCorrectMarkerColor}
             onErrorMarkerColorChange={setErrorMarkerColor}
           />

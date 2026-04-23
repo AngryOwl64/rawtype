@@ -12,6 +12,7 @@ export type TypingError = {
 export type TypingMode = "sentences" | "words";
 export type TypingLanguage = "en" | "de";
 export type TypingFont = "system-mono" | "sans" | "serif";
+export type OnScreenKeyboardLayout = "us-qwerty" | "uk-qwerty" | "de-qwertz" | "fr-azerty" | "es-qwerty";
 export type WordModeDifficulty = "easy" | "medium" | "hard" | "mixed";
 export type WordNoMistakeMode = "off" | "on";
 

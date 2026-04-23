@@ -1,7 +1,7 @@
 // Settings UI for theme, language, font, and typing highlights.
 // Keeps user-facing preference controls grouped in one panel.
 import { useEffect, useState } from "react";
-import type { TypingFont, TypingLanguage } from "../games/typing/types";
+import type { OnScreenKeyboardLayout, TypingFont, TypingLanguage } from "../games/typing/types";
 import { getLocalizedThemeDescription, getSettingsTexts } from "../i18n/messages";
 import { BUILT_IN_THEMES, getBuiltInThemeName } from "../themes/registry";
 import type { ThemeId } from "../themes/types";
@@ -442,6 +442,7 @@ type SettingsPanelProps = {
   highlightCorrectWords: boolean;
   highlightErrorFromPoint: boolean;
   showOnScreenKeyboard: boolean;
+  onScreenKeyboardLayout: OnScreenKeyboardLayout;
   correctMarkerColor: string;
   errorMarkerColor: string;
   onThemeChange: (theme: ThemeId) => void;
@@ -450,6 +451,7 @@ type SettingsPanelProps = {
   onHighlightCorrectWordsChange: (enabled: boolean) => void;
   onHighlightErrorFromPointChange: (enabled: boolean) => void;
   onShowOnScreenKeyboardChange: (enabled: boolean) => void;
+  onOnScreenKeyboardLayoutChange: (layout: OnScreenKeyboardLayout) => void;
   onCorrectMarkerColorChange: (value: string) => void;
   onErrorMarkerColorChange: (value: string) => void;
 };
@@ -461,6 +463,7 @@ export default function SettingsPanel({
   highlightCorrectWords,
   highlightErrorFromPoint,
   showOnScreenKeyboard,
+  onScreenKeyboardLayout,
   correctMarkerColor,
   errorMarkerColor,
   onThemeChange,
@@ -469,10 +472,18 @@ export default function SettingsPanel({
   onHighlightCorrectWordsChange,
   onHighlightErrorFromPointChange,
   onShowOnScreenKeyboardChange,
+  onOnScreenKeyboardLayoutChange,
   onCorrectMarkerColorChange,
   onErrorMarkerColorChange
 }: SettingsPanelProps) {
   const text = getSettingsTexts(language);
+  const keyboardLayoutOptions: Array<SelectOption<OnScreenKeyboardLayout>> = [
+    { value: "us-qwerty", label: text.page.keyboardLayoutUs },
+    { value: "uk-qwerty", label: text.page.keyboardLayoutUk },
+    { value: "de-qwertz", label: text.page.keyboardLayoutDe },
+    { value: "fr-azerty", label: text.page.keyboardLayoutFr },
+    { value: "es-qwerty", label: text.page.keyboardLayoutEs }
+  ];
 
   return (
     <section
@@ -604,6 +615,13 @@ export default function SettingsPanel({
             checked={showOnScreenKeyboard}
             disabled={false}
             onChange={onShowOnScreenKeyboardChange}
+          />
+          <SelectSetting
+            label={text.page.keyboardLayout}
+            value={onScreenKeyboardLayout}
+            disabled={false}
+            onChange={onOnScreenKeyboardLayoutChange}
+            options={keyboardLayoutOptions}
           />
         </SettingGroup>
 

@@ -1,7 +1,7 @@
 // Preference options and local defaults for themes, fonts, and language.
 // Also maps selected preferences into CSS variables.
 import type { CSSProperties } from "react";
-import type { TypingFont, TypingLanguage } from "../games/typing/types";
+import type { OnScreenKeyboardLayout, TypingFont, TypingLanguage } from "../games/typing/types";
 import { getPathTypingLanguage, SUPPORTED_TYPING_LANGUAGES } from "../i18n/language";
 import { getLanguageLabelFromMessages, getLanguageOptionsFromMessages } from "../i18n/messages";
 import type { ThemeId } from "../themes/types";
@@ -20,6 +20,24 @@ export const FONT_OPTIONS: Array<SelectOption<TypingFont>> = [
   { value: "sans", label: "Sans" },
   { value: "serif", label: "Serif" }
 ];
+
+const DEFAULT_ON_SCREEN_KEYBOARD_LAYOUT: OnScreenKeyboardLayout = "us-qwerty";
+
+export function isOnScreenKeyboardLayout(value: string | null | undefined): value is OnScreenKeyboardLayout {
+  return (
+    value === "us-qwerty" ||
+    value === "uk-qwerty" ||
+    value === "de-qwertz" ||
+    value === "fr-azerty" ||
+    value === "es-qwerty"
+  );
+}
+
+export function getStoredOnScreenKeyboardLayout(): OnScreenKeyboardLayout {
+  if (typeof window === "undefined") return DEFAULT_ON_SCREEN_KEYBOARD_LAYOUT;
+  const storedLayout = window.localStorage.getItem("rawtype-onscreen-keyboard-layout");
+  return isOnScreenKeyboardLayout(storedLayout) ? storedLayout : DEFAULT_ON_SCREEN_KEYBOARD_LAYOUT;
+}
 
 export function isTypingLanguage(value: string | null | undefined): value is TypingLanguage {
   return value ? SUPPORTED_TYPING_LANGUAGES.includes(value as TypingLanguage) : false;
