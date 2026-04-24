@@ -11,15 +11,13 @@ animationen hinzufügen
 setup SMTP in supabase
 mehr animationen für wörter abgeschlossen
 seconds mode/endless
-done - für login email oder username möglich
 game text verringern (ex. Typing Classic (Words 10, medium, no-mistake off, English))
 fast restart maybe with r or return
-visisble Keyboard -> 5 most used layouts
 leaderboard
 level system
 pfp
 profile schöner machen
-custom anzahl abgefragter wörter 
+custom anzahl abgefragter wörter
 code mode
 quote mode
 daily challange
@@ -27,3 +25,5 @@ import font
 footer
 impressum
 DSGVO
+email adress mode xd
+multiple settings proiles 

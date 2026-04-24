@@ -1,8 +1,12 @@
 // Settings UI for theme, language, font, and typing highlights.
 // Keeps user-facing preference controls grouped in one panel.
 import { useEffect, useState } from "react";
-import type { AppFont, OnScreenKeyboardLayout, TextFont, TypingLanguage } from "../games/typing/types";
-import { getSettingsTexts } from "../i18n/messages";
+import AccountSettingsSection from "../account/AccountSettingsSection";
+import { useAuth } from "../auth/authContext";
+import { deleteSavedTypingData } from "../games/typing/services/runResults";
+import type { AppFont, OnScreenKeyboardLayout, RestartKey, TextFont, TypingLanguage } from "../games/typing/types";
+import type { TypingMode, WordModeDifficulty, WordNoMistakeMode } from "../games/typing/types";
+import { getSettingsTexts, translateAccountText } from "../i18n/messages";
 import {
   BUILT_IN_THEMES,
   getBuiltInThemeDescription,
@@ -10,6 +14,13 @@ import {
   type ThemeId
 } from "../themes/registry";
 import { APP_FONT_OPTIONS, LANGUAGE_OPTIONS, TEXT_FONT_OPTIONS, type SelectOption } from "./preferences";
+
+export type SettingsCategory = "appearance" | "typing" | "markers" | "keyboard" | "privacy" | "account";
+
+export type SettingsCategoryItem = {
+  id: SettingsCategory;
+  label: string;
+};
 
 const fieldStyle = {
   width: "100%",
@@ -439,58 +450,285 @@ function ThemeSetting({
   );
 }
 
+function PrivacyDataSettings({
+  language,
+  saveRunsToAccount,
+  saveErrorWords,
+  showErrorBreakdown,
+  onSaveRunsToAccountChange,
+  onSaveErrorWordsChange,
+  onShowErrorBreakdownChange
+}: {
+  language: TypingLanguage;
+  saveRunsToAccount: boolean;
+  saveErrorWords: boolean;
+  showErrorBreakdown: boolean;
+  onSaveRunsToAccountChange: (enabled: boolean) => void;
+  onSaveErrorWordsChange: (enabled: boolean) => void;
+  onShowErrorBreakdownChange: (enabled: boolean) => void;
+}) {
+  const text = getSettingsTexts(language);
+  const { user } = useAuth();
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [deleteState, setDeleteState] = useState<"idle" | "deleting" | "deleted">("idle");
+  const [deleteError, setDeleteError] = useState("");
+
+  async function handleDeleteSavedData() {
+    setDeleteError("");
+    setDeleteState("deleting");
+
+    try {
+      await deleteSavedTypingData();
+      setDeleteConfirmationOpen(false);
+      setDeleteState("deleted");
+    } catch (error) {
+      setDeleteState("idle");
+      setDeleteError(error instanceof Error ? error.message : text.page.deleteSavedDataFailed);
+    }
+  }
+
+  return (
+    <>
+      <ToggleSetting
+        label={text.page.saveRuns}
+        checked={saveRunsToAccount}
+        disabled={false}
+        onChange={onSaveRunsToAccountChange}
+      />
+      <ToggleSetting
+        label={text.page.saveErrorWords}
+        checked={saveRunsToAccount && saveErrorWords}
+        disabled={!saveRunsToAccount}
+        onChange={onSaveErrorWordsChange}
+      />
+      <ToggleSetting
+        label={text.page.showErrorBreakdownPrivacy}
+        checked={showErrorBreakdown}
+        disabled={false}
+        onChange={onShowErrorBreakdownChange}
+      />
+      <div style={{ display: "grid", gap: "8px" }}>
+        <button
+          type="button"
+          onClick={() => setDeleteConfirmationOpen(true)}
+          disabled={!user || deleteState === "deleting"}
+          style={{
+            border: "1px solid var(--danger-border)",
+            borderRadius: "8px",
+            padding: "10px 12px",
+            backgroundColor: user ? "var(--danger-bg)" : "var(--surface-soft)",
+            color: user ? "var(--danger)" : "var(--muted)",
+            cursor: user ? "pointer" : "not-allowed",
+            fontWeight: 800
+          }}
+        >
+          {deleteState === "deleting"
+            ? text.page.deletingSavedData
+            : deleteState === "deleted"
+              ? text.page.savedDataDeleted
+              : text.page.deleteSavedData}
+        </button>
+        {!user && (
+          <p style={{ margin: 0, color: "var(--muted)", fontSize: "13px", lineHeight: 1.45 }}>
+            {text.page.loginToDeleteData}
+          </p>
+        )}
+        {deleteError && <p style={{ margin: 0, color: "var(--danger)", fontSize: "13px" }}>{deleteError}</p>}
+      </div>
+
+      {deleteConfirmationOpen && (
+        <div
+          role="presentation"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 70,
+            backgroundColor: "rgba(0, 0, 0, 0.42)",
+            display: "grid",
+            placeItems: "center",
+            padding: "20px"
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-data-title"
+            style={{
+              border: "1px solid var(--border)",
+              borderRadius: "8px",
+              backgroundColor: "var(--surface)",
+              color: "var(--text)",
+              padding: "18px",
+              width: "min(100%, 420px)",
+              boxSizing: "border-box",
+              boxShadow: "0 18px 48px rgba(0, 0, 0, 0.28)",
+              display: "grid",
+              gap: "12px"
+            }}
+          >
+            <h2 id="delete-data-title" style={{ margin: 0, fontSize: "22px" }}>
+              {text.page.deleteSavedDataTitle}
+            </h2>
+            <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.5 }}>
+              {text.page.deleteSavedDataDescription}
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmationOpen(false)}
+                style={{
+                  border: "1px solid var(--border-strong)",
+                  borderRadius: "8px",
+                  padding: "10px 16px",
+                  backgroundColor: "var(--surface-soft)",
+                  color: "var(--text)",
+                  fontWeight: 700,
+                  cursor: "pointer"
+                }}
+              >
+                {text.themeWindow.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDeleteSavedData()}
+                disabled={deleteState === "deleting"}
+                style={{
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "10px 16px",
+                  backgroundColor: "var(--danger)",
+                  color: "var(--primary-text)",
+                  fontWeight: 800,
+                  cursor: deleteState === "deleting" ? "default" : "pointer"
+                }}
+              >
+                {text.page.confirmDeleteSavedData}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+    </>
+  );
+}
+
 type SettingsPanelProps = {
+  activeCategory: SettingsCategory;
   theme: ThemeId;
   appFont: AppFont;
   textFont: TextFont;
   language: TypingLanguage;
+  defaultTypingMode: TypingMode;
+  defaultWordsCount: number;
+  defaultWordDifficulty: WordModeDifficulty;
+  defaultNoMistakeMode: WordNoMistakeMode;
   highlightCorrectWords: boolean;
   highlightErrorFromPoint: boolean;
   showOnScreenKeyboard: boolean;
   onScreenKeyboardLayout: OnScreenKeyboardLayout;
+  restartKey: RestartKey;
+  saveRunsToAccount: boolean;
+  saveErrorWords: boolean;
+  showErrorBreakdown: boolean;
   correctMarkerColor: string;
   errorMarkerColor: string;
   onThemeChange: (theme: ThemeId) => void;
   onAppFontChange: (font: AppFont) => void;
   onTextFontChange: (font: TextFont) => void;
   onLanguageChange: (language: TypingLanguage) => void;
+  onDefaultTypingModeChange: (mode: TypingMode) => void;
+  onDefaultWordsCountChange: (wordsCount: number) => void;
+  onDefaultWordDifficultyChange: (difficulty: WordModeDifficulty) => void;
+  onDefaultNoMistakeModeChange: (mode: WordNoMistakeMode) => void;
   onHighlightCorrectWordsChange: (enabled: boolean) => void;
   onHighlightErrorFromPointChange: (enabled: boolean) => void;
   onShowOnScreenKeyboardChange: (enabled: boolean) => void;
   onOnScreenKeyboardLayoutChange: (layout: OnScreenKeyboardLayout) => void;
+  onRestartKeyChange: (key: RestartKey) => void;
+  onSaveRunsToAccountChange: (enabled: boolean) => void;
+  onSaveErrorWordsChange: (enabled: boolean) => void;
+  onShowErrorBreakdownChange: (enabled: boolean) => void;
   onCorrectMarkerColorChange: (value: string) => void;
   onErrorMarkerColorChange: (value: string) => void;
+  onCategoryChange: (category: SettingsCategory) => void;
 };
 
 export default function SettingsPanel({
+  activeCategory,
   theme,
   appFont,
   textFont,
   language,
+  defaultTypingMode,
+  defaultWordsCount,
+  defaultWordDifficulty,
+  defaultNoMistakeMode,
   highlightCorrectWords,
   highlightErrorFromPoint,
   showOnScreenKeyboard,
   onScreenKeyboardLayout,
+  restartKey,
+  saveRunsToAccount,
+  saveErrorWords,
+  showErrorBreakdown,
   correctMarkerColor,
   errorMarkerColor,
   onThemeChange,
   onAppFontChange,
   onTextFontChange,
   onLanguageChange,
+  onDefaultTypingModeChange,
+  onDefaultWordsCountChange,
+  onDefaultWordDifficultyChange,
+  onDefaultNoMistakeModeChange,
   onHighlightCorrectWordsChange,
   onHighlightErrorFromPointChange,
   onShowOnScreenKeyboardChange,
   onOnScreenKeyboardLayoutChange,
+  onRestartKeyChange,
+  onSaveRunsToAccountChange,
+  onSaveErrorWordsChange,
+  onShowErrorBreakdownChange,
   onCorrectMarkerColorChange,
-  onErrorMarkerColorChange
+  onErrorMarkerColorChange,
+  onCategoryChange
 }: SettingsPanelProps) {
   const text = getSettingsTexts(language);
+  const accountText = (en: string) => translateAccountText(language, en);
+  const categories: SettingsCategoryItem[] = [
+    { id: "appearance", label: text.page.appearance },
+    { id: "typing", label: text.page.typing },
+    { id: "markers", label: text.page.wordMarking },
+    { id: "keyboard", label: text.page.keyboard },
+    { id: "privacy", label: text.page.privacyData },
+    { id: "account", label: accountText("Account Settings") }
+  ];
   const keyboardLayoutOptions: Array<SelectOption<OnScreenKeyboardLayout>> = [
     { value: "us-qwerty", label: text.page.keyboardLayoutUs },
     { value: "uk-qwerty", label: text.page.keyboardLayoutUk },
     { value: "de-qwertz", label: text.page.keyboardLayoutDe },
     { value: "fr-azerty", label: text.page.keyboardLayoutFr },
     { value: "es-qwerty", label: text.page.keyboardLayoutEs }
+  ];
+  const restartKeyOptions: Array<SelectOption<RestartKey>> = [
+    { value: "Enter", label: text.page.restartKeyEnter },
+    { value: "Escape", label: text.page.restartKeyEscape }
+  ];
+  const typingModeOptions: Array<SelectOption<TypingMode>> = [
+    { value: "sentences", label: text.page.modeSentences },
+    { value: "words", label: text.page.modeWords }
+  ];
+  const wordsCountOptions: Array<SelectOption<string>> = [
+    { value: "10", label: "10" },
+    { value: "25", label: "25" },
+    { value: "50", label: "50" },
+    { value: "75", label: "75" }
+  ];
+  const difficultyOptions: Array<SelectOption<WordModeDifficulty>> = [
+    { value: "easy", label: text.page.easy },
+    { value: "medium", label: text.page.medium },
+    { value: "hard", label: text.page.hard },
+    { value: "mixed", label: text.page.mixed }
   ];
 
   return (
@@ -528,133 +766,211 @@ export default function SettingsPanel({
         </span>
       </div>
 
-      <div style={{ display: "grid", gap: "14px", marginTop: "18px" }}>
-        <ThemeSetting language={language} theme={theme} onThemeChange={onThemeChange} />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(150px, 190px) 1fr",
+          gap: "16px",
+          alignItems: "start",
+          marginTop: "18px"
+        }}
+      >
+        <nav
+          aria-label={text.page.settingsCategories}
+          style={{
+            border: "1px solid var(--border-soft)",
+            borderRadius: "8px",
+            padding: "8px",
+            display: "grid",
+            gap: "6px",
+            backgroundColor: "var(--surface-soft)",
+            position: "sticky",
+            top: "86px"
+          }}
+        >
+          {categories.map((category) => {
+            const selected = category.id === activeCategory;
+            return (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => onCategoryChange(category.id)}
+                style={{
+                  border: "1px solid",
+                  borderColor: selected ? "var(--primary)" : "transparent",
+                  borderRadius: "8px",
+                  padding: "10px 11px",
+                  backgroundColor: selected ? "var(--primary)" : "transparent",
+                  color: selected ? "var(--primary-text)" : "var(--text)",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  fontWeight: 700
+                }}
+              >
+                {category.label}
+              </button>
+            );
+          })}
+        </nav>
 
-        <SettingGroup title={text.page.generalSettings}>
-          <SelectSetting
-            label={text.page.language}
-            value={language}
-            disabled={false}
-            onChange={onLanguageChange}
-            options={LANGUAGE_OPTIONS}
-          />
-          <SelectSetting
-            label={text.page.generalFont}
-            value={appFont}
-            disabled={false}
-            onChange={onAppFontChange}
-            options={APP_FONT_OPTIONS}
-          />
-          <SelectSetting
-            label={text.page.textFont}
-            value={textFont}
-            disabled={false}
-            onChange={onTextFontChange}
-            options={TEXT_FONT_OPTIONS}
-          />
-        </SettingGroup>
+        <div style={{ display: "grid", gap: "14px", minWidth: 0 }}>
+          {activeCategory === "appearance" && (
+            <>
+              <ThemeSetting language={language} theme={theme} onThemeChange={onThemeChange} />
 
-        <SettingGroup title={text.page.typingDefaults}>
-          <SelectSetting
-            label={text.page.mode}
-            value={text.page.modeSentences}
-            options={[
-              { value: text.page.modeSentences, label: text.page.modeSentences },
-              { value: text.page.modeWords, label: text.page.modeWords }
-            ]}
-          />
-          <SelectSetting
-            label={text.page.wordCount}
-            value="25"
-            options={[
-              { value: "10", label: "10" },
-              { value: "25", label: "25" },
-              { value: "50", label: "50" },
-              { value: "75", label: "75" }
-            ]}
-          />
-          <SelectSetting
-            label={text.page.difficulty}
-            value={text.page.mixed}
-            options={[
-              { value: text.page.easy, label: text.page.easy },
-              { value: text.page.medium, label: text.page.medium },
-              { value: text.page.hard, label: text.page.hard },
-              { value: text.page.mixed, label: text.page.mixed }
-            ]}
-          />
-        </SettingGroup>
-
-        <SettingGroup title={text.page.training}>
-          <ToggleSetting label={text.page.noMistakeMode} checked={false} />
-          <ToggleSetting label={text.page.autoFocus} checked />
-          <ToggleSetting label={text.page.showErrorBreakdown} checked />
-        </SettingGroup>
-
-        <SettingGroup title={text.page.wordMarking} singleColumn>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: "12px"
-            }}
-          >
-            <div style={{ display: "grid", gap: "8px", alignContent: "start" }}>
-              <ToggleSetting
-                label={text.page.correctWordMarker}
-                checked={highlightCorrectWords}
-                disabled={false}
-                onChange={onHighlightCorrectWordsChange}
-              />
-              {highlightCorrectWords && (
-                <ColorSetting
-                  label={text.page.changeCorrectColor}
-                  value={correctMarkerColor}
-                  onChange={onCorrectMarkerColorChange}
+              <SettingGroup title={text.page.generalSettings}>
+                <SelectSetting
+                  label={text.page.language}
+                  value={language}
+                  disabled={false}
+                  onChange={onLanguageChange}
+                  options={LANGUAGE_OPTIONS}
                 />
-              )}
-            </div>
-
-            <div style={{ display: "grid", gap: "8px", alignContent: "start" }}>
-              <ToggleSetting
-                label={text.page.errorMarker}
-                checked={highlightErrorFromPoint}
-                disabled={false}
-                onChange={onHighlightErrorFromPointChange}
-              />
-              {highlightErrorFromPoint && (
-                <ColorSetting
-                  label={text.page.changeErrorColor}
-                  value={errorMarkerColor}
-                  onChange={onErrorMarkerColorChange}
+                <SelectSetting
+                  label={text.page.generalFont}
+                  value={appFont}
+                  disabled={false}
+                  onChange={onAppFontChange}
+                  options={APP_FONT_OPTIONS}
                 />
-              )}
-            </div>
-          </div>
-        </SettingGroup>
+                <SelectSetting
+                  label={text.page.textFont}
+                  value={textFont}
+                  disabled={false}
+                  onChange={onTextFontChange}
+                  options={TEXT_FONT_OPTIONS}
+                />
+              </SettingGroup>
+            </>
+          )}
 
-        <SettingGroup title={text.page.keyboard}>
-          <ToggleSetting
-            label={text.page.showOnScreenKeyboard}
-            checked={showOnScreenKeyboard}
-            disabled={false}
-            onChange={onShowOnScreenKeyboardChange}
-          />
-          <SelectSetting
-            label={text.page.keyboardLayout}
-            value={onScreenKeyboardLayout}
-            disabled={false}
-            onChange={onOnScreenKeyboardLayoutChange}
-            options={keyboardLayoutOptions}
-          />
-        </SettingGroup>
+          {activeCategory === "typing" && (
+            <>
+              <SettingGroup title={text.page.typingDefaults}>
+                <SelectSetting
+                  label={text.page.mode}
+                  value={defaultTypingMode}
+                  disabled={false}
+                  onChange={onDefaultTypingModeChange}
+                  options={typingModeOptions}
+                />
+                <SelectSetting
+                  label={text.page.wordCount}
+                  value={String(defaultWordsCount)}
+                  disabled={false}
+                  onChange={(value) => onDefaultWordsCountChange(Number(value))}
+                  options={wordsCountOptions}
+                />
+                <SelectSetting
+                  label={text.page.difficulty}
+                  value={defaultWordDifficulty}
+                  disabled={false}
+                  onChange={onDefaultWordDifficultyChange}
+                  options={difficultyOptions}
+                />
+              </SettingGroup>
 
-        <SettingGroup title={text.page.privacyData}>
-          <ToggleSetting label={text.page.saveRuns} checked />
-          <ToggleSetting label={text.page.saveErrorWords} checked />
-          <ToggleSetting label={text.page.publicProfile} checked={false} />
-        </SettingGroup>
+              <SettingGroup title={text.page.training}>
+                <ToggleSetting
+                  label={text.page.noMistakeMode}
+                  checked={defaultNoMistakeMode === "on"}
+                  disabled={false}
+                  onChange={(enabled) => onDefaultNoMistakeModeChange(enabled ? "on" : "off")}
+                />
+                <ToggleSetting label={text.page.autoFocus} checked />
+              </SettingGroup>
+            </>
+          )}
+
+          {activeCategory === "markers" && (
+            <SettingGroup title={text.page.wordMarking} singleColumn>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: "12px"
+                }}
+              >
+                <div style={{ display: "grid", gap: "8px", alignContent: "start" }}>
+                  <ToggleSetting
+                    label={text.page.correctWordMarker}
+                    checked={highlightCorrectWords}
+                    disabled={false}
+                    onChange={onHighlightCorrectWordsChange}
+                  />
+                  {highlightCorrectWords && (
+                    <ColorSetting
+                      label={text.page.changeCorrectColor}
+                      value={correctMarkerColor}
+                      onChange={onCorrectMarkerColorChange}
+                    />
+                  )}
+                </div>
+
+                <div style={{ display: "grid", gap: "8px", alignContent: "start" }}>
+                  <ToggleSetting
+                    label={text.page.errorMarker}
+                    checked={highlightErrorFromPoint}
+                    disabled={false}
+                    onChange={onHighlightErrorFromPointChange}
+                  />
+                  {highlightErrorFromPoint && (
+                    <ColorSetting
+                      label={text.page.changeErrorColor}
+                      value={errorMarkerColor}
+                      onChange={onErrorMarkerColorChange}
+                    />
+                  )}
+                </div>
+              </div>
+            </SettingGroup>
+          )}
+
+          {activeCategory === "keyboard" && (
+            <SettingGroup title={text.page.keyboard}>
+              <SelectSetting
+                label={text.page.restartKey}
+                value={restartKey}
+                disabled={false}
+                onChange={onRestartKeyChange}
+                options={restartKeyOptions}
+              />
+              <ToggleSetting
+                label={text.page.showOnScreenKeyboard}
+                checked={showOnScreenKeyboard}
+                disabled={false}
+                onChange={onShowOnScreenKeyboardChange}
+              />
+              <SelectSetting
+                label={text.page.keyboardLayout}
+                value={onScreenKeyboardLayout}
+                disabled={false}
+                onChange={onOnScreenKeyboardLayoutChange}
+                options={keyboardLayoutOptions}
+              />
+            </SettingGroup>
+          )}
+
+          {activeCategory === "privacy" && (
+            <SettingGroup title={text.page.privacyData} singleColumn>
+              <PrivacyDataSettings
+                language={language}
+                saveRunsToAccount={saveRunsToAccount}
+                saveErrorWords={saveErrorWords}
+                showErrorBreakdown={showErrorBreakdown}
+                onSaveRunsToAccountChange={onSaveRunsToAccountChange}
+                onSaveErrorWordsChange={onSaveErrorWordsChange}
+                onShowErrorBreakdownChange={onShowErrorBreakdownChange}
+              />
+            </SettingGroup>
+          )}
+
+          {activeCategory === "account" && (
+            <SettingGroup title={accountText("Account Settings")} singleColumn>
+              <AccountSettingsSection language={language} />
+            </SettingGroup>
+          )}
+        </div>
       </div>
     </section>
   );

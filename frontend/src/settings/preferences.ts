@@ -1,7 +1,7 @@
 // Preference options and local defaults for themes, fonts, and language.
 // Also maps selected preferences into CSS variables.
 import type { CSSProperties } from "react";
-import type { AppFont, OnScreenKeyboardLayout, TextFont, TypingLanguage } from "../games/typing/types";
+import type { AppFont, OnScreenKeyboardLayout, RestartKey, TextFont, TypingLanguage } from "../games/typing/types";
 import { getPathTypingLanguage, SUPPORTED_TYPING_LANGUAGES } from "../i18n/language";
 import { getLanguageLabelFromMessages, getLanguageOptionsFromMessages } from "../i18n/messages";
 import {
@@ -40,6 +40,7 @@ export const TEXT_FONT_OPTIONS: Array<SelectOption<TextFont>> = [
 ];
 
 const DEFAULT_ON_SCREEN_KEYBOARD_LAYOUT: OnScreenKeyboardLayout = "us-qwerty";
+const DEFAULT_RESTART_KEY: RestartKey = "Enter";
 
 const FONT_STACKS: Record<AppFont | TextFont, string> = {
   "system-sans": '"Segoe UI", "Aptos", "Trebuchet MS", sans-serif',
@@ -66,6 +67,16 @@ export function getStoredOnScreenKeyboardLayout(): OnScreenKeyboardLayout {
   if (typeof window === "undefined") return DEFAULT_ON_SCREEN_KEYBOARD_LAYOUT;
   const storedLayout = window.localStorage.getItem("rawtype-onscreen-keyboard-layout");
   return isOnScreenKeyboardLayout(storedLayout) ? storedLayout : DEFAULT_ON_SCREEN_KEYBOARD_LAYOUT;
+}
+
+export function isRestartKey(value: string | null | undefined): value is RestartKey {
+  return value === "Enter" || value === "Escape";
+}
+
+export function getStoredRestartKey(): RestartKey {
+  if (typeof window === "undefined") return DEFAULT_RESTART_KEY;
+  const storedRestartKey = window.localStorage.getItem("rawtype-restart-key");
+  return isRestartKey(storedRestartKey) ? storedRestartKey : DEFAULT_RESTART_KEY;
 }
 
 export function isTypingLanguage(value: string | null | undefined): value is TypingLanguage {

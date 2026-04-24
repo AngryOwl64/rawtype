@@ -22,6 +22,7 @@ export type TextFont =
   | "nunito-sans"
   | "sekuya";
 export type OnScreenKeyboardLayout = "us-qwerty" | "uk-qwerty" | "de-qwertz" | "fr-azerty" | "es-qwerty";
+export type RestartKey = "Enter" | "Escape";
 export type WordModeDifficulty = "easy" | "medium" | "hard" | "mixed";
 export type WordNoMistakeMode = "off" | "on";
 

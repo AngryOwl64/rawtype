@@ -111,22 +111,46 @@ $$;
 
 create table if not exists public.user_settings (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  theme text not null default 'system',
+  theme text not null default 'pergament',
   language text not null default 'en',
   default_typing_mode text not null default 'sentences',
   default_words_count integer not null default 25,
   default_word_difficulty text not null default 'mixed',
   default_no_mistake boolean not null default false,
+  app_font text not null default 'system-sans',
+  text_font text not null default 'system-mono',
+  highlight_correct_words boolean not null default true,
+  highlight_error_from_point boolean not null default true,
+  show_on_screen_keyboard boolean not null default false,
+  on_screen_keyboard_layout text not null default 'us-qwerty',
+  restart_key text not null default 'Enter',
+  correct_marker_color text not null default '#6fbf73',
+  error_marker_color text not null default '#c86b73',
+  save_runs_to_account boolean not null default true,
+  save_error_words boolean not null default true,
+  show_error_breakdown boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
 
-  constraint user_settings_theme_valid check (theme in ('system', 'light', 'dark')),
+  constraint user_settings_theme_valid check (theme in ('pergament', 'monokai', 'dracula')),
   constraint user_settings_language_valid check (language in ('en', 'de')),
   constraint user_settings_mode_valid check (default_typing_mode in ('sentences', 'words')),
   constraint user_settings_words_valid check (default_words_count in (10, 25, 50, 75)),
   constraint user_settings_difficulty_valid check (
     default_word_difficulty in ('easy', 'medium', 'hard', 'mixed')
-  )
+  ),
+  constraint user_settings_app_font_valid check (
+    app_font in ('system-sans', 'libre-baskerville', 'smooch-sans', 'manrope', 'nunito-sans')
+  ),
+  constraint user_settings_text_font_valid check (
+    text_font in ('system-mono', 'system-sans', 'serif', 'libre-baskerville', 'smooch-sans', 'manrope', 'nunito-sans', 'sekuya')
+  ),
+  constraint user_settings_keyboard_layout_valid check (
+    on_screen_keyboard_layout in ('us-qwerty', 'uk-qwerty', 'de-qwertz', 'fr-azerty', 'es-qwerty')
+  ),
+  constraint user_settings_restart_key_valid check (restart_key in ('Enter', 'Escape')),
+  constraint user_settings_correct_marker_color_valid check (correct_marker_color ~ '^#[0-9A-Fa-f]{6}$'),
+  constraint user_settings_error_marker_color_valid check (error_marker_color ~ '^#[0-9A-Fa-f]{6}$')
 );
 
 drop trigger if exists user_settings_touch_updated_at on public.user_settings;

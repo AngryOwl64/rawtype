@@ -38,6 +38,7 @@ export type CompletedTypingRun = {
   totalWords: number;
   failedByMistake: boolean;
   errorEvents: TypingError[];
+  saveErrorWords?: boolean;
 };
 
 type PublicProfileRow = {
@@ -118,7 +119,7 @@ export async function saveTypingRun(result: CompletedTypingRun): Promise<string>
 
   if (runError) throw new Error(getDatabaseErrorMessage(runError));
 
-  if (result.errorEvents.length > 0) {
+  if (result.saveErrorWords !== false && result.errorEvents.length > 0) {
     const errorPayloads: TypingErrorInsert[] = result.errorEvents.map((entry) => ({
       run_id: run.id,
       word: entry.word,
@@ -332,6 +333,21 @@ export async function fetchTypingDailyActivity(): Promise<SavedTypingDayStats[]>
 
   if (error) throw new Error(getDatabaseErrorMessage(error));
   return buildDailyActivity(data ?? []);
+}
+
+export async function deleteSavedTypingData(): Promise<void> {
+  const client = requireSupabaseClient();
+  const { data: authData, error: authError } = await client.auth.getUser();
+
+  if (authError) throw new Error(getDatabaseErrorMessage(authError));
+  const userId = authData.user?.id;
+  if (!userId) throw new Error(translateAuthText(getStoredUiLanguage(), "Account user is not loaded."));
+
+  const { error: errorsError } = await client.from("typing_errors").delete().eq("user_id", userId);
+  if (errorsError) throw new Error(getDatabaseErrorMessage(errorsError));
+
+  const { error: runsError } = await client.from("typing_runs").delete().eq("user_id", userId);
+  if (runsError) throw new Error(getDatabaseErrorMessage(runsError));
 }
 
 function normalizePublicUsername(value: string): string {

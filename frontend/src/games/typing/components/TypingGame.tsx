@@ -1,6 +1,6 @@
 // Main typing game view and run-completion screen.
 // Connects the game hook, persistence, metrics, and word rendering.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../auth/authContext";
 import { getTypingGameTexts } from "../../../i18n/messages";
 import { saveTypingRun } from "../services/runResults";
@@ -8,6 +8,7 @@ import { useActiveKeyboardKeys } from "../hooks/useActiveKeyboardKeys";
 import { useTypingGame } from "../hooks/useTypingGame";
 import type {
   OnScreenKeyboardLayout,
+  RestartKey,
   TypingLanguage,
   TypingMode,
   WordModeDifficulty,
@@ -27,6 +28,10 @@ type TypingGameProps = {
   highlightErrorFromPoint?: boolean;
   showOnScreenKeyboard?: boolean;
   onScreenKeyboardLayout?: OnScreenKeyboardLayout;
+  restartKey?: RestartKey;
+  saveRunsToAccount?: boolean;
+  saveErrorWords?: boolean;
+  showErrorBreakdown?: boolean;
   correctMarkerColor?: string;
   errorMarkerColor?: string;
 };
@@ -41,6 +46,10 @@ export default function TypingGame({
   highlightErrorFromPoint = true,
   showOnScreenKeyboard = false,
   onScreenKeyboardLayout = "us-qwerty",
+  restartKey = "Enter",
+  saveRunsToAccount = true,
+  saveErrorWords = true,
+  showErrorBreakdown = true,
   correctMarkerColor = "#6fbf73",
   errorMarkerColor = "#c86b73"
 }: TypingGameProps) {
@@ -94,7 +103,7 @@ export default function TypingGame({
       return;
     }
 
-    if (!user) {
+    if (!user || !saveRunsToAccount) {
       return;
     }
 
@@ -138,7 +147,8 @@ export default function TypingGame({
       completedWords,
       totalWords,
       failedByMistake,
-      errorEvents
+      errorEvents,
+      saveErrorWords
     })
       .then(() => {
         setSaveState("saved");
@@ -161,6 +171,8 @@ export default function TypingGame({
     language,
     mistakes,
     mode,
+    saveErrorWords,
+    saveRunsToAccount,
     textLoadError,
     totalWords,
     typedChars,
@@ -172,12 +184,12 @@ export default function TypingGame({
     text.saveFailed
   ]);
 
-  function handleRestart() {
+  const handleRestart = useCallback(() => {
     savedRunKeyRef.current = "";
     setSaveState("idle");
     setSaveError("");
     restart();
-  }
+  }, [restart]);
 
   const errorSummary = useMemo(() => {
     const errorCountByWord = errorEvents.reduce<Record<string, number>>((acc, entry) => {
@@ -191,7 +203,34 @@ export default function TypingGame({
       mostErrorWord: Object.entries(errorCountByWord).sort((a, b) => b[1] - a[1])[0]
     };
   }, [errorEvents, text.wordLabel]);
-  const displayedSaveState = finished && !user ? "skipped" : saveState;
+  const displayedSaveState = finished && (!user || !saveRunsToAccount) ? "skipped" : saveState;
+  const restartKeyLabel = restartKey === "Enter" ? "Return" : "Escape";
+
+  useEffect(() => {
+    if (isTextLoading || textLoadError) {
+      return;
+    }
+
+    function handleRestartKeyDown(event: globalThis.KeyboardEvent) {
+      const target = event.target;
+      const targetElement = target instanceof HTMLElement ? target : null;
+      const isEditing =
+        targetElement?.tagName === "INPUT" ||
+        targetElement?.tagName === "SELECT" ||
+        targetElement?.tagName === "TEXTAREA" ||
+        targetElement?.isContentEditable;
+
+      if (isEditing || event.metaKey || event.ctrlKey || event.altKey || event.repeat || event.key !== restartKey) {
+        return;
+      }
+
+      event.preventDefault();
+      handleRestart();
+    }
+
+    window.addEventListener("keydown", handleRestartKeyDown);
+    return () => window.removeEventListener("keydown", handleRestartKeyDown);
+  }, [handleRestart, isTextLoading, restartKey, textLoadError]);
 
   return (
     <div
@@ -435,6 +474,9 @@ export default function TypingGame({
           }}
         >
           <h2 style={{ marginTop: 0, marginBottom: "10px", fontSize: "28px" }}>{text.runComplete}</h2>
+          <p style={{ marginTop: 0, marginBottom: "12px", color: "var(--muted)", fontWeight: 600 }}>
+            {text.restartHint.replace("{key}", restartKeyLabel)}
+          </p>
           {noMistakeActive && failedByMistake && (
             <p style={{ marginTop: 0, marginBottom: "12px", color: "var(--danger)", fontWeight: 600 }}>
               {text.noMistakeEnded}
@@ -451,7 +493,7 @@ export default function TypingGame({
             >
               {displayedSaveState === "saving" && text.savingRun}
               {displayedSaveState === "saved" && text.runSaved}
-              {displayedSaveState === "skipped" && text.loginToSave}
+              {displayedSaveState === "skipped" && (user ? text.saveDisabled : text.loginToSave)}
               {displayedSaveState === "error" && `${text.saveFailed}: ${saveError}`}
             </p>
           )}
@@ -472,6 +514,8 @@ export default function TypingGame({
             <MetricCard label={text.metricErrors} value={mistakes} />
           </div>
 
+          {showErrorBreakdown && (
+            <>
           <h3 style={{ marginBottom: "8px", marginTop: "18px" }}>{text.errorBreakdown}</h3>
           {errorEvents.length === 0 && <p style={{ marginTop: 0 }}>{text.noErrors}</p>}
 
@@ -637,6 +681,8 @@ export default function TypingGame({
                 })}
               </div>
             </section>
+          )}
+            </>
           )}
 
           <button
