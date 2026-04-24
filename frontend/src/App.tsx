@@ -55,7 +55,12 @@ function normalizePathname(pathname: string): string {
 function parseRoute(pathname: string): RouteState {
   const normalizedPath = normalizePathname(pathname);
 
-  if (normalizedPath === "/" || normalizedPath === "/de") {
+  if (
+    normalizedPath === "/" ||
+    normalizedPath === "/de" ||
+    normalizedPath === "/typing-test" ||
+    normalizedPath === "/de/tipptraining"
+  ) {
     return { kind: "games" };
   }
 

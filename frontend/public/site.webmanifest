@@ -1,7 +1,7 @@
 {
-  "name": "RawType - Free Typing Practice Game",
+  "name": "RawType - Free Typing Test and Practice Game",
   "short_name": "RawType",
-  "description": "Practice typing with prose and word drills, track your speed and accuracy, and keep improving.",
+  "description": "Practice typing with prose and word drills, track WPM and accuracy, and keep improving.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
