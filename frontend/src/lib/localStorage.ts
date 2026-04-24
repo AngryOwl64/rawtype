@@ -2,6 +2,10 @@
 // Handles browser checks and simple value validation in one place.
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
+export function isHexColor(value: string | null | undefined): value is string {
+  return typeof value === "string" && HEX_COLOR_PATTERN.test(value);
+}
+
 export function getStoredBoolean(key: string, defaultValue: boolean): boolean {
   if (typeof window === "undefined") return defaultValue;
   const storedValue = window.localStorage.getItem(key);
@@ -12,7 +16,7 @@ export function getStoredBoolean(key: string, defaultValue: boolean): boolean {
 export function getStoredHexColor(key: string, defaultValue: string): string {
   if (typeof window === "undefined") return defaultValue;
   const storedValue = window.localStorage.getItem(key);
-  return storedValue && HEX_COLOR_PATTERN.test(storedValue) ? storedValue : defaultValue;
+  return isHexColor(storedValue) ? storedValue : defaultValue;
 }
 
 export function setStoredValue(key: string, value: string | number | boolean): void {

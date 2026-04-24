@@ -11,6 +11,7 @@ import { fetchTypingDailyActivity, fetchTypingStreakDays } from "./games/typing/
 import type {
   AppFont,
   OnScreenKeyboardLayout,
+  RestartKey,
   SavedTypingDayStats,
   TextFont,
   TypingLanguage,
@@ -23,18 +24,24 @@ import {
   getLanguageLabel,
   getStoredAppFont,
   getStoredOnScreenKeyboardLayout,
+  getStoredRestartKey,
   getStoredLanguage,
   getStoredTextFont,
   getStoredTheme,
   getThemeVariables,
+  isAppFont,
+  isOnScreenKeyboardLayout,
+  isRestartKey,
+  isTextFont,
   isTypingLanguage,
   type ThemeMode
 } from "./settings/preferences";
-import { getAppTexts } from "./i18n/messages";
-import { getStoredBoolean, getStoredHexColor, setStoredValue } from "./lib/localStorage";
+import { getAppTexts, getSettingsTexts, translateAccountText } from "./i18n/messages";
+import { getStoredBoolean, getStoredHexColor, isHexColor, setStoredValue } from "./lib/localStorage";
 import PublicProfilePanel from "./profile/PublicProfilePanel";
-import SettingsPanel from "./settings/SettingsPanel";
+import SettingsPanel, { type SettingsCategory, type SettingsCategoryItem } from "./settings/SettingsPanel";
 import StatsPanel from "./stats/StatsPanel";
+import { resolveThemeId } from "./themes/registry";
 
 type RouteState =
   | { kind: "games" | "stats" | "account" | "settings" }
@@ -46,6 +53,18 @@ const routePathsByTab: Record<AppTab, string> = {
   account: "/profile",
   settings: "/settings"
 };
+
+function isTypingMode(value: string | null | undefined): value is TypingMode {
+  return value === "sentences" || value === "words";
+}
+
+function isWordsCount(value: number | null | undefined): value is 10 | 25 | 50 | 75 {
+  return value === 10 || value === 25 || value === 50 || value === 75;
+}
+
+function isWordDifficulty(value: string | null | undefined): value is WordModeDifficulty {
+  return value === "easy" || value === "medium" || value === "hard" || value === "mixed";
+}
 
 function normalizePathname(pathname: string): string {
   const trimmed = pathname.replace(/\/+$/, "");
@@ -96,7 +115,7 @@ function getActiveTabFromRoute(route: RouteState): AppTab | null {
 }
 
 function App() {
-  const { configured, loading: authLoading, profile, settings, updateSettings, user } = useAuth();
+  const { configured, loading: authLoading, profile, settings, signOut, updateSettings, user } = useAuth();
   const [route, setRoute] = useState<RouteState>(() => parseRoute(window.location.pathname));
   const [playingTypingGame, setPlayingTypingGame] = useState(false);
   const [typingMode, setTypingMode] = useState<TypingMode>("sentences");
@@ -115,6 +134,16 @@ function App() {
   const [onScreenKeyboardLayout, setOnScreenKeyboardLayout] = useState<OnScreenKeyboardLayout>(
     getStoredOnScreenKeyboardLayout
   );
+  const [restartKey, setRestartKey] = useState<RestartKey>(getStoredRestartKey);
+  const [saveRunsToAccount, setSaveRunsToAccount] = useState<boolean>(() =>
+    getStoredBoolean("rawtype-save-runs-to-account", true)
+  );
+  const [saveErrorWords, setSaveErrorWords] = useState<boolean>(() =>
+    getStoredBoolean("rawtype-save-error-words", true)
+  );
+  const [showErrorBreakdown, setShowErrorBreakdown] = useState<boolean>(() =>
+    getStoredBoolean("rawtype-show-error-breakdown", true)
+  );
   const [correctMarkerColor, setCorrectMarkerColor] = useState<string>(() =>
     getStoredHexColor("rawtype-correct-marker-color", "#6fbf73")
   );
@@ -126,6 +155,7 @@ function App() {
   const [textFont, setTextFont] = useState<TextFont>(getStoredTextFont);
   const [localLanguage, setLocalLanguage] = useState<TypingLanguage>(getStoredLanguage);
   const [pendingAccountLanguage, setPendingAccountLanguage] = useState<TypingLanguage | null>(null);
+  const [activeSettingsCategory, setActiveSettingsCategory] = useState<SettingsCategory>("appearance");
   const [currentStreakDays, setCurrentStreakDays] = useState(0);
   const [dailyActivity, setDailyActivity] = useState<SavedTypingDayStats[]>([]);
   const themeVariables = useMemo(() => getThemeVariables(theme), [theme]);
@@ -133,6 +163,19 @@ function App() {
   const accountLanguage = isTypingLanguage(settings?.language) ? settings.language : null;
   const language = pendingAccountLanguage ?? (user ? accountLanguage : null) ?? localLanguage;
   const appText = useMemo(() => getAppTexts(language), [language]);
+  const settingsCategoryItems = useMemo<SettingsCategoryItem[]>(() => {
+    const settingsText = getSettingsTexts(language);
+    const accountText = (en: string) => translateAccountText(language, en);
+
+    return [
+      { id: "appearance", label: settingsText.page.appearance },
+      { id: "typing", label: settingsText.page.typing },
+      { id: "markers", label: settingsText.page.wordMarking },
+      { id: "keyboard", label: settingsText.page.keyboard },
+      { id: "privacy", label: settingsText.page.privacyData },
+      { id: "account", label: accountText("Account Settings") }
+    ];
+  }, [language]);
   const activeTab = useMemo(() => getActiveTabFromRoute(route), [route]);
   const accountLabel = authLoading
     ? appText.account.loading
@@ -160,6 +203,141 @@ function App() {
     }),
     [fontVariables, themeVariables]
   );
+
+  useEffect(() => {
+    if (!user || !settings) {
+      return;
+    }
+
+    setTheme(resolveThemeId(settings.theme));
+    if (isAppFont(settings.app_font)) setAppFont(settings.app_font);
+    if (isTextFont(settings.text_font)) setTextFont(settings.text_font);
+    if (isTypingMode(settings.default_typing_mode)) setTypingMode(settings.default_typing_mode);
+    if (isWordsCount(settings.default_words_count)) setWordsCount(settings.default_words_count);
+    if (isWordDifficulty(settings.default_word_difficulty)) setWordDifficulty(settings.default_word_difficulty);
+    if (typeof settings.default_no_mistake === "boolean") {
+      setWordNoMistakeMode(settings.default_no_mistake ? "on" : "off");
+    }
+    if (typeof settings.highlight_correct_words === "boolean") {
+      setHighlightCorrectWords(settings.highlight_correct_words);
+    }
+    if (typeof settings.highlight_error_from_point === "boolean") {
+      setHighlightErrorFromPoint(settings.highlight_error_from_point);
+    }
+    if (typeof settings.show_on_screen_keyboard === "boolean") {
+      setShowOnScreenKeyboard(settings.show_on_screen_keyboard);
+    }
+    if (isOnScreenKeyboardLayout(settings.on_screen_keyboard_layout)) {
+      setOnScreenKeyboardLayout(settings.on_screen_keyboard_layout);
+    }
+    if (isRestartKey(settings.restart_key)) setRestartKey(settings.restart_key);
+    if (isHexColor(settings.correct_marker_color)) setCorrectMarkerColor(settings.correct_marker_color);
+    if (isHexColor(settings.error_marker_color)) setErrorMarkerColor(settings.error_marker_color);
+    if (typeof settings.save_runs_to_account === "boolean") {
+      setSaveRunsToAccount(settings.save_runs_to_account);
+    }
+    if (typeof settings.save_error_words === "boolean") {
+      setSaveErrorWords(settings.save_error_words);
+    }
+    if (typeof settings.show_error_breakdown === "boolean") {
+      setShowErrorBreakdown(settings.show_error_breakdown);
+    }
+  }, [settings, user]);
+
+  function updateAccountSettings(updates: Parameters<typeof updateSettings>[0]) {
+    if (!user) {
+      return;
+    }
+
+    void updateSettings(updates).catch((error: unknown) => {
+      console.error(error);
+    });
+  }
+
+  function handleThemeChange(nextTheme: ThemeMode) {
+    setTheme(nextTheme);
+    updateAccountSettings({ theme: nextTheme });
+  }
+
+  function handleAppFontChange(nextFont: AppFont) {
+    setAppFont(nextFont);
+    updateAccountSettings({ app_font: nextFont });
+  }
+
+  function handleTextFontChange(nextFont: TextFont) {
+    setTextFont(nextFont);
+    updateAccountSettings({ text_font: nextFont });
+  }
+
+  function handleDefaultTypingModeChange(nextMode: TypingMode) {
+    setTypingMode(nextMode);
+    updateAccountSettings({ default_typing_mode: nextMode });
+  }
+
+  function handleDefaultWordsCountChange(nextWordsCount: number) {
+    setWordsCount(nextWordsCount);
+    updateAccountSettings({ default_words_count: nextWordsCount });
+  }
+
+  function handleDefaultWordDifficultyChange(nextDifficulty: WordModeDifficulty) {
+    setWordDifficulty(nextDifficulty);
+    updateAccountSettings({ default_word_difficulty: nextDifficulty });
+  }
+
+  function handleDefaultNoMistakeModeChange(nextMode: WordNoMistakeMode) {
+    setWordNoMistakeMode(nextMode);
+    updateAccountSettings({ default_no_mistake: nextMode === "on" });
+  }
+
+  function handleHighlightCorrectWordsChange(enabled: boolean) {
+    setHighlightCorrectWords(enabled);
+    updateAccountSettings({ highlight_correct_words: enabled });
+  }
+
+  function handleHighlightErrorFromPointChange(enabled: boolean) {
+    setHighlightErrorFromPoint(enabled);
+    updateAccountSettings({ highlight_error_from_point: enabled });
+  }
+
+  function handleShowOnScreenKeyboardChange(enabled: boolean) {
+    setShowOnScreenKeyboard(enabled);
+    updateAccountSettings({ show_on_screen_keyboard: enabled });
+  }
+
+  function handleOnScreenKeyboardLayoutChange(nextLayout: OnScreenKeyboardLayout) {
+    setOnScreenKeyboardLayout(nextLayout);
+    updateAccountSettings({ on_screen_keyboard_layout: nextLayout });
+  }
+
+  function handleRestartKeyChange(nextKey: RestartKey) {
+    setRestartKey(nextKey);
+    updateAccountSettings({ restart_key: nextKey });
+  }
+
+  function handleCorrectMarkerColorChange(nextColor: string) {
+    setCorrectMarkerColor(nextColor);
+    updateAccountSettings({ correct_marker_color: nextColor });
+  }
+
+  function handleErrorMarkerColorChange(nextColor: string) {
+    setErrorMarkerColor(nextColor);
+    updateAccountSettings({ error_marker_color: nextColor });
+  }
+
+  function handleSaveRunsToAccountChange(enabled: boolean) {
+    setSaveRunsToAccount(enabled);
+    updateAccountSettings({ save_runs_to_account: enabled });
+  }
+
+  function handleSaveErrorWordsChange(enabled: boolean) {
+    setSaveErrorWords(enabled);
+    updateAccountSettings({ save_error_words: enabled });
+  }
+
+  function handleShowErrorBreakdownChange(enabled: boolean) {
+    setShowErrorBreakdown(enabled);
+    updateAccountSettings({ show_error_breakdown: enabled });
+  }
 
   useEffect(() => {
     setStoredValue("rawtype-theme", theme);
@@ -193,6 +371,22 @@ function App() {
   useEffect(() => {
     setStoredValue("rawtype-onscreen-keyboard-layout", onScreenKeyboardLayout);
   }, [onScreenKeyboardLayout]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-restart-key", restartKey);
+  }, [restartKey]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-save-runs-to-account", saveRunsToAccount);
+  }, [saveRunsToAccount]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-save-error-words", saveErrorWords);
+  }, [saveErrorWords]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-show-error-breakdown", showErrorBreakdown);
+  }, [showErrorBreakdown]);
 
   useEffect(() => {
     setStoredValue("rawtype-correct-marker-color", correctMarkerColor);
@@ -273,6 +467,21 @@ function App() {
     navigateToPath(routePathsByTab[tab]);
   }
 
+  function handleSelectSettingsCategory(category: SettingsCategory) {
+    setActiveSettingsCategory(category);
+    handleSelectTab("settings");
+  }
+
+  function handleLogout() {
+    void signOut()
+      .then(() => {
+        handleSelectTab("games");
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+      });
+  }
+
   return (
     <div
       data-theme={theme}
@@ -282,7 +491,12 @@ function App() {
         activeTab={activeTab}
         accountLabel={accountLabel}
         appText={appText}
+        language={language}
+        settingsCategories={settingsCategoryItems}
+        signedIn={Boolean(user)}
         onSelectTab={handleSelectTab}
+        onSelectSettingsCategory={handleSelectSettingsCategory}
+        onLogout={handleLogout}
       />
 
       <main style={{ maxWidth: "980px", margin: "0 auto", padding: "28px 24px 40px" }}>
@@ -298,15 +512,17 @@ function App() {
             wordsCount={wordsCount}
             onStartClassic={() => {
               setTypingMode("sentences");
+              updateAccountSettings({ default_typing_mode: "sentences" });
               setPlayingTypingGame(true);
             }}
             onStartWordMode={() => {
               setTypingMode("words");
+              updateAccountSettings({ default_typing_mode: "words" });
               setPlayingTypingGame(true);
             }}
-            onWordDifficultyChange={setWordDifficulty}
-            onWordNoMistakeModeChange={setWordNoMistakeMode}
-            onWordsCountChange={setWordsCount}
+            onWordDifficultyChange={handleDefaultWordDifficultyChange}
+            onWordNoMistakeModeChange={handleDefaultNoMistakeModeChange}
+            onWordsCountChange={handleDefaultWordsCountChange}
           />
         )}
 
@@ -344,6 +560,10 @@ function App() {
               highlightErrorFromPoint={highlightErrorFromPoint}
               showOnScreenKeyboard={showOnScreenKeyboard}
               onScreenKeyboardLayout={onScreenKeyboardLayout}
+              restartKey={restartKey}
+              saveRunsToAccount={saveRunsToAccount}
+              saveErrorWords={saveErrorWords}
+              showErrorBreakdown={showErrorBreakdown}
               correctMarkerColor={correctMarkerColor}
               errorMarkerColor={errorMarkerColor}
             />
@@ -356,6 +576,7 @@ function App() {
 
         {route.kind === "settings" && (
           <SettingsPanel
+            activeCategory={activeSettingsCategory}
             theme={theme}
             appFont={appFont}
             textFont={textFont}
@@ -364,18 +585,35 @@ function App() {
             highlightErrorFromPoint={highlightErrorFromPoint}
             showOnScreenKeyboard={showOnScreenKeyboard}
             onScreenKeyboardLayout={onScreenKeyboardLayout}
+            restartKey={restartKey}
+            saveRunsToAccount={saveRunsToAccount}
+            saveErrorWords={saveErrorWords}
+            showErrorBreakdown={showErrorBreakdown}
             correctMarkerColor={correctMarkerColor}
             errorMarkerColor={errorMarkerColor}
-            onThemeChange={setTheme}
-            onAppFontChange={setAppFont}
-            onTextFontChange={setTextFont}
+            defaultTypingMode={typingMode}
+            defaultWordsCount={wordsCount}
+            defaultWordDifficulty={wordDifficulty}
+            defaultNoMistakeMode={wordNoMistakeMode}
+            onThemeChange={handleThemeChange}
+            onAppFontChange={handleAppFontChange}
+            onTextFontChange={handleTextFontChange}
             onLanguageChange={handleLanguageChange}
-            onHighlightCorrectWordsChange={setHighlightCorrectWords}
-            onHighlightErrorFromPointChange={setHighlightErrorFromPoint}
-            onShowOnScreenKeyboardChange={setShowOnScreenKeyboard}
-            onOnScreenKeyboardLayoutChange={setOnScreenKeyboardLayout}
-            onCorrectMarkerColorChange={setCorrectMarkerColor}
-            onErrorMarkerColorChange={setErrorMarkerColor}
+            onDefaultTypingModeChange={handleDefaultTypingModeChange}
+            onDefaultWordsCountChange={handleDefaultWordsCountChange}
+            onDefaultWordDifficultyChange={handleDefaultWordDifficultyChange}
+            onDefaultNoMistakeModeChange={handleDefaultNoMistakeModeChange}
+            onHighlightCorrectWordsChange={handleHighlightCorrectWordsChange}
+            onHighlightErrorFromPointChange={handleHighlightErrorFromPointChange}
+            onShowOnScreenKeyboardChange={handleShowOnScreenKeyboardChange}
+            onOnScreenKeyboardLayoutChange={handleOnScreenKeyboardLayoutChange}
+            onRestartKeyChange={handleRestartKeyChange}
+            onSaveRunsToAccountChange={handleSaveRunsToAccountChange}
+            onSaveErrorWordsChange={handleSaveErrorWordsChange}
+            onShowErrorBreakdownChange={handleShowErrorBreakdownChange}
+            onCorrectMarkerColorChange={handleCorrectMarkerColorChange}
+            onErrorMarkerColorChange={handleErrorMarkerColorChange}
+            onCategoryChange={setActiveSettingsCategory}
           />
         )}
 
