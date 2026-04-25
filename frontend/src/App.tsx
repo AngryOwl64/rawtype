@@ -1,13 +1,10 @@
 // Coordinates the RawType app shell, tabs, and shared preferences.
 // Passes account, language, and game settings into the active screen.
-import { useEffect, useMemo, useState } from "react";
-import AccountPanel from "./account/AccountPanel";
+import { lazy, Suspense, useEffect, useMemo, useReducer, useState } from "react";
 import AppHeader from "./app/AppHeader";
 import HomeMenu from "./app/HomeMenu";
 import type { AppTab } from "./app/types";
-import { useAuth } from "./auth/authContext";
-import TypingGame from "./games/typing/components/TypingGame";
-import { fetchTypingDailyActivity, fetchTypingStreakDays } from "./games/typing/services/runResults";
+import { useAuth, type UserSettings } from "./auth/authContext";
 import type {
   AppFont,
   CustomFont,
@@ -39,11 +36,17 @@ import {
 } from "./settings/preferences";
 import { getAppTexts, getSettingsTexts, translateAccountText } from "./i18n/messages";
 import { getStoredBoolean, getStoredHexColor, isHexColor, setStoredValue } from "./lib/localStorage";
-import PublicProfilePanel from "./profile/PublicProfilePanel";
 import { deleteCustomFont, fetchCustomFonts, importGoogleFont } from "./settings/customFonts";
-import SettingsPanel, { type SettingsCategory, type SettingsCategoryItem } from "./settings/SettingsPanel";
-import StatsPanel from "./stats/StatsPanel";
-import { resolveThemeId } from "./themes/registry";
+import type { SettingsCategory, SettingsCategoryItem } from "./settings/SettingsPanel";
+import { DEFAULT_THEME_ID, resolveThemeId } from "./themes/registry";
+
+const AccountPanel = lazy(() => import("./account/AccountPanel"));
+const PublicProfilePanel = lazy(() => import("./profile/PublicProfilePanel"));
+const SettingsPanel = lazy(() => import("./settings/SettingsPanel"));
+const StatsPanel = lazy(() => import("./stats/StatsPanel"));
+const TypingGame = lazy(() => import("./games/typing/components/TypingGame"));
+
+const EMPTY_CUSTOM_FONTS: CustomFont[] = [];
 
 type RouteState =
   | { kind: "games" | "stats" | "account" | "settings" }
@@ -116,45 +119,102 @@ function getActiveTabFromRoute(route: RouteState): AppTab | null {
   return route.kind;
 }
 
+type PreferencesState = {
+  typingMode: TypingMode;
+  wordsCount: number;
+  wordDifficulty: WordModeDifficulty;
+  wordNoMistakeMode: WordNoMistakeMode;
+  highlightCorrectWords: boolean;
+  highlightErrorFromPoint: boolean;
+  showOnScreenKeyboard: boolean;
+  onScreenKeyboardLayout: OnScreenKeyboardLayout;
+  restartKey: RestartKey;
+  saveRunsToAccount: boolean;
+  saveErrorWords: boolean;
+  showErrorBreakdown: boolean;
+  correctMarkerColor: string;
+  errorMarkerColor: string;
+  theme: ThemeMode;
+  appFont: AppFont;
+  textFont: TextFont;
+};
+
+type PreferencesAction =
+  | { type: "patch"; updates: Partial<PreferencesState> }
+  | { type: "applyAccountSettings"; settings: UserSettings };
+
+function getInitialPreferences(): PreferencesState {
+  return {
+    typingMode: "sentences",
+    wordsCount: 25,
+    wordDifficulty: "mixed",
+    wordNoMistakeMode: "off",
+    highlightCorrectWords: getStoredBoolean("rawtype-highlight-correct-words", true),
+    highlightErrorFromPoint: getStoredBoolean("rawtype-highlight-error-from-point", true),
+    showOnScreenKeyboard: getStoredBoolean("rawtype-show-onscreen-keyboard", false),
+    onScreenKeyboardLayout: getStoredOnScreenKeyboardLayout(),
+    restartKey: getStoredRestartKey(),
+    saveRunsToAccount: getStoredBoolean("rawtype-save-runs-to-account", true),
+    saveErrorWords: getStoredBoolean("rawtype-save-error-words", true),
+    showErrorBreakdown: getStoredBoolean("rawtype-show-error-breakdown", true),
+    correctMarkerColor: getStoredHexColor("rawtype-correct-marker-color", "#6fbf73"),
+    errorMarkerColor: getStoredHexColor("rawtype-error-marker-color", "#c86b73"),
+    theme: getStoredTheme(),
+    appFont: getStoredAppFont(),
+    textFont: getStoredTextFont()
+  };
+}
+
+function preferencesReducer(state: PreferencesState, action: PreferencesAction): PreferencesState {
+  if (action.type === "patch") {
+    return { ...state, ...action.updates };
+  }
+
+  const { settings } = action;
+  return {
+    ...state,
+    theme: resolveThemeId(settings.theme) ?? DEFAULT_THEME_ID,
+    appFont: isAppFont(settings.app_font) ? settings.app_font : state.appFont,
+    textFont: isTextFont(settings.text_font) ? settings.text_font : state.textFont,
+    typingMode: isTypingMode(settings.default_typing_mode) ? settings.default_typing_mode : state.typingMode,
+    wordsCount: isWordsCount(settings.default_words_count) ? settings.default_words_count : state.wordsCount,
+    wordDifficulty: isWordDifficulty(settings.default_word_difficulty)
+      ? settings.default_word_difficulty
+      : state.wordDifficulty,
+    wordNoMistakeMode: settings.default_no_mistake ? "on" : "off",
+    highlightCorrectWords:
+      typeof settings.highlight_correct_words === "boolean"
+        ? settings.highlight_correct_words
+        : state.highlightCorrectWords,
+    highlightErrorFromPoint:
+      typeof settings.highlight_error_from_point === "boolean"
+        ? settings.highlight_error_from_point
+        : state.highlightErrorFromPoint,
+    showOnScreenKeyboard:
+      typeof settings.show_on_screen_keyboard === "boolean"
+        ? settings.show_on_screen_keyboard
+        : state.showOnScreenKeyboard,
+    onScreenKeyboardLayout: isOnScreenKeyboardLayout(settings.on_screen_keyboard_layout)
+      ? settings.on_screen_keyboard_layout
+      : state.onScreenKeyboardLayout,
+    restartKey: isRestartKey(settings.restart_key) ? settings.restart_key : state.restartKey,
+    correctMarkerColor: isHexColor(settings.correct_marker_color)
+      ? settings.correct_marker_color
+      : state.correctMarkerColor,
+    errorMarkerColor: isHexColor(settings.error_marker_color) ? settings.error_marker_color : state.errorMarkerColor,
+    saveRunsToAccount:
+      typeof settings.save_runs_to_account === "boolean" ? settings.save_runs_to_account : state.saveRunsToAccount,
+    saveErrorWords: typeof settings.save_error_words === "boolean" ? settings.save_error_words : state.saveErrorWords,
+    showErrorBreakdown:
+      typeof settings.show_error_breakdown === "boolean" ? settings.show_error_breakdown : state.showErrorBreakdown
+  };
+}
+
 function App() {
   const { configured, loading: authLoading, profile, settings, signOut, updateSettings, user } = useAuth();
   const [route, setRoute] = useState<RouteState>(() => parseRoute(window.location.pathname));
   const [playingTypingGame, setPlayingTypingGame] = useState(false);
-  const [typingMode, setTypingMode] = useState<TypingMode>("sentences");
-  const [wordsCount, setWordsCount] = useState(25);
-  const [wordDifficulty, setWordDifficulty] = useState<WordModeDifficulty>("mixed");
-  const [wordNoMistakeMode, setWordNoMistakeMode] = useState<WordNoMistakeMode>("off");
-  const [highlightCorrectWords, setHighlightCorrectWords] = useState<boolean>(() =>
-    getStoredBoolean("rawtype-highlight-correct-words", true)
-  );
-  const [highlightErrorFromPoint, setHighlightErrorFromPoint] = useState<boolean>(() =>
-    getStoredBoolean("rawtype-highlight-error-from-point", true)
-  );
-  const [showOnScreenKeyboard, setShowOnScreenKeyboard] = useState<boolean>(() =>
-    getStoredBoolean("rawtype-show-onscreen-keyboard", false)
-  );
-  const [onScreenKeyboardLayout, setOnScreenKeyboardLayout] = useState<OnScreenKeyboardLayout>(
-    getStoredOnScreenKeyboardLayout
-  );
-  const [restartKey, setRestartKey] = useState<RestartKey>(getStoredRestartKey);
-  const [saveRunsToAccount, setSaveRunsToAccount] = useState<boolean>(() =>
-    getStoredBoolean("rawtype-save-runs-to-account", true)
-  );
-  const [saveErrorWords, setSaveErrorWords] = useState<boolean>(() =>
-    getStoredBoolean("rawtype-save-error-words", true)
-  );
-  const [showErrorBreakdown, setShowErrorBreakdown] = useState<boolean>(() =>
-    getStoredBoolean("rawtype-show-error-breakdown", true)
-  );
-  const [correctMarkerColor, setCorrectMarkerColor] = useState<string>(() =>
-    getStoredHexColor("rawtype-correct-marker-color", "#6fbf73")
-  );
-  const [errorMarkerColor, setErrorMarkerColor] = useState<string>(() =>
-    getStoredHexColor("rawtype-error-marker-color", "#c86b73")
-  );
-  const [theme, setTheme] = useState<ThemeMode>(getStoredTheme);
-  const [appFont, setAppFont] = useState<AppFont>(getStoredAppFont);
-  const [textFont, setTextFont] = useState<TextFont>(getStoredTextFont);
+  const [preferences, dispatchPreferences] = useReducer(preferencesReducer, undefined, getInitialPreferences);
   const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
   const [fontImporting, setFontImporting] = useState(false);
   const [fontImportError, setFontImportError] = useState("");
@@ -163,8 +223,31 @@ function App() {
   const [activeSettingsCategory, setActiveSettingsCategory] = useState<SettingsCategory>("appearance");
   const [currentStreakDays, setCurrentStreakDays] = useState(0);
   const [dailyActivity, setDailyActivity] = useState<SavedTypingDayStats[]>([]);
+  const {
+    appFont,
+    correctMarkerColor,
+    errorMarkerColor,
+    highlightCorrectWords,
+    highlightErrorFromPoint,
+    onScreenKeyboardLayout,
+    restartKey,
+    saveErrorWords,
+    saveRunsToAccount,
+    showErrorBreakdown,
+    showOnScreenKeyboard,
+    textFont,
+    theme,
+    typingMode,
+    wordDifficulty,
+    wordNoMistakeMode,
+    wordsCount
+  } = preferences;
+  const visibleCustomFonts = user ? customFonts : EMPTY_CUSTOM_FONTS;
   const themeVariables = useMemo(() => getThemeVariables(theme), [theme]);
-  const fontVariables = useMemo(() => getFontVariables(appFont, textFont, customFonts), [appFont, customFonts, textFont]);
+  const fontVariables = useMemo(
+    () => getFontVariables(appFont, textFont, visibleCustomFonts),
+    [appFont, textFont, visibleCustomFonts]
+  );
   const accountLanguage = isTypingLanguage(settings?.language) ? settings.language : null;
   const language = pendingAccountLanguage ?? (user ? accountLanguage : null) ?? localLanguage;
   const appText = useMemo(() => getAppTexts(language), [language]);
@@ -223,53 +306,24 @@ function App() {
       return;
     }
 
-    setTheme(resolveThemeId(settings.theme));
-    if (isAppFont(settings.app_font)) setAppFont(settings.app_font);
-    if (isTextFont(settings.text_font)) setTextFont(settings.text_font);
-    if (isTypingMode(settings.default_typing_mode)) setTypingMode(settings.default_typing_mode);
-    if (isWordsCount(settings.default_words_count)) setWordsCount(settings.default_words_count);
-    if (isWordDifficulty(settings.default_word_difficulty)) setWordDifficulty(settings.default_word_difficulty);
-    if (typeof settings.default_no_mistake === "boolean") {
-      setWordNoMistakeMode(settings.default_no_mistake ? "on" : "off");
-    }
-    if (typeof settings.highlight_correct_words === "boolean") {
-      setHighlightCorrectWords(settings.highlight_correct_words);
-    }
-    if (typeof settings.highlight_error_from_point === "boolean") {
-      setHighlightErrorFromPoint(settings.highlight_error_from_point);
-    }
-    if (typeof settings.show_on_screen_keyboard === "boolean") {
-      setShowOnScreenKeyboard(settings.show_on_screen_keyboard);
-    }
-    if (isOnScreenKeyboardLayout(settings.on_screen_keyboard_layout)) {
-      setOnScreenKeyboardLayout(settings.on_screen_keyboard_layout);
-    }
-    if (isRestartKey(settings.restart_key)) setRestartKey(settings.restart_key);
-    if (isHexColor(settings.correct_marker_color)) setCorrectMarkerColor(settings.correct_marker_color);
-    if (isHexColor(settings.error_marker_color)) setErrorMarkerColor(settings.error_marker_color);
-    if (typeof settings.save_runs_to_account === "boolean") {
-      setSaveRunsToAccount(settings.save_runs_to_account);
-    }
-    if (typeof settings.save_error_words === "boolean") {
-      setSaveErrorWords(settings.save_error_words);
-    }
-    if (typeof settings.show_error_breakdown === "boolean") {
-      setShowErrorBreakdown(settings.show_error_breakdown);
-    }
+    dispatchPreferences({ type: "applyAccountSettings", settings });
   }, [settings, user]);
 
   useEffect(() => {
     if (!user) {
-      setCustomFonts([]);
       return;
     }
 
     let active = true;
-    setFontImportError("");
 
-    void fetchCustomFonts()
+    void Promise.resolve()
+      .then(() => {
+        if (!active) return null;
+        setFontImportError("");
+        return fetchCustomFonts();
+      })
       .then((fonts) => {
-        if (active) setCustomFonts(fonts);
+        if (active && fonts) setCustomFonts(fonts);
       })
       .catch((error: unknown) => {
         if (active) setFontImportError(error instanceof Error ? error.message : "Could not load custom fonts.");
@@ -283,7 +337,7 @@ function App() {
   useEffect(() => {
     const loadedLinks: HTMLLinkElement[] = [];
 
-    for (const font of customFonts) {
+    for (const font of visibleCustomFonts) {
       const existingLink = document.querySelector<HTMLLinkElement>(`link[data-rawtype-font="${font.id}"]`);
       if (existingLink) {
         continue;
@@ -302,7 +356,7 @@ function App() {
         link.remove();
       }
     };
-  }, [customFonts]);
+  }, [visibleCustomFonts]);
 
   function updateAccountSettings(updates: Parameters<typeof updateSettings>[0]) {
     if (!user) {
@@ -315,17 +369,17 @@ function App() {
   }
 
   function handleThemeChange(nextTheme: ThemeMode) {
-    setTheme(nextTheme);
+    dispatchPreferences({ type: "patch", updates: { theme: nextTheme } });
     updateAccountSettings({ theme: nextTheme });
   }
 
   function handleAppFontChange(nextFont: AppFont) {
-    setAppFont(nextFont);
+    dispatchPreferences({ type: "patch", updates: { appFont: nextFont } });
     updateAccountSettings({ app_font: nextFont });
   }
 
   function handleTextFontChange(nextFont: TextFont) {
-    setTextFont(nextFont);
+    dispatchPreferences({ type: "patch", updates: { textFont: nextFont } });
     updateAccountSettings({ text_font: nextFont });
   }
 
@@ -336,7 +390,7 @@ function App() {
     try {
       const importedFont = await importGoogleFont(url);
       setCustomFonts((fonts) => [importedFont, ...fonts.filter((font) => font.id !== importedFont.id)]);
-      setTextFont(importedFont.selection);
+      dispatchPreferences({ type: "patch", updates: { textFont: importedFont.selection } });
       updateAccountSettings({ text_font: importedFont.selection });
     } catch (error) {
       setFontImportError(error instanceof Error ? error.message : "Could not import font.");
@@ -364,72 +418,72 @@ function App() {
   }
 
   function handleDefaultTypingModeChange(nextMode: TypingMode) {
-    setTypingMode(nextMode);
+    dispatchPreferences({ type: "patch", updates: { typingMode: nextMode } });
     updateAccountSettings({ default_typing_mode: nextMode });
   }
 
   function handleDefaultWordsCountChange(nextWordsCount: number) {
-    setWordsCount(nextWordsCount);
+    dispatchPreferences({ type: "patch", updates: { wordsCount: nextWordsCount } });
     updateAccountSettings({ default_words_count: nextWordsCount });
   }
 
   function handleDefaultWordDifficultyChange(nextDifficulty: WordModeDifficulty) {
-    setWordDifficulty(nextDifficulty);
+    dispatchPreferences({ type: "patch", updates: { wordDifficulty: nextDifficulty } });
     updateAccountSettings({ default_word_difficulty: nextDifficulty });
   }
 
   function handleDefaultNoMistakeModeChange(nextMode: WordNoMistakeMode) {
-    setWordNoMistakeMode(nextMode);
+    dispatchPreferences({ type: "patch", updates: { wordNoMistakeMode: nextMode } });
     updateAccountSettings({ default_no_mistake: nextMode === "on" });
   }
 
   function handleHighlightCorrectWordsChange(enabled: boolean) {
-    setHighlightCorrectWords(enabled);
+    dispatchPreferences({ type: "patch", updates: { highlightCorrectWords: enabled } });
     updateAccountSettings({ highlight_correct_words: enabled });
   }
 
   function handleHighlightErrorFromPointChange(enabled: boolean) {
-    setHighlightErrorFromPoint(enabled);
+    dispatchPreferences({ type: "patch", updates: { highlightErrorFromPoint: enabled } });
     updateAccountSettings({ highlight_error_from_point: enabled });
   }
 
   function handleShowOnScreenKeyboardChange(enabled: boolean) {
-    setShowOnScreenKeyboard(enabled);
+    dispatchPreferences({ type: "patch", updates: { showOnScreenKeyboard: enabled } });
     updateAccountSettings({ show_on_screen_keyboard: enabled });
   }
 
   function handleOnScreenKeyboardLayoutChange(nextLayout: OnScreenKeyboardLayout) {
-    setOnScreenKeyboardLayout(nextLayout);
+    dispatchPreferences({ type: "patch", updates: { onScreenKeyboardLayout: nextLayout } });
     updateAccountSettings({ on_screen_keyboard_layout: nextLayout });
   }
 
   function handleRestartKeyChange(nextKey: RestartKey) {
-    setRestartKey(nextKey);
+    dispatchPreferences({ type: "patch", updates: { restartKey: nextKey } });
     updateAccountSettings({ restart_key: nextKey });
   }
 
   function handleCorrectMarkerColorChange(nextColor: string) {
-    setCorrectMarkerColor(nextColor);
+    dispatchPreferences({ type: "patch", updates: { correctMarkerColor: nextColor } });
     updateAccountSettings({ correct_marker_color: nextColor });
   }
 
   function handleErrorMarkerColorChange(nextColor: string) {
-    setErrorMarkerColor(nextColor);
+    dispatchPreferences({ type: "patch", updates: { errorMarkerColor: nextColor } });
     updateAccountSettings({ error_marker_color: nextColor });
   }
 
   function handleSaveRunsToAccountChange(enabled: boolean) {
-    setSaveRunsToAccount(enabled);
+    dispatchPreferences({ type: "patch", updates: { saveRunsToAccount: enabled } });
     updateAccountSettings({ save_runs_to_account: enabled });
   }
 
   function handleSaveErrorWordsChange(enabled: boolean) {
-    setSaveErrorWords(enabled);
+    dispatchPreferences({ type: "patch", updates: { saveErrorWords: enabled } });
     updateAccountSettings({ save_error_words: enabled });
   }
 
   function handleShowErrorBreakdownChange(enabled: boolean) {
-    setShowErrorBreakdown(enabled);
+    dispatchPreferences({ type: "patch", updates: { showErrorBreakdown: enabled } });
     updateAccountSettings({ show_error_breakdown: enabled });
   }
 
@@ -512,7 +566,10 @@ function App() {
 
     let active = true;
 
-    void Promise.all([fetchTypingStreakDays(), fetchTypingDailyActivity()])
+    void import("./games/typing/services/runResults")
+      .then(({ fetchTypingDailyActivity, fetchTypingStreakDays }) =>
+        Promise.all([fetchTypingStreakDays(), fetchTypingDailyActivity()])
+      )
       .then(([streakDays, activityDays]) => {
         if (!active) return;
         setCurrentStreakDays(streakDays);
@@ -605,12 +662,12 @@ function App() {
             wordNoMistakeMode={wordNoMistakeMode}
             wordsCount={wordsCount}
             onStartClassic={() => {
-              setTypingMode("sentences");
+              dispatchPreferences({ type: "patch", updates: { typingMode: "sentences" } });
               updateAccountSettings({ default_typing_mode: "sentences" });
               setPlayingTypingGame(true);
             }}
             onStartWordMode={() => {
-              setTypingMode("words");
+              dispatchPreferences({ type: "patch", updates: { typingMode: "words" } });
               updateAccountSettings({ default_typing_mode: "words" });
               setPlayingTypingGame(true);
             }}
@@ -620,13 +677,28 @@ function App() {
           />
         )}
 
+        <Suspense
+          fallback={
+            <section
+              style={{
+                border: "1px solid var(--border)",
+                borderRadius: "8px",
+                backgroundColor: "var(--surface)",
+                padding: "20px",
+                color: "var(--muted)"
+              }}
+            >
+              Loading...
+            </section>
+          }
+        >
         {route.kind === "games" && playingTypingGame && (
           <section>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px" }}>
               <div>
                 <h1 style={{ margin: 0, fontSize: "30px" }}>{gameTitle}</h1>
                 <div style={{ marginTop: "6px", color: "var(--muted)", fontSize: "13px", fontWeight: 700 }}>
-                  {gameMeta.join(" · ")}
+                  {gameMeta.join(" | ")}
                 </div>
               </div>
               <button
@@ -674,7 +746,7 @@ function App() {
             theme={theme}
             appFont={appFont}
             textFont={textFont}
-            customFonts={customFonts}
+            customFonts={visibleCustomFonts}
             fontImporting={fontImporting}
             fontImportError={fontImportError}
             language={language}
@@ -719,6 +791,7 @@ function App() {
         {route.kind === "publicProfile" && (
           <PublicProfilePanel username={route.username} language={language} />
         )}
+        </Suspense>
       </main>
     </div>
   );

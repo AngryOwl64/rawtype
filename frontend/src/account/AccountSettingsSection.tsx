@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useAuth } from "../auth/authContext";
 import { getUsernameValidationMessage, normalizeUsername } from "../auth/usernameAuth";
@@ -53,53 +53,35 @@ function StatusPill({ children }: { children: ReactNode }) {
   );
 }
 
-export default function AccountSettingsSection({ language = "en" }: { language?: TypingLanguage }) {
+function UsernameSettingsForm({
+  language,
+  profileUsername,
+  onError
+}: {
+  language: TypingLanguage;
+  profileUsername: string;
+  onError: (message: string) => void;
+}) {
   const t = useMemo(() => (en: string) => translateAccountText(language, en), [language]);
-  const {
-    error: accountError,
-    profile,
-    signOut,
-    updatePassword,
-    updateProfile,
-    updateUsername,
-    user
-  } = useAuth();
-  const [formError, setFormError] = useState("");
-  const [accountUsername, setAccountUsername] = useState(profile?.username ?? "");
+  const { updateUsername } = useAuth();
+  const [accountUsername, setAccountUsername] = useState(profileUsername);
   const [usernamePassword, setUsernamePassword] = useState("");
   const [usernameState, setUsernameState] = useState<ActionState>("idle");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [nextPassword, setNextPassword] = useState("");
-  const [nextPasswordConfirm, setNextPasswordConfirm] = useState("");
-  const [passwordState, setPasswordState] = useState<ActionState>("idle");
-  const [visibilityState, setVisibilityState] = useState<ActionState>("idle");
-  const [visibilityConfirmationOpen, setVisibilityConfirmationOpen] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
-
   const normalizedAccountUsername = useMemo(() => normalizeUsername(accountUsername), [accountUsername]);
   const accountUsernameHint =
     accountUsername.length > 0 ? getUsernameValidationMessage(accountUsername, language) : "";
-  const publicProfile = profile?.public_profile ?? false;
-  const publicProfilePath = profile?.username ? `/${profile.username}` : null;
-  const publicProfileUrl = publicProfilePath ? `${window.location.origin}${publicProfilePath}` : null;
-  const usernameChanged = normalizedAccountUsername !== (profile?.username ?? "");
-
-  useEffect(() => {
-    setAccountUsername(profile?.username ?? "");
-    setUsernamePassword("");
-    setUsernameState("idle");
-  }, [profile?.username]);
+  const usernameChanged = normalizedAccountUsername !== normalizeUsername(profileUsername);
 
   async function handleUsernameSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setFormError("");
+    onError("");
 
     if (accountUsernameHint) {
-      setFormError(accountUsernameHint);
+      onError(accountUsernameHint);
       return;
     }
     if (usernamePassword.length === 0) {
-      setFormError(t("Current password is required."));
+      onError(t("Current password is required."));
       return;
     }
 
@@ -111,9 +93,98 @@ export default function AccountSettingsSection({ language = "en" }: { language?:
       setUsernameState("saved");
     } catch (error) {
       setUsernameState("idle");
-      setFormError(error instanceof Error ? error.message : t("Could not update username."));
+      onError(error instanceof Error ? error.message : t("Could not update username."));
     }
   }
+
+  return (
+    <form onSubmit={handleUsernameSave} style={{ display: "grid", gap: "10px" }}>
+      <h3 style={{ margin: 0, fontSize: "17px" }}>{t("Profile")}</h3>
+      <label style={{ display: "grid", gap: "6px", color: "var(--muted-strong)", fontWeight: 700 }}>
+        <span style={{ fontSize: "13px" }}>{t("Username")}</span>
+        <input
+          value={accountUsername}
+          onChange={(event) => {
+            setAccountUsername(event.target.value);
+            setUsernameState("idle");
+          }}
+          autoCapitalize="none"
+          spellCheck={false}
+          style={fieldStyle}
+        />
+      </label>
+      <label style={{ display: "grid", gap: "6px", color: "var(--muted-strong)", fontWeight: 700 }}>
+        <span style={{ fontSize: "13px" }}>{t("Current Password")}</span>
+        <input
+          value={usernamePassword}
+          onChange={(event) => {
+            setUsernamePassword(event.target.value);
+            setUsernameState("idle");
+          }}
+          type="password"
+          autoComplete="current-password"
+          style={fieldStyle}
+        />
+      </label>
+      <p style={{ margin: 0, color: "var(--muted)", fontSize: "13px", lineHeight: 1.45 }}>
+        {t("After changing username, use the new username or your email for login.")}
+      </p>
+      {accountUsernameHint && (
+        <p style={{ margin: 0, color: "var(--danger)", fontSize: "13px", lineHeight: 1.45 }}>
+          {accountUsernameHint}
+        </p>
+      )}
+      <button
+        type="submit"
+        disabled={
+          usernameState === "saving" ||
+          !usernameChanged ||
+          accountUsernameHint.length > 0 ||
+          usernamePassword.length === 0
+        }
+        style={{
+          ...buttonStyle,
+          backgroundColor:
+            usernameState === "saving" ||
+            !usernameChanged ||
+            accountUsernameHint.length > 0 ||
+            usernamePassword.length === 0
+              ? "var(--border-strong)"
+              : "var(--primary)"
+        }}
+      >
+        {usernameState === "saving"
+          ? t("Updating...")
+          : usernameState === "saved"
+            ? t("Username Updated")
+            : t("Update Username")}
+      </button>
+    </form>
+  );
+}
+
+export default function AccountSettingsSection({ language = "en" }: { language?: TypingLanguage }) {
+  const t = useMemo(() => (en: string) => translateAccountText(language, en), [language]);
+  const {
+    error: accountError,
+    profile,
+    signOut,
+    updatePassword,
+    updateProfile,
+    user
+  } = useAuth();
+  const [formError, setFormError] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [nextPassword, setNextPassword] = useState("");
+  const [nextPasswordConfirm, setNextPasswordConfirm] = useState("");
+  const [passwordState, setPasswordState] = useState<ActionState>("idle");
+  const [visibilityState, setVisibilityState] = useState<ActionState>("idle");
+  const [visibilityConfirmationOpen, setVisibilityConfirmationOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const publicProfile = profile?.public_profile ?? false;
+  const publicProfilePath = profile?.username ? `/${profile.username}` : null;
+  const publicProfileUrl = publicProfilePath ? `${window.location.origin}${publicProfilePath}` : null;
 
   async function handlePasswordSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -195,68 +266,12 @@ export default function AccountSettingsSection({ language = "en" }: { language?:
         <p style={{ margin: 0, color: "var(--danger)" }}>{formError || accountError}</p>
       )}
 
-      <form onSubmit={handleUsernameSave} style={{ display: "grid", gap: "10px" }}>
-        <h3 style={{ margin: 0, fontSize: "17px" }}>{t("Profile")}</h3>
-        <label style={{ display: "grid", gap: "6px", color: "var(--muted-strong)", fontWeight: 700 }}>
-          <span style={{ fontSize: "13px" }}>{t("Username")}</span>
-          <input
-            value={accountUsername}
-            onChange={(event) => {
-              setAccountUsername(event.target.value);
-              setUsernameState("idle");
-            }}
-            autoCapitalize="none"
-            spellCheck={false}
-            style={fieldStyle}
-          />
-        </label>
-        <label style={{ display: "grid", gap: "6px", color: "var(--muted-strong)", fontWeight: 700 }}>
-          <span style={{ fontSize: "13px" }}>{t("Current Password")}</span>
-          <input
-            value={usernamePassword}
-            onChange={(event) => {
-              setUsernamePassword(event.target.value);
-              setUsernameState("idle");
-            }}
-            type="password"
-            autoComplete="current-password"
-            style={fieldStyle}
-          />
-        </label>
-        <p style={{ margin: 0, color: "var(--muted)", fontSize: "13px", lineHeight: 1.45 }}>
-          {t("After changing username, use the new username or your email for login.")}
-        </p>
-        {accountUsernameHint && (
-          <p style={{ margin: 0, color: "var(--danger)", fontSize: "13px", lineHeight: 1.45 }}>
-            {accountUsernameHint}
-          </p>
-        )}
-        <button
-          type="submit"
-          disabled={
-            usernameState === "saving" ||
-            !usernameChanged ||
-            accountUsernameHint.length > 0 ||
-            usernamePassword.length === 0
-          }
-          style={{
-            ...buttonStyle,
-            backgroundColor:
-              usernameState === "saving" ||
-              !usernameChanged ||
-              accountUsernameHint.length > 0 ||
-              usernamePassword.length === 0
-                ? "var(--border-strong)"
-                : "var(--primary)"
-          }}
-        >
-          {usernameState === "saving"
-            ? t("Updating...")
-            : usernameState === "saved"
-              ? t("Username Updated")
-              : t("Update Username")}
-        </button>
-      </form>
+      <UsernameSettingsForm
+        key={profile?.username ?? "missing-profile"}
+        language={language}
+        profileUsername={profile?.username ?? ""}
+        onError={setFormError}
+      />
 
       <div style={{ borderTop: "1px solid var(--border-soft)", paddingTop: "12px", display: "grid", gap: "10px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
