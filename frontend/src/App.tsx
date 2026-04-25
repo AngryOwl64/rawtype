@@ -10,6 +10,7 @@ import TypingGame from "./games/typing/components/TypingGame";
 import { fetchTypingDailyActivity, fetchTypingStreakDays } from "./games/typing/services/runResults";
 import type {
   AppFont,
+  CustomFont,
   OnScreenKeyboardLayout,
   RestartKey,
   SavedTypingDayStats,
@@ -39,6 +40,7 @@ import {
 import { getAppTexts, getSettingsTexts, translateAccountText } from "./i18n/messages";
 import { getStoredBoolean, getStoredHexColor, isHexColor, setStoredValue } from "./lib/localStorage";
 import PublicProfilePanel from "./profile/PublicProfilePanel";
+import { deleteCustomFont, fetchCustomFonts, importGoogleFont } from "./settings/customFonts";
 import SettingsPanel, { type SettingsCategory, type SettingsCategoryItem } from "./settings/SettingsPanel";
 import StatsPanel from "./stats/StatsPanel";
 import { resolveThemeId } from "./themes/registry";
@@ -153,13 +155,16 @@ function App() {
   const [theme, setTheme] = useState<ThemeMode>(getStoredTheme);
   const [appFont, setAppFont] = useState<AppFont>(getStoredAppFont);
   const [textFont, setTextFont] = useState<TextFont>(getStoredTextFont);
+  const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
+  const [fontImporting, setFontImporting] = useState(false);
+  const [fontImportError, setFontImportError] = useState("");
   const [localLanguage, setLocalLanguage] = useState<TypingLanguage>(getStoredLanguage);
   const [pendingAccountLanguage, setPendingAccountLanguage] = useState<TypingLanguage | null>(null);
   const [activeSettingsCategory, setActiveSettingsCategory] = useState<SettingsCategory>("appearance");
   const [currentStreakDays, setCurrentStreakDays] = useState(0);
   const [dailyActivity, setDailyActivity] = useState<SavedTypingDayStats[]>([]);
   const themeVariables = useMemo(() => getThemeVariables(theme), [theme]);
-  const fontVariables = useMemo(() => getFontVariables(appFont, textFont), [appFont, textFont]);
+  const fontVariables = useMemo(() => getFontVariables(appFont, textFont, customFonts), [appFont, customFonts, textFont]);
   const accountLanguage = isTypingLanguage(settings?.language) ? settings.language : null;
   const language = pendingAccountLanguage ?? (user ? accountLanguage : null) ?? localLanguage;
   const appText = useMemo(() => getAppTexts(language), [language]);
@@ -191,7 +196,16 @@ function App() {
         : wordDifficulty === "hard"
           ? appText.home.hard
           : appText.home.mixed;
-  const noMistakeModeLabel = wordNoMistakeMode === "on" ? appText.home.on : appText.home.off;
+  const gameTitle = typingMode === "words" ? appText.home.wordModeTitle : appText.gameHeader.title;
+  const gameMeta =
+    typingMode === "words"
+      ? [
+          `${wordsCount} ${appText.home.wordsSuffix}`,
+          wordDifficultyLabel,
+          ...(wordNoMistakeMode === "on" ? [appText.home.noMistakeMode] : []),
+          languageLabel
+        ]
+      : [appText.gameHeader.proseLabel, languageLabel];
   const appStyle = useMemo(
     () => ({
       ...themeVariables,
@@ -244,6 +258,52 @@ function App() {
     }
   }, [settings, user]);
 
+  useEffect(() => {
+    if (!user) {
+      setCustomFonts([]);
+      return;
+    }
+
+    let active = true;
+    setFontImportError("");
+
+    void fetchCustomFonts()
+      .then((fonts) => {
+        if (active) setCustomFonts(fonts);
+      })
+      .catch((error: unknown) => {
+        if (active) setFontImportError(error instanceof Error ? error.message : "Could not load custom fonts.");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  useEffect(() => {
+    const loadedLinks: HTMLLinkElement[] = [];
+
+    for (const font of customFonts) {
+      const existingLink = document.querySelector<HTMLLinkElement>(`link[data-rawtype-font="${font.id}"]`);
+      if (existingLink) {
+        continue;
+      }
+
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = font.cssUrl;
+      link.dataset.rawtypeFont = font.id;
+      document.head.appendChild(link);
+      loadedLinks.push(link);
+    }
+
+    return () => {
+      for (const link of loadedLinks) {
+        link.remove();
+      }
+    };
+  }, [customFonts]);
+
   function updateAccountSettings(updates: Parameters<typeof updateSettings>[0]) {
     if (!user) {
       return;
@@ -267,6 +327,40 @@ function App() {
   function handleTextFontChange(nextFont: TextFont) {
     setTextFont(nextFont);
     updateAccountSettings({ text_font: nextFont });
+  }
+
+  async function handleImportFont(url: string) {
+    setFontImporting(true);
+    setFontImportError("");
+
+    try {
+      const importedFont = await importGoogleFont(url);
+      setCustomFonts((fonts) => [importedFont, ...fonts.filter((font) => font.id !== importedFont.id)]);
+      setTextFont(importedFont.selection);
+      updateAccountSettings({ text_font: importedFont.selection });
+    } catch (error) {
+      setFontImportError(error instanceof Error ? error.message : "Could not import font.");
+    } finally {
+      setFontImporting(false);
+    }
+  }
+
+  function handleDeleteFont(font: CustomFont) {
+    void deleteCustomFont(font.id)
+      .then(() => {
+        setCustomFonts((fonts) => fonts.filter((item) => item.id !== font.id));
+
+        if (appFont === font.selection) {
+          handleAppFontChange("system-sans");
+        }
+
+        if (textFont === font.selection) {
+          handleTextFontChange("system-mono");
+        }
+      })
+      .catch((error: unknown) => {
+        setFontImportError(error instanceof Error ? error.message : "Could not delete font.");
+      });
   }
 
   function handleDefaultTypingModeChange(nextMode: TypingMode) {
@@ -528,13 +622,13 @@ function App() {
 
         {route.kind === "games" && playingTypingGame && (
           <section>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h1 style={{ margin: 0, fontSize: "30px" }}>
-                {appText.gameHeader.title}{" "}
-                {typingMode === "words"
-                  ? `(${appText.gameHeader.wordsLabel} ${wordsCount}, ${wordDifficultyLabel}, ${appText.gameHeader.noMistakeLabel} ${noMistakeModeLabel}, ${languageLabel})`
-                  : `(${appText.gameHeader.proseLabel}, ${languageLabel})`}
-              </h1>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px" }}>
+              <div>
+                <h1 style={{ margin: 0, fontSize: "30px" }}>{gameTitle}</h1>
+                <div style={{ marginTop: "6px", color: "var(--muted)", fontSize: "13px", fontWeight: 700 }}>
+                  {gameMeta.join(" · ")}
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => setPlayingTypingGame(false)}
@@ -580,6 +674,9 @@ function App() {
             theme={theme}
             appFont={appFont}
             textFont={textFont}
+            customFonts={customFonts}
+            fontImporting={fontImporting}
+            fontImportError={fontImportError}
             language={language}
             highlightCorrectWords={highlightCorrectWords}
             highlightErrorFromPoint={highlightErrorFromPoint}
@@ -598,6 +695,8 @@ function App() {
             onThemeChange={handleThemeChange}
             onAppFontChange={handleAppFontChange}
             onTextFontChange={handleTextFontChange}
+            onImportFont={handleImportFont}
+            onDeleteFont={handleDeleteFont}
             onLanguageChange={handleLanguageChange}
             onDefaultTypingModeChange={handleDefaultTypingModeChange}
             onDefaultWordsCountChange={handleDefaultWordsCountChange}

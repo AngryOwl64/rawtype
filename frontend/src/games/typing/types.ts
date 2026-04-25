@@ -11,8 +11,10 @@ export type TypingError = {
 
 export type TypingMode = "sentences" | "words";
 export type TypingLanguage = "en" | "de";
-export type AppFont = "system-sans" | "libre-baskerville" | "smooch-sans" | "manrope" | "nunito-sans";
-export type TextFont =
+export type CustomFontId = `custom:${string}`;
+export type BuiltInAppFont = "system-sans" | "libre-baskerville" | "smooch-sans" | "manrope" | "nunito-sans";
+export type AppFont = BuiltInAppFont | CustomFontId;
+export type BuiltInTextFont =
   | "system-mono"
   | "system-sans"
   | "serif"
@@ -21,19 +23,19 @@ export type TextFont =
   | "manrope"
   | "nunito-sans"
   | "sekuya";
+export type TextFont =
+  | BuiltInTextFont
+  | CustomFontId;
 export type OnScreenKeyboardLayout = "us-qwerty" | "uk-qwerty" | "de-qwertz" | "fr-azerty" | "es-qwerty";
 export type RestartKey = "Enter" | "Escape";
 export type WordModeDifficulty = "easy" | "medium" | "hard" | "mixed";
 export type WordNoMistakeMode = "off" | "on";
 
-export type TypingText = {
+export type CustomFont = {
   id: string;
-  content: string;
-  category: string;
-  difficulty: string;
-  language: string;
-  word_count: number;
-  source: string | null;
+  selection: CustomFontId;
+  familyName: string;
+  cssUrl: string;
 };
 
 export type SavedTypingRun = {
@@ -97,4 +99,14 @@ export type SavedTypingStats = {
     word: string;
     mistakes: number;
   }>;
+};
+
+export type TypingText = {
+  id: string;
+  content: string;
+  category: string;
+  difficulty: string;
+  language: string;
+  word_count: number;
+  source: string | null;
 };

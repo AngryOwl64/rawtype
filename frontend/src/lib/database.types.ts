@@ -164,6 +164,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      custom_fonts: {
+        Row: {
+          id: string;
+          user_id: string;
+          family_name: string;
+          css_url: string;
+          source: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          family_name: string;
+          css_url: string;
+          source?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          family_name?: string;
+          css_url?: string;
+          source?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       typing_runs: {
         Row: {
           id: string;

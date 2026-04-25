@@ -38,9 +38,11 @@ alter table public.user_settings
   add constraint user_settings_theme_valid check (theme in ('pergament', 'monokai', 'dracula')),
   add constraint user_settings_app_font_valid check (
     app_font in ('system-sans', 'libre-baskerville', 'smooch-sans', 'manrope', 'nunito-sans')
+      or app_font ~ '^custom:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
   ),
   add constraint user_settings_text_font_valid check (
     text_font in ('system-mono', 'system-sans', 'serif', 'libre-baskerville', 'smooch-sans', 'manrope', 'nunito-sans', 'sekuya')
+      or text_font ~ '^custom:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
   ),
   add constraint user_settings_keyboard_layout_valid check (
     on_screen_keyboard_layout in ('us-qwerty', 'uk-qwerty', 'de-qwertz', 'fr-azerty', 'es-qwerty')

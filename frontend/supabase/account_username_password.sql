@@ -4,7 +4,7 @@
 --
 -- This is a setup/reset script for the RawType account + stats tables.
 -- It drops and recreates:
---   profiles, user_settings, typing_runs, typing_errors
+--   profiles, user_settings, custom_fonts, typing_runs, typing_errors
 --
 -- Do not run this on production data you want to keep.
 --
@@ -24,6 +24,7 @@ drop view if exists public.my_typing_summary;
 
 drop table if exists public.typing_errors;
 drop table if exists public.typing_runs;
+drop table if exists public.custom_fonts;
 drop table if exists public.user_settings;
 drop table if exists public.profiles;
 
@@ -141,9 +142,11 @@ create table if not exists public.user_settings (
   ),
   constraint user_settings_app_font_valid check (
     app_font in ('system-sans', 'libre-baskerville', 'smooch-sans', 'manrope', 'nunito-sans')
+      or app_font ~ '^custom:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
   ),
   constraint user_settings_text_font_valid check (
     text_font in ('system-mono', 'system-sans', 'serif', 'libre-baskerville', 'smooch-sans', 'manrope', 'nunito-sans', 'sekuya')
+      or text_font ~ '^custom:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
   ),
   constraint user_settings_keyboard_layout_valid check (
     on_screen_keyboard_layout in ('us-qwerty', 'uk-qwerty', 'de-qwertz', 'fr-azerty', 'es-qwerty')
@@ -156,6 +159,34 @@ create table if not exists public.user_settings (
 drop trigger if exists user_settings_touch_updated_at on public.user_settings;
 create trigger user_settings_touch_updated_at
 before update on public.user_settings
+for each row execute function public.touch_updated_at();
+
+create table if not exists public.custom_fonts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  family_name text not null,
+  css_url text not null,
+  source text not null default 'google',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+
+  constraint custom_fonts_source_valid check (source = 'google'),
+  constraint custom_fonts_family_name_valid check (
+    family_name ~ '^[A-Za-z0-9 ._-]{1,80}$'
+  ),
+  constraint custom_fonts_css_url_valid check (
+    css_url ~ '^https://fonts\.googleapis\.com/css2\?'
+      and char_length(css_url) <= 500
+      and css_url !~ '[<>"'';{}]'
+  )
+);
+
+create unique index if not exists custom_fonts_user_css_url_unique
+  on public.custom_fonts (user_id, css_url);
+
+drop trigger if exists custom_fonts_touch_updated_at on public.custom_fonts;
+create trigger custom_fonts_touch_updated_at
+before update on public.custom_fonts
 for each row execute function public.touch_updated_at();
 
 create table if not exists public.typing_runs (
@@ -291,6 +322,7 @@ where not exists (
 
 alter table public.profiles enable row level security;
 alter table public.user_settings enable row level security;
+alter table public.custom_fonts enable row level security;
 alter table public.typing_runs enable row level security;
 alter table public.typing_errors enable row level security;
 
@@ -313,6 +345,18 @@ for select to authenticated using (auth.uid() = user_id);
 drop policy if exists "settings update own" on public.user_settings;
 create policy "settings update own" on public.user_settings
 for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "custom fonts read own" on public.custom_fonts;
+create policy "custom fonts read own" on public.custom_fonts
+for select to authenticated using (auth.uid() = user_id);
+
+drop policy if exists "custom fonts insert own" on public.custom_fonts;
+create policy "custom fonts insert own" on public.custom_fonts
+for insert to authenticated with check (auth.uid() = user_id);
+
+drop policy if exists "custom fonts delete own" on public.custom_fonts;
+create policy "custom fonts delete own" on public.custom_fonts
+for delete to authenticated using (auth.uid() = user_id);
 
 drop policy if exists "runs read own" on public.typing_runs;
 create policy "runs read own" on public.typing_runs
@@ -357,6 +401,7 @@ grant execute on function public.get_auth_email_for_username(text) to anon, auth
 grant select on public.profiles to anon, authenticated;
 grant update on public.profiles to authenticated;
 grant select, update on public.user_settings to authenticated;
+grant select, insert, delete on public.custom_fonts to authenticated;
 grant select on public.typing_runs to anon, authenticated;
 grant insert, delete on public.typing_runs to authenticated;
 grant select, insert, delete on public.typing_errors to authenticated;
