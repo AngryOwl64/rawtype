@@ -1,10 +1,10 @@
 // Settings UI for theme, language, font, and typing highlights.
 // Keeps user-facing preference controls grouped in one panel.
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import AccountSettingsSection from "../account/AccountSettingsSection";
 import { useAuth } from "../auth/authContext";
 import { deleteSavedTypingData } from "../games/typing/services/runResults";
-import type { AppFont, OnScreenKeyboardLayout, RestartKey, TextFont, TypingLanguage } from "../games/typing/types";
+import type { AppFont, CustomFont, OnScreenKeyboardLayout, RestartKey, TextFont, TypingLanguage } from "../games/typing/types";
 import type { TypingMode, WordModeDifficulty, WordNoMistakeMode } from "../games/typing/types";
 import { getSettingsTexts, translateAccountText } from "../i18n/messages";
 import {
@@ -450,6 +450,162 @@ function ThemeSetting({
   );
 }
 
+function CustomFontImporter({
+  language,
+  customFonts,
+  disabled,
+  importing,
+  error,
+  onImport,
+  onDelete
+}: {
+  language: TypingLanguage;
+  customFonts: CustomFont[];
+  disabled: boolean;
+  importing: boolean;
+  error: string;
+  onImport: (url: string) => Promise<void>;
+  onDelete: (font: CustomFont) => void;
+}) {
+  const [fontUrl, setFontUrl] = useState("");
+  const [guideOpen, setGuideOpen] = useState(false);
+  const isGerman = language === "de";
+  const guideText = isGerman
+    ? "Google Fonts öffnen, eine Schrift auswählen, <link>-URL mit fonts.googleapis.com/css2 kopieren und hier einfügen."
+    : "Open Google Fonts, choose a family, copy the <link> URL with fonts.googleapis.com/css2, and paste it here.";
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await onImport(fontUrl);
+    setFontUrl("");
+  }
+
+  return (
+    <form onSubmit={(event) => void handleSubmit(event)} style={{ display: "grid", gap: "10px" }}>
+      <label style={{ display: "grid", gap: "6px", color: "var(--muted-strong)", fontWeight: 700 }}>
+        <span style={{ fontSize: "13px" }}>Google Fonts Link</span>
+        <span style={{ position: "relative", display: "block" }}>
+          <input
+            type="url"
+            value={fontUrl}
+            disabled={disabled || importing}
+            onChange={(event) => setFontUrl(event.target.value)}
+            placeholder="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
+            style={{ ...fieldStyle, paddingRight: "42px" }}
+          />
+          <button
+            type="button"
+            aria-label={isGerman ? "Anleitung für Font-Import" : "Font import guide"}
+            onMouseEnter={() => setGuideOpen(true)}
+            onMouseLeave={() => setGuideOpen(false)}
+            onFocus={() => setGuideOpen(true)}
+            onBlur={() => setGuideOpen(false)}
+            style={{
+              position: "absolute",
+              right: "8px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              width: "24px",
+              height: "24px",
+              border: "1px solid var(--border-strong)",
+              borderRadius: "999px",
+              backgroundColor: "var(--surface)",
+              color: "var(--muted-strong)",
+              cursor: "help",
+              fontSize: "13px",
+              fontWeight: 900,
+              lineHeight: 1
+            }}
+          >
+            i
+          </button>
+          {guideOpen && (
+            <span
+              role="tooltip"
+              style={{
+                position: "absolute",
+                right: 0,
+                top: "calc(100% + 8px)",
+                zIndex: 20,
+                width: "min(320px, 80vw)",
+                border: "1px solid var(--border)",
+                borderRadius: "8px",
+                backgroundColor: "var(--surface)",
+                color: "var(--text)",
+                boxShadow: "0 14px 34px rgba(0, 0, 0, 0.22)",
+                padding: "10px 12px",
+                fontSize: "12px",
+                fontWeight: 600,
+                lineHeight: 1.45
+              }}
+            >
+              {guideText}
+            </span>
+          )}
+        </span>
+      </label>
+      <button
+        type="submit"
+        disabled={disabled || importing || fontUrl.trim().length === 0}
+        style={{
+          border: "1px solid var(--primary)",
+          borderRadius: "8px",
+          padding: "9px 12px",
+          backgroundColor: disabled ? "var(--surface-soft)" : "var(--primary)",
+          color: disabled ? "var(--muted)" : "var(--primary-text)",
+          cursor: disabled ? "not-allowed" : "pointer",
+          fontWeight: 800
+        }}
+      >
+        {importing ? "Importing..." : "Import Font"}
+      </button>
+      {disabled && (
+        <p style={{ margin: 0, color: "var(--muted)", fontSize: "13px" }}>
+          Login to import fonts for your account.
+        </p>
+      )}
+      {error && <p style={{ margin: 0, color: "var(--danger)", fontSize: "13px" }}>{error}</p>}
+      {customFonts.length > 0 && (
+        <div style={{ display: "grid", gap: "8px" }}>
+          {customFonts.map((font) => (
+            <div
+              key={font.id}
+              style={{
+                border: "1px solid var(--border-soft)",
+                borderRadius: "8px",
+                padding: "8px 10px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "10px"
+              }}
+            >
+              <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {font.familyName}
+              </span>
+              <button
+                type="button"
+                onClick={() => onDelete(font)}
+                style={{
+                  border: "1px solid var(--border-strong)",
+                  borderRadius: "8px",
+                  padding: "6px 10px",
+                  backgroundColor: "var(--surface-soft)",
+                  color: "var(--text)",
+                  cursor: "pointer",
+                  fontWeight: 700
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </form>
+  );
+}
+
 function PrivacyDataSettings({
   language,
   saveRunsToAccount,
@@ -617,6 +773,9 @@ type SettingsPanelProps = {
   theme: ThemeId;
   appFont: AppFont;
   textFont: TextFont;
+  customFonts: CustomFont[];
+  fontImporting: boolean;
+  fontImportError: string;
   language: TypingLanguage;
   defaultTypingMode: TypingMode;
   defaultWordsCount: number;
@@ -635,6 +794,8 @@ type SettingsPanelProps = {
   onThemeChange: (theme: ThemeId) => void;
   onAppFontChange: (font: AppFont) => void;
   onTextFontChange: (font: TextFont) => void;
+  onImportFont: (url: string) => Promise<void>;
+  onDeleteFont: (font: CustomFont) => void;
   onLanguageChange: (language: TypingLanguage) => void;
   onDefaultTypingModeChange: (mode: TypingMode) => void;
   onDefaultWordsCountChange: (wordsCount: number) => void;
@@ -658,6 +819,9 @@ export default function SettingsPanel({
   theme,
   appFont,
   textFont,
+  customFonts,
+  fontImporting,
+  fontImportError,
   language,
   defaultTypingMode,
   defaultWordsCount,
@@ -676,6 +840,8 @@ export default function SettingsPanel({
   onThemeChange,
   onAppFontChange,
   onTextFontChange,
+  onImportFont,
+  onDeleteFont,
   onLanguageChange,
   onDefaultTypingModeChange,
   onDefaultWordsCountChange,
@@ -730,6 +896,13 @@ export default function SettingsPanel({
     { value: "hard", label: text.page.hard },
     { value: "mixed", label: text.page.mixed }
   ];
+  const customFontOptions: Array<SelectOption<AppFont>> = customFonts.map((font) => ({
+    value: font.selection,
+    label: font.familyName
+  }));
+  const appFontOptions: Array<SelectOption<AppFont>> = [...APP_FONT_OPTIONS, ...customFontOptions];
+  const textFontOptions: Array<SelectOption<TextFont>> = [...TEXT_FONT_OPTIONS, ...customFontOptions];
+  const { user } = useAuth();
 
   return (
     <section
@@ -799,6 +972,9 @@ export default function SettingsPanel({
                   border: "1px solid",
                   borderColor: selected ? "var(--primary)" : "transparent",
                   borderRadius: "8px",
+                  width: "100%",
+                  boxSizing: "border-box",
+                  minWidth: 0,
                   padding: "10px 11px",
                   backgroundColor: selected ? "var(--primary)" : "transparent",
                   color: selected ? "var(--primary-text)" : "var(--text)",
@@ -831,14 +1007,25 @@ export default function SettingsPanel({
                   value={appFont}
                   disabled={false}
                   onChange={onAppFontChange}
-                  options={APP_FONT_OPTIONS}
+                  options={appFontOptions}
                 />
                 <SelectSetting
                   label={text.page.textFont}
                   value={textFont}
                   disabled={false}
                   onChange={onTextFontChange}
-                  options={TEXT_FONT_OPTIONS}
+                  options={textFontOptions}
+                />
+              </SettingGroup>
+              <SettingGroup title="Custom Fonts" singleColumn>
+                <CustomFontImporter
+                  language={language}
+                  customFonts={customFonts}
+                  disabled={!user}
+                  importing={fontImporting}
+                  error={fontImportError}
+                  onImport={onImportFont}
+                  onDelete={onDeleteFont}
                 />
               </SettingGroup>
             </>

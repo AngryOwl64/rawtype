@@ -1,7 +1,16 @@
 // Preference options and local defaults for themes, fonts, and language.
 // Also maps selected preferences into CSS variables.
 import type { CSSProperties } from "react";
-import type { AppFont, OnScreenKeyboardLayout, RestartKey, TextFont, TypingLanguage } from "../games/typing/types";
+import type {
+  AppFont,
+  BuiltInAppFont,
+  BuiltInTextFont,
+  CustomFont,
+  OnScreenKeyboardLayout,
+  RestartKey,
+  TextFont,
+  TypingLanguage
+} from "../games/typing/types";
 import { getPathTypingLanguage, SUPPORTED_TYPING_LANGUAGES } from "../i18n/language";
 import { getLanguageLabelFromMessages, getLanguageOptionsFromMessages } from "../i18n/messages";
 import {
@@ -20,7 +29,7 @@ export type SelectOption<T extends string> = {
 
 export const LANGUAGE_OPTIONS: Array<SelectOption<TypingLanguage>> = getLanguageOptionsFromMessages();
 
-export const APP_FONT_OPTIONS: Array<SelectOption<AppFont>> = [
+export const APP_FONT_OPTIONS: Array<SelectOption<BuiltInAppFont>> = [
   { value: "system-sans", label: "Standard Sans" },
   { value: "libre-baskerville", label: "Libre Baskerville" },
   { value: "smooch-sans", label: "Smooch Sans" },
@@ -28,7 +37,7 @@ export const APP_FONT_OPTIONS: Array<SelectOption<AppFont>> = [
   { value: "nunito-sans", label: "Nunito Sans" }
 ];
 
-export const TEXT_FONT_OPTIONS: Array<SelectOption<TextFont>> = [
+export const TEXT_FONT_OPTIONS: Array<SelectOption<BuiltInTextFont>> = [
   { value: "system-mono", label: "System Mono" },
   { value: "system-sans", label: "Standard Sans" },
   { value: "serif", label: "Classic Serif" },
@@ -42,7 +51,7 @@ export const TEXT_FONT_OPTIONS: Array<SelectOption<TextFont>> = [
 const DEFAULT_ON_SCREEN_KEYBOARD_LAYOUT: OnScreenKeyboardLayout = "us-qwerty";
 const DEFAULT_RESTART_KEY: RestartKey = "Enter";
 
-const FONT_STACKS: Record<AppFont | TextFont, string> = {
+const FONT_STACKS: Record<BuiltInAppFont | BuiltInTextFont, string> = {
   "system-sans": '"Segoe UI", "Aptos", "Trebuchet MS", sans-serif',
   "system-mono": 'Consolas, Menlo, Monaco, "Segoe UI Mono", monospace',
   serif: 'Georgia, "Times New Roman", serif',
@@ -83,7 +92,11 @@ export function isTypingLanguage(value: string | null | undefined): value is Typ
   return value ? SUPPORTED_TYPING_LANGUAGES.includes(value as TypingLanguage) : false;
 }
 
-export function isAppFont(value: string | null | undefined): value is AppFont {
+export function isCustomFontId(value: string | null | undefined): value is `custom:${string}` {
+  return typeof value === "string" && /^custom:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+export function isBuiltInAppFont(value: string | null | undefined): value is BuiltInAppFont {
   return (
     value === "system-sans" ||
     value === "libre-baskerville" ||
@@ -93,7 +106,11 @@ export function isAppFont(value: string | null | undefined): value is AppFont {
   );
 }
 
-export function isTextFont(value: string | null | undefined): value is TextFont {
+export function isAppFont(value: string | null | undefined): value is AppFont {
+  return isBuiltInAppFont(value) || isCustomFontId(value);
+}
+
+export function isBuiltInTextFont(value: string | null | undefined): value is BuiltInTextFont {
   return (
     value === "system-mono" ||
     value === "system-sans" ||
@@ -104,6 +121,10 @@ export function isTextFont(value: string | null | undefined): value is TextFont 
     value === "nunito-sans" ||
     value === "sekuya"
   );
+}
+
+export function isTextFont(value: string | null | undefined): value is TextFont {
+  return isBuiltInTextFont(value) || isCustomFontId(value);
 }
 
 export function getStoredTheme(): ThemeMode {
@@ -150,10 +171,23 @@ export function getThemeVariables(theme: ThemeMode): CSSProperties {
   return getThemeCssVariables(theme);
 }
 
-export function getFontVariables(appFont: AppFont, textFont: TextFont): CSSProperties {
+function quoteFontFamily(familyName: string): string {
+  return `"${familyName.replace(/["\\]/g, "\\$&")}"`;
+}
+
+function getFontStack(font: AppFont | TextFont, customFonts: CustomFont[], fallback: string): string {
+  if (isCustomFontId(font)) {
+    const customFont = customFonts.find((option) => option.selection === font);
+    return customFont ? `${quoteFontFamily(customFont.familyName)}, ${fallback}` : fallback;
+  }
+
+  return FONT_STACKS[font];
+}
+
+export function getFontVariables(appFont: AppFont, textFont: TextFont, customFonts: CustomFont[] = []): CSSProperties {
   return {
-    "--app-font": FONT_STACKS[appFont],
-    "--typing-font": FONT_STACKS[textFont],
+    "--app-font": getFontStack(appFont, customFonts, FONT_STACKS["system-sans"]),
+    "--typing-font": getFontStack(textFont, customFonts, FONT_STACKS["system-mono"]),
     "--brand-font": FONT_STACKS.sekuya
   } as CSSProperties;
 }
