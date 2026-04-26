@@ -2,13 +2,20 @@
 // Also maps selected preferences into CSS variables.
 import type { CSSProperties } from "react";
 import type {
+  AnimationIntensity,
   AppFont,
   BuiltInAppFont,
   BuiltInTextFont,
+  CaretAnimationStyle,
+  CaretMovementAnimation,
+  CompletionAnimationStyle,
   CustomFont,
+  ErrorFeedbackAnimation,
+  KeyboardAnimationStyle,
   OnScreenKeyboardLayout,
   RestartKey,
   TextFont,
+  TypingFeedbackAnimation,
   TypingLanguage
 } from "../games/typing/types";
 import { getPathTypingLanguage, SUPPORTED_TYPING_LANGUAGES } from "../i18n/language";
@@ -50,6 +57,13 @@ export const TEXT_FONT_OPTIONS: Array<SelectOption<BuiltInTextFont>> = [
 
 const DEFAULT_ON_SCREEN_KEYBOARD_LAYOUT: OnScreenKeyboardLayout = "us-qwerty";
 const DEFAULT_RESTART_KEY: RestartKey = "Enter";
+const DEFAULT_ANIMATION_INTENSITY: AnimationIntensity = "balanced";
+const DEFAULT_CARET_ANIMATION: CaretAnimationStyle = "blink";
+const DEFAULT_CARET_MOVEMENT_ANIMATION: CaretMovementAnimation = "slide";
+const DEFAULT_TYPING_FEEDBACK_ANIMATION: TypingFeedbackAnimation = "lift";
+const DEFAULT_ERROR_FEEDBACK_ANIMATION: ErrorFeedbackAnimation = "shake";
+const DEFAULT_KEYBOARD_ANIMATION: KeyboardAnimationStyle = "press";
+const DEFAULT_COMPLETION_ANIMATION: CompletionAnimationStyle = "confetti";
 
 const FONT_STACKS: Record<BuiltInAppFont | BuiltInTextFont, string> = {
   "system-sans": '"Segoe UI", "Aptos", "Trebuchet MS", sans-serif',
@@ -86,6 +100,76 @@ export function getStoredRestartKey(): RestartKey {
   if (typeof window === "undefined") return DEFAULT_RESTART_KEY;
   const storedRestartKey = window.localStorage.getItem("rawtype-restart-key");
   return isRestartKey(storedRestartKey) ? storedRestartKey : DEFAULT_RESTART_KEY;
+}
+
+export function isAnimationIntensity(value: string | null | undefined): value is AnimationIntensity {
+  return value === "off" || value === "calm" || value === "balanced" || value === "expressive";
+}
+
+export function getStoredAnimationIntensity(): AnimationIntensity {
+  if (typeof window === "undefined") return DEFAULT_ANIMATION_INTENSITY;
+  const storedValue = window.localStorage.getItem("rawtype-animation-intensity");
+  return isAnimationIntensity(storedValue) ? storedValue : DEFAULT_ANIMATION_INTENSITY;
+}
+
+export function isCaretAnimationStyle(value: string | null | undefined): value is CaretAnimationStyle {
+  return value === "steady" || value === "blink" || value === "glow" || value === "block" || value === "underline";
+}
+
+export function getStoredCaretAnimationStyle(): CaretAnimationStyle {
+  if (typeof window === "undefined") return DEFAULT_CARET_ANIMATION;
+  const storedValue = window.localStorage.getItem("rawtype-caret-animation");
+  return isCaretAnimationStyle(storedValue) ? storedValue : DEFAULT_CARET_ANIMATION;
+}
+
+export function isCaretMovementAnimation(value: string | null | undefined): value is CaretMovementAnimation {
+  return value === "instant" || value === "slide";
+}
+
+export function getStoredCaretMovementAnimation(): CaretMovementAnimation {
+  if (typeof window === "undefined") return DEFAULT_CARET_MOVEMENT_ANIMATION;
+  const storedValue = window.localStorage.getItem("rawtype-caret-movement-animation");
+  return isCaretMovementAnimation(storedValue) ? storedValue : DEFAULT_CARET_MOVEMENT_ANIMATION;
+}
+
+export function isTypingFeedbackAnimation(value: string | null | undefined): value is TypingFeedbackAnimation {
+  return value === "none" || value === "lift" || value === "pop" || value === "wave" || value === "ink";
+}
+
+export function getStoredTypingFeedbackAnimation(): TypingFeedbackAnimation {
+  if (typeof window === "undefined") return DEFAULT_TYPING_FEEDBACK_ANIMATION;
+  const storedValue = window.localStorage.getItem("rawtype-typing-feedback-animation");
+  return isTypingFeedbackAnimation(storedValue) ? storedValue : DEFAULT_TYPING_FEEDBACK_ANIMATION;
+}
+
+export function isErrorFeedbackAnimation(value: string | null | undefined): value is ErrorFeedbackAnimation {
+  return value === "none" || value === "shake" || value === "flash" || value === "snap" || value === "glitch";
+}
+
+export function getStoredErrorFeedbackAnimation(): ErrorFeedbackAnimation {
+  if (typeof window === "undefined") return DEFAULT_ERROR_FEEDBACK_ANIMATION;
+  const storedValue = window.localStorage.getItem("rawtype-error-feedback-animation");
+  return isErrorFeedbackAnimation(storedValue) ? storedValue : DEFAULT_ERROR_FEEDBACK_ANIMATION;
+}
+
+export function isKeyboardAnimationStyle(value: string | null | undefined): value is KeyboardAnimationStyle {
+  return value === "none" || value === "press" || value === "glow" || value === "ripple" || value === "tilt";
+}
+
+export function getStoredKeyboardAnimationStyle(): KeyboardAnimationStyle {
+  if (typeof window === "undefined") return DEFAULT_KEYBOARD_ANIMATION;
+  const storedValue = window.localStorage.getItem("rawtype-keyboard-animation");
+  return isKeyboardAnimationStyle(storedValue) ? storedValue : DEFAULT_KEYBOARD_ANIMATION;
+}
+
+export function isCompletionAnimationStyle(value: string | null | undefined): value is CompletionAnimationStyle {
+  return value === "none" || value === "pulse" || value === "confetti" || value === "sparkles" || value === "ribbons";
+}
+
+export function getStoredCompletionAnimationStyle(): CompletionAnimationStyle {
+  if (typeof window === "undefined") return DEFAULT_COMPLETION_ANIMATION;
+  const storedValue = window.localStorage.getItem("rawtype-completion-animation");
+  return isCompletionAnimationStyle(storedValue) ? storedValue : DEFAULT_COMPLETION_ANIMATION;
 }
 
 export function isTypingLanguage(value: string | null | undefined): value is TypingLanguage {
@@ -190,4 +274,51 @@ export function getFontVariables(appFont: AppFont, textFont: TextFont, customFon
     "--typing-font": getFontStack(textFont, customFonts, FONT_STACKS["system-mono"]),
     "--brand-font": FONT_STACKS.sekuya
   } as CSSProperties;
+}
+
+export function getAnimationVariables(intensity: AnimationIntensity): CSSProperties {
+  const variables: Record<AnimationIntensity, CSSProperties> = {
+    off: {
+      "--motion-fast": "1ms",
+      "--motion-medium": "1ms",
+      "--motion-slow": "1ms",
+      "--motion-distance": "0px",
+      "--motion-distance-negative": "0px",
+      "--motion-distance-soft": "0px",
+      "--motion-distance-soft-negative": "0px",
+      "--motion-scale": "1"
+    } as CSSProperties,
+    calm: {
+      "--motion-fast": "110ms",
+      "--motion-medium": "190ms",
+      "--motion-slow": "520ms",
+      "--motion-distance": "2px",
+      "--motion-distance-negative": "-2px",
+      "--motion-distance-soft": "1px",
+      "--motion-distance-soft-negative": "-1px",
+      "--motion-scale": "1.015"
+    } as CSSProperties,
+    balanced: {
+      "--motion-fast": "130ms",
+      "--motion-medium": "240ms",
+      "--motion-slow": "680ms",
+      "--motion-distance": "4px",
+      "--motion-distance-negative": "-4px",
+      "--motion-distance-soft": "2px",
+      "--motion-distance-soft-negative": "-2px",
+      "--motion-scale": "1.035"
+    } as CSSProperties,
+    expressive: {
+      "--motion-fast": "150ms",
+      "--motion-medium": "310ms",
+      "--motion-slow": "860ms",
+      "--motion-distance": "7px",
+      "--motion-distance-negative": "-7px",
+      "--motion-distance-soft": "3px",
+      "--motion-distance-soft-negative": "-3px",
+      "--motion-scale": "1.07"
+    } as CSSProperties
+  };
+
+  return variables[intensity];
 }

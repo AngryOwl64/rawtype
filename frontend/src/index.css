@@ -19,3 +19,556 @@ select,
 textarea {
   font: inherit;
 }
+
+.rawtype-typing-stage {
+  font-feature-settings: "kern" 0, "liga" 0, "calt" 0;
+  font-kerning: none;
+  font-variant-ligatures: none;
+  position: relative;
+  transition:
+    border-color var(--motion-medium) ease,
+    box-shadow var(--motion-medium) ease,
+    transform var(--motion-medium) ease;
+}
+
+.rawtype-typing-stage:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(127, 127, 127, 0.12);
+}
+
+.rawtype-typing-char,
+.rawtype-completed-word {
+  display: inline-flex;
+  position: relative;
+  transform-origin: center bottom;
+  will-change: opacity, text-shadow, filter;
+}
+
+.rawtype-typing-char.rawtype-char-correct.rawtype-feedback-lift,
+.rawtype-completed-word.rawtype-feedback-lift {
+  animation: rawtype-char-lift var(--motion-medium) cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.rawtype-typing-char.rawtype-char-correct.rawtype-feedback-pop,
+.rawtype-completed-word.rawtype-feedback-pop {
+  animation: rawtype-char-pop var(--motion-medium) cubic-bezier(0.2, 0.9, 0.25, 1.35);
+}
+
+.rawtype-typing-char.rawtype-char-correct.rawtype-feedback-wave,
+.rawtype-completed-word.rawtype-feedback-wave {
+  animation: rawtype-char-wave var(--motion-slow) cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.rawtype-typing-char.rawtype-char-correct.rawtype-feedback-ink,
+.rawtype-completed-word.rawtype-feedback-ink {
+  animation: rawtype-char-ink var(--motion-slow) ease-out;
+}
+
+.rawtype-typing-char.rawtype-char-error.rawtype-error-shake {
+  animation: rawtype-error-shake var(--motion-medium) cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+.rawtype-typing-char.rawtype-char-error.rawtype-error-flash {
+  animation: rawtype-error-flash var(--motion-slow) ease-out;
+}
+
+.rawtype-typing-char.rawtype-char-error.rawtype-error-snap {
+  animation: rawtype-error-snap var(--motion-medium) cubic-bezier(0.2, 0.9, 0.25, 1.35);
+}
+
+.rawtype-typing-char.rawtype-char-error.rawtype-error-glitch {
+  animation: rawtype-error-glitch var(--motion-slow) steps(2, end);
+}
+
+.rawtype-caret {
+  isolation: isolate;
+  position: relative;
+}
+
+.rawtype-caret::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.rawtype-caret-steady::after,
+.rawtype-caret-blink::after {
+  background: var(--text);
+  border-radius: 2px;
+  bottom: 0.18em;
+  left: 0;
+  top: 0.18em;
+  width: 2px;
+}
+
+.rawtype-caret-blink::after {
+  animation: rawtype-caret-blink var(--motion-slow) steps(2, end) infinite;
+}
+
+.rawtype-caret-glow::after {
+  background: var(--primary);
+  border-radius: 999px;
+  bottom: 0.12em;
+  box-shadow: 0 0 12px var(--primary);
+  left: -1px;
+  top: 0.12em;
+  width: 3px;
+  animation: rawtype-caret-glow var(--motion-slow) ease-in-out infinite;
+}
+
+.rawtype-caret-block::after {
+  background: var(--primary);
+  border-radius: 4px;
+  inset: 0.12em -1px;
+  opacity: 0.18;
+  animation: rawtype-caret-block var(--motion-slow) ease-in-out infinite;
+}
+
+.rawtype-caret-underline::after {
+  background: var(--text);
+  border-radius: 999px;
+  bottom: 0.12em;
+  height: 2px;
+  left: 0;
+  right: 0;
+  animation: rawtype-caret-underline var(--motion-slow) ease-in-out infinite;
+}
+
+.rawtype-caret-after::after {
+  left: auto;
+  right: -1px;
+}
+
+.rawtype-caret-after.rawtype-caret-block::after,
+.rawtype-caret-after.rawtype-caret-underline::after {
+  bottom: 0.18em;
+  height: auto;
+  left: auto;
+  right: -1px;
+  top: 0.18em;
+  width: 2px;
+}
+
+.rawtype-end-caret {
+  align-self: center;
+  display: inline-flex;
+  height: 1.35em;
+  margin-left: 1px;
+  width: 0.55ch;
+}
+
+.rawtype-gliding-caret {
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  transform-origin: left top;
+  transition:
+    transform var(--motion-medium) cubic-bezier(0.2, 0.82, 0.2, 1),
+    width var(--motion-fast) ease,
+    height var(--motion-fast) ease;
+  will-change: transform;
+  z-index: 3;
+}
+
+.rawtype-gliding-caret::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+}
+
+.rawtype-cursor-movement-instant {
+  transition-duration: 0ms;
+}
+
+.rawtype-caret-visual-steady::after,
+.rawtype-caret-visual-blink::after {
+  background: var(--text);
+  border-radius: 2px;
+  bottom: 0.18em;
+  left: 0;
+  top: 0.18em;
+  width: 2px;
+}
+
+.rawtype-caret-visual-blink::after {
+  animation: rawtype-caret-blink var(--motion-slow) steps(2, end) infinite;
+}
+
+.rawtype-caret-visual-glow::after {
+  background: var(--primary);
+  border-radius: 999px;
+  bottom: 0.12em;
+  box-shadow: 0 0 12px var(--primary);
+  left: -1px;
+  top: 0.12em;
+  width: 3px;
+  animation: rawtype-caret-glow var(--motion-slow) ease-in-out infinite;
+}
+
+.rawtype-caret-visual-block::after {
+  background: var(--primary);
+  border-radius: 4px;
+  bottom: 0.12em;
+  left: 0;
+  opacity: 0.18;
+  right: 0;
+  top: 0.12em;
+  animation: rawtype-caret-block var(--motion-slow) ease-in-out infinite;
+}
+
+.rawtype-caret-visual-underline::after {
+  background: var(--text);
+  border-radius: 999px;
+  bottom: 0.12em;
+  height: 2px;
+  left: 0;
+  min-width: 0.55ch;
+  right: 0;
+  animation: rawtype-caret-underline var(--motion-slow) ease-in-out infinite;
+}
+
+.rawtype-key {
+  overflow: hidden;
+  position: relative;
+  transition:
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    transform var(--motion-fast) ease;
+  will-change: transform, box-shadow;
+}
+
+.rawtype-key.is-active.rawtype-keyboard-press {
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.24);
+  transform: translateY(2px) scale(0.97);
+}
+
+.rawtype-key.is-active.rawtype-keyboard-glow {
+  box-shadow: 0 0 0 3px rgba(127, 127, 127, 0.16), 0 0 18px var(--primary);
+  transform: translateY(-1px) scale(var(--motion-scale));
+}
+
+.rawtype-key.is-active.rawtype-keyboard-ripple::after {
+  animation: rawtype-key-ripple var(--motion-slow) ease-out;
+  border: 2px solid currentColor;
+  border-radius: inherit;
+  content: "";
+  inset: 18%;
+  opacity: 0;
+  position: absolute;
+}
+
+.rawtype-key.is-active.rawtype-keyboard-tilt {
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
+  transform: rotate(-2deg) translateY(-1px) scale(var(--motion-scale));
+}
+
+.rawtype-finished-panel > :not(.rawtype-completion-celebration),
+.rawtype-animation-preview > :not(.rawtype-completion-preview) {
+  position: relative;
+  z-index: 1;
+}
+
+.rawtype-completion-celebration,
+.rawtype-completion-preview {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.rawtype-completion-particle {
+  background: hsl(var(--particle-hue) 82% 58%);
+  border-radius: 999px;
+  box-shadow: 0 0 10px hsl(var(--particle-hue) 82% 58% / 0.35);
+  height: 7px;
+  left: var(--particle-left);
+  opacity: 0;
+  position: absolute;
+  top: 0;
+  width: 7px;
+}
+
+.rawtype-completion-confetti .rawtype-completion-particle {
+  animation: rawtype-confetti-fall var(--motion-slow) ease-out forwards;
+  animation-delay: var(--particle-delay);
+  border-radius: 2px;
+  top: -12px;
+  transform: rotate(var(--particle-start-rotation));
+}
+
+.rawtype-completion-sparkles .rawtype-completion-particle {
+  animation: rawtype-sparkle-burst var(--motion-slow) ease-out forwards;
+  animation-delay: var(--particle-delay);
+  left: 50%;
+  top: 46%;
+}
+
+.rawtype-completion-ribbons .rawtype-completion-particle {
+  animation: rawtype-ribbon-sweep var(--motion-slow) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--particle-delay);
+  border-radius: 999px;
+  height: 4px;
+  top: var(--particle-top);
+  width: 24px;
+}
+
+.rawtype-completion-pulse .rawtype-completion-particle {
+  animation: rawtype-completion-pulse var(--motion-slow) ease-out forwards;
+  animation-delay: var(--particle-delay);
+  background: transparent;
+  border: 2px solid var(--primary);
+  height: 14px;
+  left: 50%;
+  top: 46%;
+  width: 14px;
+}
+
+.rawtype-motion-off .rawtype-typing-stage,
+.rawtype-motion-off .rawtype-typing-char,
+.rawtype-motion-off .rawtype-completed-word,
+.rawtype-motion-off .rawtype-key {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+.rawtype-motion-off .rawtype-caret::after,
+.rawtype-motion-off .rawtype-gliding-caret,
+.rawtype-motion-off .rawtype-gliding-caret::after,
+.rawtype-motion-off .rawtype-completion-celebration,
+.rawtype-motion-off .rawtype-completion-preview {
+  animation: none !important;
+  transition: none !important;
+}
+
+.rawtype-motion-off .rawtype-caret::after,
+.rawtype-motion-off .rawtype-completion-celebration,
+.rawtype-motion-off .rawtype-completion-preview {
+  display: none !important;
+}
+
+@keyframes rawtype-char-lift {
+  0% {
+    text-shadow: none;
+  }
+  55% {
+    text-shadow: 0 -0.18em 10px var(--primary);
+  }
+  100% {
+    text-shadow: none;
+  }
+}
+
+@keyframes rawtype-char-pop {
+  0% {
+    filter: brightness(1);
+  }
+  60% {
+    filter: brightness(1.22);
+    text-shadow: 0 0 8px var(--primary);
+  }
+  100% {
+    filter: brightness(1);
+    text-shadow: none;
+  }
+}
+
+@keyframes rawtype-char-wave {
+  0% {
+    text-shadow: none;
+  }
+  35% {
+    text-shadow: 0 0 9px var(--primary);
+  }
+  70% {
+    text-shadow: 0 0 4px var(--primary);
+  }
+  100% {
+    text-shadow: none;
+  }
+}
+
+@keyframes rawtype-char-ink {
+  0% {
+    filter: saturate(1.4);
+    text-shadow: 0 0 0 var(--primary);
+  }
+  45% {
+    filter: saturate(1.8);
+    text-shadow: 0 0 10px var(--primary);
+  }
+  100% {
+    filter: saturate(1);
+    text-shadow: none;
+  }
+}
+
+@keyframes rawtype-error-shake {
+  10%,
+  90% {
+    text-shadow: -1px 0 var(--danger);
+  }
+  20%,
+  80% {
+    text-shadow: 1px 0 var(--danger);
+  }
+  30%,
+  50%,
+  70% {
+    text-shadow: -2px 0 var(--danger);
+  }
+  40%,
+  60% {
+    text-shadow: 2px 0 var(--danger);
+  }
+  100% {
+    text-shadow: none;
+  }
+}
+
+@keyframes rawtype-error-flash {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  35% {
+    filter: brightness(1.6);
+    text-shadow: 0 0 12px var(--danger);
+  }
+}
+
+@keyframes rawtype-error-snap {
+  0% {
+    filter: brightness(1.45) saturate(1.25);
+    text-shadow: 0 0 10px var(--danger);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+    text-shadow: none;
+  }
+}
+
+@keyframes rawtype-error-glitch {
+  0%,
+  100% {
+    text-shadow: none;
+  }
+  25% {
+    text-shadow: 1px 0 var(--primary), -1px 0 var(--danger);
+  }
+  50% {
+    text-shadow: -1px 0 var(--primary), 1px 0 var(--danger);
+  }
+}
+
+@keyframes rawtype-caret-blink {
+  0%,
+  48% {
+    opacity: 1;
+  }
+  49%,
+  100% {
+    opacity: 0.18;
+  }
+}
+
+@keyframes rawtype-caret-glow {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scaleY(0.82);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes rawtype-caret-block {
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 0.28;
+  }
+}
+
+@keyframes rawtype-caret-underline {
+  0%,
+  100% {
+    transform: scaleX(0.72);
+  }
+  50% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes rawtype-key-ripple {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.3);
+  }
+}
+
+@keyframes rawtype-confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translate(0, -10px) rotate(var(--particle-start-rotation));
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--particle-drift-x), 170px) rotate(var(--particle-spin));
+  }
+}
+
+@keyframes rawtype-sparkle-burst {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--particle-angle)) translateX(0) scale(0.5);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--particle-angle)) translateX(var(--particle-radius)) scale(0.05);
+  }
+}
+
+@keyframes rawtype-ribbon-sweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-90px) rotate(var(--particle-tilt-start));
+  }
+  18% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(var(--particle-ribbon-x)) rotate(var(--particle-tilt-end));
+  }
+}
+
+@keyframes rawtype-completion-pulse {
+  0% {
+    opacity: 0.35;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(var(--particle-scale));
+  }
+}

@@ -30,6 +30,13 @@ export type OnScreenKeyboardLayout = "us-qwerty" | "uk-qwerty" | "de-qwertz" | "
 export type RestartKey = "Enter" | "Escape";
 export type WordModeDifficulty = "easy" | "medium" | "hard" | "mixed";
 export type WordNoMistakeMode = "off" | "on";
+export type AnimationIntensity = "off" | "calm" | "balanced" | "expressive";
+export type CaretAnimationStyle = "steady" | "blink" | "glow" | "block" | "underline";
+export type CaretMovementAnimation = "instant" | "slide";
+export type TypingFeedbackAnimation = "none" | "lift" | "pop" | "wave" | "ink";
+export type ErrorFeedbackAnimation = "none" | "shake" | "flash" | "snap" | "glitch";
+export type KeyboardAnimationStyle = "none" | "press" | "glow" | "ripple" | "tilt";
+export type CompletionAnimationStyle = "none" | "pulse" | "confetti" | "sparkles" | "ribbons";
 
 export type CustomFont = {
   id: string;

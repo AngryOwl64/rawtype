@@ -1,7 +1,7 @@
 // Responsive on-screen keyboard used as a visual typing aid.
 // Sizes keys to fit the available game width.
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import type { OnScreenKeyboardLayout } from "../types";
+import type { AnimationIntensity, KeyboardAnimationStyle, OnScreenKeyboardLayout } from "../types";
 
 type KeyboardKey = {
   id: string;
@@ -354,11 +354,15 @@ const KEYBOARD_DEFAULT_UNIT = 28;
 export const OnScreenKeyboard = memo(function OnScreenKeyboard({
   activeKeys,
   title,
-  layout
+  layout,
+  animationIntensity = "balanced",
+  keyboardAnimationStyle = "press"
 }: {
   activeKeys: Set<string>;
   title: string;
   layout: OnScreenKeyboardLayout;
+  animationIntensity?: AnimationIntensity;
+  keyboardAnimationStyle?: KeyboardAnimationStyle;
 }) {
   const keyboardRows = KEYBOARD_LAYOUT_ROWS[layout];
   const keyboardWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -411,6 +415,7 @@ export const OnScreenKeyboard = memo(function OnScreenKeyboard({
 
   return (
     <section
+      className={`rawtype-keyboard rawtype-motion-${animationIntensity}`}
       style={{
         width: "min(100%, 980px)",
         border: "1px solid var(--border)",
@@ -444,6 +449,7 @@ export const OnScreenKeyboard = memo(function OnScreenKeyboard({
               return (
                 <span
                   key={`${rowIndex}-${keyIndex}`}
+                  className={`rawtype-key rawtype-keyboard-${keyboardAnimationStyle}${active ? " is-active" : ""}`}
                   style={{
                     width: `${Math.round(keyUnit * width + (width - 1) * KEYBOARD_GAP)}px`,
                     height: `${keyHeight}px`,

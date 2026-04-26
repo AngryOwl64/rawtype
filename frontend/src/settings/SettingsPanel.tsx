@@ -4,7 +4,21 @@ import { useEffect, useState, type FormEvent } from "react";
 import AccountSettingsSection from "../account/AccountSettingsSection";
 import { useAuth } from "../auth/authContext";
 import { deleteSavedTypingData } from "../games/typing/services/runResults";
-import type { AppFont, CustomFont, OnScreenKeyboardLayout, RestartKey, TextFont, TypingLanguage } from "../games/typing/types";
+import type {
+  AnimationIntensity,
+  AppFont,
+  CaretAnimationStyle,
+  CaretMovementAnimation,
+  CompletionAnimationStyle,
+  CustomFont,
+  ErrorFeedbackAnimation,
+  KeyboardAnimationStyle,
+  OnScreenKeyboardLayout,
+  RestartKey,
+  TextFont,
+  TypingFeedbackAnimation,
+  TypingLanguage
+} from "../games/typing/types";
 import type { TypingMode, WordModeDifficulty, WordNoMistakeMode } from "../games/typing/types";
 import { getSettingsTexts, translateAccountText } from "../i18n/messages";
 import {
@@ -15,7 +29,7 @@ import {
 } from "../themes/registry";
 import { APP_FONT_OPTIONS, LANGUAGE_OPTIONS, TEXT_FONT_OPTIONS, type SelectOption } from "./preferences";
 
-export type SettingsCategory = "appearance" | "typing" | "markers" | "keyboard" | "privacy" | "account";
+export type SettingsCategory = "appearance" | "typing" | "animations" | "markers" | "keyboard" | "privacy" | "account";
 
 export type SettingsCategoryItem = {
   id: SettingsCategory;
@@ -174,6 +188,131 @@ function ColorSetting({
           cursor: "pointer"
         }}
       />
+    </div>
+  );
+}
+
+function AnimationPreview({
+  ariaLabel,
+  effectiveAnimationIntensity,
+  caretAnimationStyle,
+  typingFeedbackAnimation,
+  errorFeedbackAnimation,
+  keyboardAnimationStyle,
+  completionAnimationStyle
+}: {
+  ariaLabel: string;
+  effectiveAnimationIntensity: AnimationIntensity;
+  caretAnimationStyle: CaretAnimationStyle;
+  typingFeedbackAnimation: TypingFeedbackAnimation;
+  errorFeedbackAnimation: ErrorFeedbackAnimation;
+  keyboardAnimationStyle: KeyboardAnimationStyle;
+  completionAnimationStyle: CompletionAnimationStyle;
+}) {
+  const showCelebration = effectiveAnimationIntensity !== "off" && completionAnimationStyle !== "none";
+  const previewParticles = Array.from({ length: 14 }, (_, index) => index);
+
+  return (
+    <div
+      aria-label={ariaLabel}
+      className={`rawtype-animation-preview rawtype-motion-${effectiveAnimationIntensity}`}
+      style={{
+        border: "1px solid var(--border-soft)",
+        borderRadius: "8px",
+        backgroundColor: "var(--surface-soft)",
+        padding: "14px",
+        display: "grid",
+        gap: "14px",
+        overflow: "hidden",
+        position: "relative"
+      }}
+    >
+      {showCelebration && (
+        <div
+          aria-hidden="true"
+          className={`rawtype-completion-preview rawtype-completion-${completionAnimationStyle}`}
+        >
+          {previewParticles.map((index) => (
+            <span
+              key={index}
+              className="rawtype-completion-particle"
+              style={{
+                "--particle-index": index,
+                "--particle-left": `${8 + ((index * 23) % 84)}%`,
+                "--particle-hue": `${(index * 41) % 360}deg`,
+                "--particle-delay": `${index * 42}ms`,
+                "--particle-drift": `${(index % 5) - 2}`,
+                "--particle-top": `${16 + (index % 7) * 10}%`,
+                "--particle-drift-x": `${((index % 5) - 2) * 18}px`,
+                "--particle-ribbon-x": `${230 + ((index % 5) - 2) * 26}px`,
+                "--particle-tilt-start": `${((index % 5) - 2) * 5}deg`,
+                "--particle-tilt-end": `${((index % 5) - 2) * -8}deg`,
+                "--particle-angle": `${index * 24}deg`,
+                "--particle-start-rotation": `${index * 17}deg`,
+                "--particle-spin": `${index * 43}deg`,
+                "--particle-radius": `${44 + index}px`,
+                "--particle-scale": `${2.6 + index * 0.08}`
+              } as React.CSSProperties}
+            />
+          ))}
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "flex-end",
+          justifySelf: "start",
+          fontFamily: "var(--typing-font)",
+          fontSize: "26px",
+          lineHeight: 1.5
+        }}
+      >
+        {"Raw".split("").map((char, index) => (
+          <span
+            key={char}
+            className={`rawtype-typing-char rawtype-char-correct rawtype-feedback-${typingFeedbackAnimation}`}
+            style={{ animationDelay: `${index * 45}ms` }}
+          >
+            {char}
+          </span>
+        ))}
+        <span
+          className={`rawtype-typing-char rawtype-char-error rawtype-error-${errorFeedbackAnimation}`}
+          style={{ color: "var(--danger)", marginLeft: "2px" }}
+        >
+          x
+        </span>
+        <span
+          aria-hidden="true"
+          className={`rawtype-end-caret rawtype-caret rawtype-caret-${caretAnimationStyle}`}
+        />
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+        {["R", "A", "W", "Space"].map((keyLabel, index) => (
+          <span
+            key={keyLabel}
+            className={`rawtype-key rawtype-keyboard-${keyboardAnimationStyle}${index === 1 ? " is-active" : ""}`}
+            style={{
+              width: keyLabel === "Space" ? "86px" : "34px",
+              height: "30px",
+              border: `1px solid ${index === 1 ? "var(--primary)" : "var(--border-soft)"}`,
+              borderRadius: "6px",
+              backgroundColor: index === 1 ? "var(--primary)" : "var(--surface)",
+              color: index === 1 ? "var(--primary-text)" : "var(--muted-strong)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "12px",
+              fontWeight: 800,
+              userSelect: "none"
+            }}
+          >
+            {keyLabel}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -791,6 +930,15 @@ type SettingsPanelProps = {
   showErrorBreakdown: boolean;
   correctMarkerColor: string;
   errorMarkerColor: string;
+  animationIntensity: AnimationIntensity;
+  effectiveAnimationIntensity: AnimationIntensity;
+  caretAnimationStyle: CaretAnimationStyle;
+  caretMovementAnimation: CaretMovementAnimation;
+  typingFeedbackAnimation: TypingFeedbackAnimation;
+  errorFeedbackAnimation: ErrorFeedbackAnimation;
+  keyboardAnimationStyle: KeyboardAnimationStyle;
+  completionAnimationStyle: CompletionAnimationStyle;
+  animationRespectReducedMotion: boolean;
   onThemeChange: (theme: ThemeId) => void;
   onAppFontChange: (font: AppFont) => void;
   onTextFontChange: (font: TextFont) => void;
@@ -811,6 +959,14 @@ type SettingsPanelProps = {
   onShowErrorBreakdownChange: (enabled: boolean) => void;
   onCorrectMarkerColorChange: (value: string) => void;
   onErrorMarkerColorChange: (value: string) => void;
+  onAnimationIntensityChange: (intensity: AnimationIntensity) => void;
+  onCaretAnimationStyleChange: (style: CaretAnimationStyle) => void;
+  onCaretMovementAnimationChange: (animation: CaretMovementAnimation) => void;
+  onTypingFeedbackAnimationChange: (animation: TypingFeedbackAnimation) => void;
+  onErrorFeedbackAnimationChange: (animation: ErrorFeedbackAnimation) => void;
+  onKeyboardAnimationStyleChange: (style: KeyboardAnimationStyle) => void;
+  onCompletionAnimationStyleChange: (style: CompletionAnimationStyle) => void;
+  onAnimationRespectReducedMotionChange: (enabled: boolean) => void;
   onCategoryChange: (category: SettingsCategory) => void;
 };
 
@@ -837,6 +993,15 @@ export default function SettingsPanel({
   showErrorBreakdown,
   correctMarkerColor,
   errorMarkerColor,
+  animationIntensity,
+  effectiveAnimationIntensity,
+  caretAnimationStyle,
+  caretMovementAnimation,
+  typingFeedbackAnimation,
+  errorFeedbackAnimation,
+  keyboardAnimationStyle,
+  completionAnimationStyle,
+  animationRespectReducedMotion,
   onThemeChange,
   onAppFontChange,
   onTextFontChange,
@@ -857,6 +1022,14 @@ export default function SettingsPanel({
   onShowErrorBreakdownChange,
   onCorrectMarkerColorChange,
   onErrorMarkerColorChange,
+  onAnimationIntensityChange,
+  onCaretAnimationStyleChange,
+  onCaretMovementAnimationChange,
+  onTypingFeedbackAnimationChange,
+  onErrorFeedbackAnimationChange,
+  onKeyboardAnimationStyleChange,
+  onCompletionAnimationStyleChange,
+  onAnimationRespectReducedMotionChange,
   onCategoryChange
 }: SettingsPanelProps) {
   const text = getSettingsTexts(language);
@@ -864,6 +1037,7 @@ export default function SettingsPanel({
   const categories: SettingsCategoryItem[] = [
     { id: "appearance", label: text.page.appearance },
     { id: "typing", label: text.page.typing },
+    { id: "animations", label: text.page.animations },
     { id: "markers", label: text.page.wordMarking },
     { id: "keyboard", label: text.page.keyboard },
     { id: "privacy", label: text.page.privacyData },
@@ -895,6 +1069,51 @@ export default function SettingsPanel({
     { value: "medium", label: text.page.medium },
     { value: "hard", label: text.page.hard },
     { value: "mixed", label: text.page.mixed }
+  ];
+  const animationIntensityOptions: Array<SelectOption<AnimationIntensity>> = [
+    { value: "off", label: text.page.motionOff },
+    { value: "calm", label: text.page.motionCalm },
+    { value: "balanced", label: text.page.motionBalanced },
+    { value: "expressive", label: text.page.motionExpressive }
+  ];
+  const caretAnimationOptions: Array<SelectOption<CaretAnimationStyle>> = [
+    { value: "steady", label: text.page.caretSteady },
+    { value: "blink", label: text.page.caretBlink },
+    { value: "glow", label: text.page.caretGlow },
+    { value: "block", label: text.page.caretBlock },
+    { value: "underline", label: text.page.caretUnderline }
+  ];
+  const caretMovementOptions: Array<SelectOption<CaretMovementAnimation>> = [
+    { value: "slide", label: text.page.caretMovementSlide },
+    { value: "instant", label: text.page.caretMovementInstant }
+  ];
+  const typingFeedbackOptions: Array<SelectOption<TypingFeedbackAnimation>> = [
+    { value: "none", label: text.page.animationNone },
+    { value: "lift", label: text.page.typingFeedbackLift },
+    { value: "pop", label: text.page.typingFeedbackPop },
+    { value: "wave", label: text.page.typingFeedbackWave },
+    { value: "ink", label: text.page.typingFeedbackInk }
+  ];
+  const errorFeedbackOptions: Array<SelectOption<ErrorFeedbackAnimation>> = [
+    { value: "none", label: text.page.animationNone },
+    { value: "shake", label: text.page.errorFeedbackShake },
+    { value: "flash", label: text.page.errorFeedbackFlash },
+    { value: "snap", label: text.page.errorFeedbackSnap },
+    { value: "glitch", label: text.page.errorFeedbackGlitch }
+  ];
+  const keyboardAnimationOptions: Array<SelectOption<KeyboardAnimationStyle>> = [
+    { value: "none", label: text.page.animationNone },
+    { value: "press", label: text.page.keyboardFeedbackPress },
+    { value: "glow", label: text.page.keyboardFeedbackGlow },
+    { value: "ripple", label: text.page.keyboardFeedbackRipple },
+    { value: "tilt", label: text.page.keyboardFeedbackTilt }
+  ];
+  const completionAnimationOptions: Array<SelectOption<CompletionAnimationStyle>> = [
+    { value: "none", label: text.page.animationNone },
+    { value: "pulse", label: text.page.completionPulse },
+    { value: "confetti", label: text.page.completionConfetti },
+    { value: "sparkles", label: text.page.completionSparkles },
+    { value: "ribbons", label: text.page.completionRibbons }
   ];
   const customFontOptions: Array<SelectOption<AppFont>> = customFonts.map((font) => ({
     value: font.selection,
@@ -1065,6 +1284,83 @@ export default function SettingsPanel({
                   onChange={(enabled) => onDefaultNoMistakeModeChange(enabled ? "on" : "off")}
                 />
                 <ToggleSetting label={text.page.autoFocus} checked />
+              </SettingGroup>
+            </>
+          )}
+
+          {activeCategory === "animations" && (
+            <>
+              <SettingGroup title={text.page.animationProfile}>
+                <SelectSetting
+                  label={text.page.animationIntensity}
+                  value={animationIntensity}
+                  disabled={false}
+                  onChange={onAnimationIntensityChange}
+                  options={animationIntensityOptions}
+                />
+                <ToggleSetting
+                  label={text.page.respectReducedMotion}
+                  checked={animationRespectReducedMotion}
+                  disabled={false}
+                  onChange={onAnimationRespectReducedMotionChange}
+                />
+              </SettingGroup>
+
+              <SettingGroup title={text.page.animationDetails}>
+                <SelectSetting
+                  label={text.page.caretAnimation}
+                  value={caretAnimationStyle}
+                  disabled={false}
+                  onChange={onCaretAnimationStyleChange}
+                  options={caretAnimationOptions}
+                />
+                <SelectSetting
+                  label={text.page.caretMovementAnimation}
+                  value={caretMovementAnimation}
+                  disabled={false}
+                  onChange={onCaretMovementAnimationChange}
+                  options={caretMovementOptions}
+                />
+                <SelectSetting
+                  label={text.page.typingFeedbackAnimation}
+                  value={typingFeedbackAnimation}
+                  disabled={false}
+                  onChange={onTypingFeedbackAnimationChange}
+                  options={typingFeedbackOptions}
+                />
+                <SelectSetting
+                  label={text.page.errorFeedbackAnimation}
+                  value={errorFeedbackAnimation}
+                  disabled={false}
+                  onChange={onErrorFeedbackAnimationChange}
+                  options={errorFeedbackOptions}
+                />
+                <SelectSetting
+                  label={text.page.keyboardFeedbackAnimation}
+                  value={keyboardAnimationStyle}
+                  disabled={false}
+                  onChange={onKeyboardAnimationStyleChange}
+                  options={keyboardAnimationOptions}
+                />
+                <SelectSetting
+                  label={text.page.completionAnimation}
+                  value={completionAnimationStyle}
+                  disabled={false}
+                  onChange={onCompletionAnimationStyleChange}
+                  options={completionAnimationOptions}
+                />
+              </SettingGroup>
+
+              <SettingGroup title={text.page.animationPreview} singleColumn>
+                <AnimationPreview
+                  ariaLabel={text.page.animationPreview}
+                  effectiveAnimationIntensity={effectiveAnimationIntensity}
+                  caretAnimationStyle={caretAnimationStyle}
+                  typingFeedbackAnimation={typingFeedbackAnimation}
+                  errorFeedbackAnimation={errorFeedbackAnimation}
+                  keyboardAnimationStyle={keyboardAnimationStyle}
+                  completionAnimationStyle={completionAnimationStyle}
+                />
               </SettingGroup>
             </>
           )}

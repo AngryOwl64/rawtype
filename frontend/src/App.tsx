@@ -6,31 +6,53 @@ import HomeMenu from "./app/HomeMenu";
 import type { AppTab } from "./app/types";
 import { useAuth, type UserSettings } from "./auth/authContext";
 import type {
+  AnimationIntensity,
   AppFont,
   CustomFont,
+  CaretAnimationStyle,
+  CaretMovementAnimation,
+  CompletionAnimationStyle,
+  ErrorFeedbackAnimation,
+  KeyboardAnimationStyle,
   OnScreenKeyboardLayout,
   RestartKey,
   SavedTypingDayStats,
   TextFont,
+  TypingFeedbackAnimation,
   TypingLanguage,
   TypingMode,
   WordModeDifficulty,
   WordNoMistakeMode
 } from "./games/typing/types";
 import {
+  getAnimationVariables,
   getFontVariables,
   getLanguageLabel,
+  getStoredAnimationIntensity,
   getStoredAppFont,
+  getStoredCaretAnimationStyle,
+  getStoredCaretMovementAnimation,
+  getStoredCompletionAnimationStyle,
+  getStoredErrorFeedbackAnimation,
+  getStoredKeyboardAnimationStyle,
   getStoredOnScreenKeyboardLayout,
   getStoredRestartKey,
   getStoredLanguage,
   getStoredTextFont,
   getStoredTheme,
+  getStoredTypingFeedbackAnimation,
   getThemeVariables,
+  isAnimationIntensity,
   isAppFont,
+  isCaretAnimationStyle,
+  isCaretMovementAnimation,
+  isCompletionAnimationStyle,
+  isErrorFeedbackAnimation,
+  isKeyboardAnimationStyle,
   isOnScreenKeyboardLayout,
   isRestartKey,
   isTextFont,
+  isTypingFeedbackAnimation,
   isTypingLanguage,
   type ThemeMode
 } from "./settings/preferences";
@@ -119,6 +141,33 @@ function getActiveTabFromRoute(route: RouteState): AppTab | null {
   return route.kind;
 }
 
+function getPrefersReducedMotion(): boolean {
+  if (typeof window === "undefined" || !("matchMedia" in window)) {
+    return false;
+  }
+
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function usePrefersReducedMotion(): boolean {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(getPrefersReducedMotion);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("matchMedia" in window)) {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handleChange = () => setPrefersReducedMotion(mediaQuery.matches);
+
+    handleChange();
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
+  return prefersReducedMotion;
+}
+
 type PreferencesState = {
   typingMode: TypingMode;
   wordsCount: number;
@@ -137,6 +186,14 @@ type PreferencesState = {
   theme: ThemeMode;
   appFont: AppFont;
   textFont: TextFont;
+  animationIntensity: AnimationIntensity;
+  caretAnimationStyle: CaretAnimationStyle;
+  caretMovementAnimation: CaretMovementAnimation;
+  typingFeedbackAnimation: TypingFeedbackAnimation;
+  errorFeedbackAnimation: ErrorFeedbackAnimation;
+  keyboardAnimationStyle: KeyboardAnimationStyle;
+  completionAnimationStyle: CompletionAnimationStyle;
+  animationRespectReducedMotion: boolean;
 };
 
 type PreferencesAction =
@@ -161,7 +218,15 @@ function getInitialPreferences(): PreferencesState {
     errorMarkerColor: getStoredHexColor("rawtype-error-marker-color", "#c86b73"),
     theme: getStoredTheme(),
     appFont: getStoredAppFont(),
-    textFont: getStoredTextFont()
+    textFont: getStoredTextFont(),
+    animationIntensity: getStoredAnimationIntensity(),
+    caretAnimationStyle: getStoredCaretAnimationStyle(),
+    caretMovementAnimation: getStoredCaretMovementAnimation(),
+    typingFeedbackAnimation: getStoredTypingFeedbackAnimation(),
+    errorFeedbackAnimation: getStoredErrorFeedbackAnimation(),
+    keyboardAnimationStyle: getStoredKeyboardAnimationStyle(),
+    completionAnimationStyle: getStoredCompletionAnimationStyle(),
+    animationRespectReducedMotion: getStoredBoolean("rawtype-animation-respect-reduced-motion", true)
   };
 }
 
@@ -206,7 +271,32 @@ function preferencesReducer(state: PreferencesState, action: PreferencesAction):
       typeof settings.save_runs_to_account === "boolean" ? settings.save_runs_to_account : state.saveRunsToAccount,
     saveErrorWords: typeof settings.save_error_words === "boolean" ? settings.save_error_words : state.saveErrorWords,
     showErrorBreakdown:
-      typeof settings.show_error_breakdown === "boolean" ? settings.show_error_breakdown : state.showErrorBreakdown
+      typeof settings.show_error_breakdown === "boolean" ? settings.show_error_breakdown : state.showErrorBreakdown,
+    animationIntensity: isAnimationIntensity(settings.animation_intensity)
+      ? settings.animation_intensity
+      : state.animationIntensity,
+    caretAnimationStyle: isCaretAnimationStyle(settings.caret_animation)
+      ? settings.caret_animation
+      : state.caretAnimationStyle,
+    caretMovementAnimation: isCaretMovementAnimation(settings.caret_movement_animation)
+      ? settings.caret_movement_animation
+      : state.caretMovementAnimation,
+    typingFeedbackAnimation: isTypingFeedbackAnimation(settings.typing_feedback_animation)
+      ? settings.typing_feedback_animation
+      : state.typingFeedbackAnimation,
+    errorFeedbackAnimation: isErrorFeedbackAnimation(settings.error_feedback_animation)
+      ? settings.error_feedback_animation
+      : state.errorFeedbackAnimation,
+    keyboardAnimationStyle: isKeyboardAnimationStyle(settings.keyboard_animation)
+      ? settings.keyboard_animation
+      : state.keyboardAnimationStyle,
+    completionAnimationStyle: isCompletionAnimationStyle(settings.completion_animation)
+      ? settings.completion_animation
+      : state.completionAnimationStyle,
+    animationRespectReducedMotion:
+      typeof settings.animation_respect_reduced_motion === "boolean"
+        ? settings.animation_respect_reduced_motion
+        : state.animationRespectReducedMotion
   };
 }
 
@@ -224,11 +314,18 @@ function App() {
   const [currentStreakDays, setCurrentStreakDays] = useState(0);
   const [dailyActivity, setDailyActivity] = useState<SavedTypingDayStats[]>([]);
   const {
+    animationIntensity,
+    animationRespectReducedMotion,
     appFont,
+    caretAnimationStyle,
+    caretMovementAnimation,
+    completionAnimationStyle,
     correctMarkerColor,
     errorMarkerColor,
+    errorFeedbackAnimation,
     highlightCorrectWords,
     highlightErrorFromPoint,
+    keyboardAnimationStyle,
     onScreenKeyboardLayout,
     restartKey,
     saveErrorWords,
@@ -237,6 +334,7 @@ function App() {
     showOnScreenKeyboard,
     textFont,
     theme,
+    typingFeedbackAnimation,
     typingMode,
     wordDifficulty,
     wordNoMistakeMode,
@@ -248,6 +346,13 @@ function App() {
     () => getFontVariables(appFont, textFont, visibleCustomFonts),
     [appFont, textFont, visibleCustomFonts]
   );
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const effectiveAnimationIntensity =
+    animationRespectReducedMotion && prefersReducedMotion ? "off" : animationIntensity;
+  const animationVariables = useMemo(
+    () => getAnimationVariables(effectiveAnimationIntensity),
+    [effectiveAnimationIntensity]
+  );
   const accountLanguage = isTypingLanguage(settings?.language) ? settings.language : null;
   const language = pendingAccountLanguage ?? (user ? accountLanguage : null) ?? localLanguage;
   const appText = useMemo(() => getAppTexts(language), [language]);
@@ -258,6 +363,7 @@ function App() {
     return [
       { id: "appearance", label: settingsText.page.appearance },
       { id: "typing", label: settingsText.page.typing },
+      { id: "animations", label: settingsText.page.animations },
       { id: "markers", label: settingsText.page.wordMarking },
       { id: "keyboard", label: settingsText.page.keyboard },
       { id: "privacy", label: settingsText.page.privacyData },
@@ -293,12 +399,13 @@ function App() {
     () => ({
       ...themeVariables,
       ...fontVariables,
+      ...animationVariables,
       minHeight: "100vh",
       background: "var(--page-bg)",
       color: "var(--text)",
       fontFamily: "var(--app-font)"
     }),
-    [fontVariables, themeVariables]
+    [animationVariables, fontVariables, themeVariables]
   );
 
   useEffect(() => {
@@ -472,6 +579,46 @@ function App() {
     updateAccountSettings({ error_marker_color: nextColor });
   }
 
+  function handleAnimationIntensityChange(nextIntensity: AnimationIntensity) {
+    dispatchPreferences({ type: "patch", updates: { animationIntensity: nextIntensity } });
+    updateAccountSettings({ animation_intensity: nextIntensity });
+  }
+
+  function handleCaretAnimationStyleChange(nextStyle: CaretAnimationStyle) {
+    dispatchPreferences({ type: "patch", updates: { caretAnimationStyle: nextStyle } });
+    updateAccountSettings({ caret_animation: nextStyle });
+  }
+
+  function handleCaretMovementAnimationChange(nextAnimation: CaretMovementAnimation) {
+    dispatchPreferences({ type: "patch", updates: { caretMovementAnimation: nextAnimation } });
+    updateAccountSettings({ caret_movement_animation: nextAnimation });
+  }
+
+  function handleTypingFeedbackAnimationChange(nextAnimation: TypingFeedbackAnimation) {
+    dispatchPreferences({ type: "patch", updates: { typingFeedbackAnimation: nextAnimation } });
+    updateAccountSettings({ typing_feedback_animation: nextAnimation });
+  }
+
+  function handleErrorFeedbackAnimationChange(nextAnimation: ErrorFeedbackAnimation) {
+    dispatchPreferences({ type: "patch", updates: { errorFeedbackAnimation: nextAnimation } });
+    updateAccountSettings({ error_feedback_animation: nextAnimation });
+  }
+
+  function handleKeyboardAnimationStyleChange(nextStyle: KeyboardAnimationStyle) {
+    dispatchPreferences({ type: "patch", updates: { keyboardAnimationStyle: nextStyle } });
+    updateAccountSettings({ keyboard_animation: nextStyle });
+  }
+
+  function handleCompletionAnimationStyleChange(nextStyle: CompletionAnimationStyle) {
+    dispatchPreferences({ type: "patch", updates: { completionAnimationStyle: nextStyle } });
+    updateAccountSettings({ completion_animation: nextStyle });
+  }
+
+  function handleAnimationRespectReducedMotionChange(enabled: boolean) {
+    dispatchPreferences({ type: "patch", updates: { animationRespectReducedMotion: enabled } });
+    updateAccountSettings({ animation_respect_reduced_motion: enabled });
+  }
+
   function handleSaveRunsToAccountChange(enabled: boolean) {
     dispatchPreferences({ type: "patch", updates: { saveRunsToAccount: enabled } });
     updateAccountSettings({ save_runs_to_account: enabled });
@@ -503,6 +650,38 @@ function App() {
   useEffect(() => {
     setStoredValue("rawtype-text-font", textFont);
   }, [textFont]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-animation-intensity", animationIntensity);
+  }, [animationIntensity]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-caret-animation", caretAnimationStyle);
+  }, [caretAnimationStyle]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-caret-movement-animation", caretMovementAnimation);
+  }, [caretMovementAnimation]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-typing-feedback-animation", typingFeedbackAnimation);
+  }, [typingFeedbackAnimation]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-error-feedback-animation", errorFeedbackAnimation);
+  }, [errorFeedbackAnimation]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-keyboard-animation", keyboardAnimationStyle);
+  }, [keyboardAnimationStyle]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-completion-animation", completionAnimationStyle);
+  }, [completionAnimationStyle]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-animation-respect-reduced-motion", animationRespectReducedMotion);
+  }, [animationRespectReducedMotion]);
 
   useEffect(() => {
     setStoredValue("rawtype-highlight-correct-words", highlightCorrectWords);
@@ -636,6 +815,7 @@ function App() {
   return (
     <div
       data-theme={theme}
+      data-motion-intensity={effectiveAnimationIntensity}
       style={appStyle}
     >
       <AppHeader
@@ -732,6 +912,13 @@ function App() {
               showErrorBreakdown={showErrorBreakdown}
               correctMarkerColor={correctMarkerColor}
               errorMarkerColor={errorMarkerColor}
+              animationIntensity={effectiveAnimationIntensity}
+              caretAnimationStyle={caretAnimationStyle}
+              caretMovementAnimation={caretMovementAnimation}
+              typingFeedbackAnimation={typingFeedbackAnimation}
+              errorFeedbackAnimation={errorFeedbackAnimation}
+              keyboardAnimationStyle={keyboardAnimationStyle}
+              completionAnimationStyle={completionAnimationStyle}
             />
           </section>
         )}
@@ -764,6 +951,15 @@ function App() {
             defaultWordsCount={wordsCount}
             defaultWordDifficulty={wordDifficulty}
             defaultNoMistakeMode={wordNoMistakeMode}
+            animationIntensity={animationIntensity}
+            effectiveAnimationIntensity={effectiveAnimationIntensity}
+            caretAnimationStyle={caretAnimationStyle}
+            caretMovementAnimation={caretMovementAnimation}
+            typingFeedbackAnimation={typingFeedbackAnimation}
+            errorFeedbackAnimation={errorFeedbackAnimation}
+            keyboardAnimationStyle={keyboardAnimationStyle}
+            completionAnimationStyle={completionAnimationStyle}
+            animationRespectReducedMotion={animationRespectReducedMotion}
             onThemeChange={handleThemeChange}
             onAppFontChange={handleAppFontChange}
             onTextFontChange={handleTextFontChange}
@@ -784,6 +980,14 @@ function App() {
             onShowErrorBreakdownChange={handleShowErrorBreakdownChange}
             onCorrectMarkerColorChange={handleCorrectMarkerColorChange}
             onErrorMarkerColorChange={handleErrorMarkerColorChange}
+            onAnimationIntensityChange={handleAnimationIntensityChange}
+            onCaretAnimationStyleChange={handleCaretAnimationStyleChange}
+            onCaretMovementAnimationChange={handleCaretMovementAnimationChange}
+            onTypingFeedbackAnimationChange={handleTypingFeedbackAnimationChange}
+            onErrorFeedbackAnimationChange={handleErrorFeedbackAnimationChange}
+            onKeyboardAnimationStyleChange={handleKeyboardAnimationStyleChange}
+            onCompletionAnimationStyleChange={handleCompletionAnimationStyleChange}
+            onAnimationRespectReducedMotionChange={handleAnimationRespectReducedMotionChange}
             onCategoryChange={setActiveSettingsCategory}
           />
         )}
