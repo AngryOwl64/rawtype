@@ -24,6 +24,7 @@ type UseTypingGameOptions = {
   wordDifficulty?: WordModeDifficulty;
   wordNoMistakeMode?: WordNoMistakeMode;
   language?: string;
+  uiLanguage?: string;
 };
 
 function normalizeTypingText(content: string): string {
@@ -40,6 +41,7 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
   const wordNoMistakeMode = options.wordNoMistakeMode ?? "off";
   const noMistakeActive = mode === "words" && wordNoMistakeMode === "on";
   const language = options.language ?? "en";
+  const uiLanguage = options.uiLanguage ?? language;
 
   const [activeText, setActiveText] = useState<TypingText | null>(null);
   const [text, setText] = useState("");
@@ -65,14 +67,19 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
 
     const loader =
       mode === "words"
-        ? getRandomTypingWordsText({ language, wordsCount, difficulty: wordDifficulty })
-        : getRandomTypingText({ language });
+        ? getRandomTypingWordsText({
+            language,
+            messageLanguage: uiLanguage,
+            wordsCount,
+            difficulty: wordDifficulty
+          })
+        : getRandomTypingText({ language, messageLanguage: uiLanguage });
 
     const { text: dbText, error } = await loader;
 
     if (error || !dbText) {
       setIsTextLoading(false);
-      setTextLoadError(error ?? getTypingServiceMessage(language, "sentencesLoadFailed"));
+      setTextLoadError(error ?? getTypingServiceMessage(uiLanguage, "sentencesLoadFailed"));
       return;
     }
 
@@ -88,7 +95,7 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
     setFailedByMistake(false);
     countedMistakeWordNumbersRef.current = new Set();
     setIsTextLoading(false);
-  }, [language, mode, wordsCount, wordDifficulty]);
+  }, [language, mode, uiLanguage, wordsCount, wordDifficulty]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (isTextLoading || words.length === 0) {

@@ -1,18 +1,7 @@
-settings:
-theme
-
-account:
-wpm
-
-farbe anpassen bei whitemode (grün):
-    viele viele themes hinzufügen + plugin possibility
-
-animationen hinzufügen
-setup SMTP in supabase
+ssetup SMTP in supabase
 mehr animationen für wörter abgeschlossen
 seconds mode/endless
 game text verringern (ex. Typing Classic (Words 10, medium, no-mistake off, English))
-fast restart maybe with r or return
 leaderboard
 level system
 pfp
@@ -21,7 +10,6 @@ custom anzahl abgefragter wörter
 code mode
 quote mode
 daily challange
-import font
 footer
 impressum
 DSGVO

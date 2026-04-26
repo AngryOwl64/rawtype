@@ -225,6 +225,12 @@ export function getStoredLanguage(): TypingLanguage {
   return isTypingLanguage(storedLanguage) ? storedLanguage : "en";
 }
 
+export function getStoredGameLanguage(): TypingLanguage {
+  if (typeof window === "undefined") return "en";
+  const storedGameLanguage = window.localStorage.getItem("rawtype-game-language");
+  return isTypingLanguage(storedGameLanguage) ? storedGameLanguage : getStoredLanguage();
+}
+
 export function getStoredAppFont(): AppFont {
   if (typeof window === "undefined") return "system-sans";
   const storedAppFont = window.localStorage.getItem("rawtype-app-font");

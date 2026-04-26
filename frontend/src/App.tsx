@@ -35,6 +35,7 @@ import {
   getStoredCompletionAnimationStyle,
   getStoredErrorFeedbackAnimation,
   getStoredKeyboardAnimationStyle,
+  getStoredGameLanguage,
   getStoredOnScreenKeyboardLayout,
   getStoredRestartKey,
   getStoredLanguage,
@@ -180,6 +181,7 @@ function usePrefersReducedMotion(): boolean {
 
 type PreferencesState = {
   typingMode: TypingMode;
+  gameLanguage: TypingLanguage;
   wordsCount: number;
   wordDifficulty: WordModeDifficulty;
   wordNoMistakeMode: WordNoMistakeMode;
@@ -213,6 +215,7 @@ type PreferencesAction =
 function getInitialPreferences(): PreferencesState {
   return {
     typingMode: "sentences",
+    gameLanguage: getStoredGameLanguage(),
     wordsCount: 25,
     wordDifficulty: "mixed",
     wordNoMistakeMode: "off",
@@ -344,6 +347,7 @@ function App() {
     showOnScreenKeyboard,
     textFont,
     theme,
+    gameLanguage,
     typingFeedbackAnimation,
     typingMode,
     wordDifficulty,
@@ -386,7 +390,7 @@ function App() {
     : user
       ? profile?.username ?? appText.account.default
       : appText.account.login;
-  const languageLabel = getLanguageLabel(language);
+  const gameLanguageLabel = getLanguageLabel(gameLanguage);
   const wordDifficultyLabel =
     wordDifficulty === "easy"
       ? appText.home.easy
@@ -402,9 +406,9 @@ function App() {
           `${wordsCount} ${appText.home.wordsSuffix}`,
           wordDifficultyLabel,
           ...(wordNoMistakeMode === "on" ? [appText.home.noMistakeMode] : []),
-          languageLabel
+          gameLanguageLabel
         ]
-      : [appText.gameHeader.proseLabel, languageLabel];
+      : [appText.gameHeader.proseLabel, gameLanguageLabel];
   const appStyle = useMemo(
     () => ({
       ...themeVariables,
@@ -554,6 +558,10 @@ function App() {
     updateAccountSettings({ default_no_mistake: nextMode === "on" });
   }
 
+  function handleGameLanguageChange(nextLanguage: TypingLanguage) {
+    dispatchPreferences({ type: "patch", updates: { gameLanguage: nextLanguage } });
+  }
+
   function handleHighlightCorrectWordsChange(enabled: boolean) {
     dispatchPreferences({ type: "patch", updates: { highlightCorrectWords: enabled } });
     updateAccountSettings({ highlight_correct_words: enabled });
@@ -652,6 +660,10 @@ function App() {
     setStoredValue("rawtype-language", language);
     document.documentElement.lang = language === "de" ? "de" : "en";
   }, [language]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-game-language", gameLanguage);
+  }, [gameLanguage]);
 
   useEffect(() => {
     setStoredValue("rawtype-app-font", appFont);
@@ -847,6 +859,7 @@ function App() {
             currentStreakDays={currentStreakDays}
             dailyActivity={dailyActivity}
             language={language}
+            gameLanguage={gameLanguage}
             signedIn={Boolean(user)}
             wordDifficulty={wordDifficulty}
             wordNoMistakeMode={wordNoMistakeMode}
@@ -862,6 +875,7 @@ function App() {
               setPlayingTypingGame(true);
             }}
             onWordDifficultyChange={handleDefaultWordDifficultyChange}
+            onGameLanguageChange={handleGameLanguageChange}
             onWordNoMistakeModeChange={handleDefaultNoMistakeModeChange}
             onWordsCountChange={handleDefaultWordsCountChange}
           />
@@ -912,6 +926,7 @@ function App() {
               wordDifficulty={wordDifficulty}
               wordNoMistakeMode={wordNoMistakeMode}
               language={language}
+              gameLanguage={gameLanguage}
               highlightCorrectWords={highlightCorrectWords}
               highlightErrorFromPoint={highlightErrorFromPoint}
               showOnScreenKeyboard={showOnScreenKeyboard}

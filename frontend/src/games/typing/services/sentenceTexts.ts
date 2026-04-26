@@ -16,14 +16,14 @@ const textCache = new Map<string, TypingText[]>();
 const inFlightTextFetches = new Map<string, Promise<{ rows: TypingText[]; error: string | null }>>();
 const lastServedTextId = new Map<string, string>();
 
-async function fetchSentenceBatchFromDb(language: string, batchSize: number): Promise<{
+async function fetchSentenceBatchFromDb(language: string, batchSize: number, messageLanguage: string): Promise<{
   rows: TypingText[];
   error: string | null;
 }> {
   if (!supabase) {
     return {
       rows: [],
-      error: getTypingServiceMessage(language, "supabaseNotConfigured")
+      error: getTypingServiceMessage(messageLanguage, "supabaseNotConfigured")
     };
   }
 
@@ -35,7 +35,7 @@ async function fetchSentenceBatchFromDb(language: string, batchSize: number): Pr
     .limit(batchSize);
 
   if (error) {
-    return { rows: [], error: getTypingServiceMessage(language, "sentencesLoadFailed") };
+    return { rows: [], error: getTypingServiceMessage(messageLanguage, "sentencesLoadFailed") };
   }
 
   const validRows = (data ?? [])
@@ -45,7 +45,11 @@ async function fetchSentenceBatchFromDb(language: string, batchSize: number): Pr
   return { rows: shuffle(validRows), error: null };
 }
 
-async function ensureSentenceBatchLoaded(language: string, batchSize: number): Promise<string | null> {
+async function ensureSentenceBatchLoaded(
+  language: string,
+  batchSize: number,
+  messageLanguage: string
+): Promise<string | null> {
   const key = getSentenceCacheKey(language);
   const cached = textCache.get(key) ?? [];
 
@@ -55,7 +59,7 @@ async function ensureSentenceBatchLoaded(language: string, batchSize: number): P
 
   let pending = inFlightTextFetches.get(key);
   if (!pending) {
-    pending = fetchSentenceBatchFromDb(language, batchSize);
+    pending = fetchSentenceBatchFromDb(language, batchSize, messageLanguage);
     inFlightTextFetches.set(key, pending);
   }
 
@@ -69,14 +73,14 @@ async function ensureSentenceBatchLoaded(language: string, batchSize: number): P
   }
 
   if (result.rows.length === 0) {
-    return getTypingServiceMessage(language, "noProseTextsFound");
+    return getTypingServiceMessage(messageLanguage, "noProseTextsFound");
   }
 
   textCache.set(key, result.rows);
   return null;
 }
 
-function triggerSentencePrefetchIfNeeded(language: string, batchSize: number) {
+function triggerSentencePrefetchIfNeeded(language: string, batchSize: number, messageLanguage: string) {
   const key = getSentenceCacheKey(language);
   const cached = textCache.get(key) ?? [];
 
@@ -84,7 +88,7 @@ function triggerSentencePrefetchIfNeeded(language: string, batchSize: number) {
     return;
   }
 
-  const pending = fetchSentenceBatchFromDb(language, batchSize).then((result) => {
+  const pending = fetchSentenceBatchFromDb(language, batchSize, messageLanguage).then((result) => {
     inFlightTextFetches.delete(key);
 
     if (result.error || result.rows.length === 0) {
@@ -134,9 +138,10 @@ export async function getRandomTypingText(options: GetRandomTypingTextOptions = 
   error: string | null;
 }> {
   const language = options.language ?? "en";
+  const messageLanguage = options.messageLanguage ?? language;
   const batchSize = Math.max(5, options.batchSize ?? DEFAULT_TEXT_BATCH_SIZE);
 
-  const loadError = await ensureSentenceBatchLoaded(language, batchSize);
+  const loadError = await ensureSentenceBatchLoaded(language, batchSize, messageLanguage);
   if (loadError) {
     return { text: null, error: loadError };
   }
@@ -145,11 +150,11 @@ export async function getRandomTypingText(options: GetRandomTypingTextOptions = 
   if (!picked) {
     return {
       text: null,
-      error: getTypingServiceMessage(language, "noProseTextsAvailable")
+      error: getTypingServiceMessage(messageLanguage, "noProseTextsAvailable")
     };
   }
 
-  triggerSentencePrefetchIfNeeded(language, batchSize);
+  triggerSentencePrefetchIfNeeded(language, batchSize, messageLanguage);
 
   return { text: picked, error: null };
 }

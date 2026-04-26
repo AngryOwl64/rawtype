@@ -8,11 +8,13 @@ import {
 
 export type GetRandomTypingTextOptions = {
   language?: string;
+  messageLanguage?: string;
   batchSize?: number;
 };
 
 export type GetRandomTypingWordsTextOptions = {
   language?: string;
+  messageLanguage?: string;
   batchSize?: number;
   wordsCount?: number;
   difficulty?: WordModeDifficulty;
