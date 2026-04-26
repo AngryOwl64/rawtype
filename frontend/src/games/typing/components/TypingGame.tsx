@@ -28,6 +28,7 @@ import { OnScreenKeyboard } from "./OnScreenKeyboard";
 type TypingGameProps = {
   mode?: TypingMode;
   language?: TypingLanguage;
+  gameLanguage?: TypingLanguage;
   wordsCount?: number;
   wordDifficulty?: WordModeDifficulty;
   wordNoMistakeMode?: WordNoMistakeMode;
@@ -129,6 +130,7 @@ function CompletionCelebration({
 export default function TypingGame({
   mode = "sentences",
   language = "en",
+  gameLanguage = language,
   wordsCount = 25,
   wordDifficulty = "mixed",
   wordNoMistakeMode = "off",
@@ -182,7 +184,14 @@ export default function TypingGame({
     restart,
     reloadText,
     handleKeyDown
-  } = useTypingGame({ mode, wordsCount, wordDifficulty, wordNoMistakeMode, language });
+  } = useTypingGame({
+    mode,
+    wordsCount,
+    wordDifficulty,
+    wordNoMistakeMode,
+    language: gameLanguage,
+    uiLanguage: language
+  });
   const typingAreaRef = useRef<HTMLDivElement | null>(null);
   const caretTargetRef = useRef<HTMLSpanElement | null>(null);
   const [caretBox, setCaretBox] = useState<CaretBox | null>(null);
@@ -268,6 +277,7 @@ export default function TypingGame({
       user.id,
       activeText?.id ?? "none",
       mode,
+      gameLanguage,
       wordsCount,
       wordDifficulty,
       wordNoMistakeMode,
@@ -291,7 +301,7 @@ export default function TypingGame({
     void saveTypingRun({
       textId: activeText?.id ?? null,
       mode,
-      language,
+      language: activeText?.language ?? gameLanguage,
       difficulty: savedDifficulty,
       wordsCount: mode === "words" ? wordsCount : null,
       noMistakeMode: wordNoMistakeMode,
@@ -318,12 +328,14 @@ export default function TypingGame({
   }, [
     accuracy,
     activeText?.id,
+    activeText?.language,
     completedWords,
     correctChars,
     durationMs,
     errorEvents,
     failedByMistake,
     finished,
+    gameLanguage,
     isTextLoading,
     language,
     mistakes,

@@ -1,8 +1,14 @@
 // Start menu for choosing a typing mode and word-mode options.
 // Also shows signed-in activity highlights before a run starts.
 import type { getAppTexts } from "../i18n/messages";
+import { LANGUAGE_OPTIONS } from "../settings/preferences";
 import { DailyActivityChart } from "../stats/DailyActivityChart";
-import type { SavedTypingDayStats, TypingLanguage, WordModeDifficulty, WordNoMistakeMode } from "../games/typing/types";
+import type {
+  SavedTypingDayStats,
+  TypingLanguage,
+  WordModeDifficulty,
+  WordNoMistakeMode
+} from "../games/typing/types";
 
 type AppTexts = ReturnType<typeof getAppTexts>;
 
@@ -11,12 +17,14 @@ type HomeMenuProps = {
   currentStreakDays: number;
   dailyActivity: SavedTypingDayStats[];
   language: TypingLanguage;
+  gameLanguage: TypingLanguage;
   signedIn: boolean;
   wordDifficulty: WordModeDifficulty;
   wordNoMistakeMode: WordNoMistakeMode;
   wordsCount: number;
   onStartClassic: () => void;
   onStartWordMode: () => void;
+  onGameLanguageChange: (language: TypingLanguage) => void;
   onWordDifficultyChange: (difficulty: WordModeDifficulty) => void;
   onWordNoMistakeModeChange: (mode: WordNoMistakeMode) => void;
   onWordsCountChange: (count: number) => void;
@@ -27,12 +35,14 @@ export default function HomeMenu({
   currentStreakDays,
   dailyActivity,
   language,
+  gameLanguage,
   signedIn,
   wordDifficulty,
   wordNoMistakeMode,
   wordsCount,
   onStartClassic,
   onStartWordMode,
+  onGameLanguageChange,
   onWordDifficultyChange,
   onWordNoMistakeModeChange,
   onWordsCountChange
@@ -49,21 +59,57 @@ export default function HomeMenu({
         }}
       >
         <h1 style={{ margin: 0, fontSize: "34px" }}>{appText.home.title}</h1>
-        {signedIn && (
-          <div
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          <label
             style={{
               border: "1px solid var(--border-soft)",
               borderRadius: "8px",
-              padding: "8px 12px",
+              padding: "7px 10px",
               backgroundColor: "var(--surface)",
               color: "var(--muted-strong)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
               fontWeight: 700
             }}
           >
-            {appText.home.streak}: {currentStreakDays}{" "}
-            {currentStreakDays === 1 ? appText.home.day : appText.home.days}
-          </div>
-        )}
+            <span style={{ fontSize: "12px" }}>{appText.home.gameLanguage}</span>
+            <select
+              value={gameLanguage}
+              onChange={(event) => onGameLanguageChange(event.target.value as TypingLanguage)}
+              style={{
+                border: "1px solid var(--border-strong)",
+                borderRadius: "6px",
+                padding: "5px 8px",
+                backgroundColor: "var(--input-bg)",
+                color: "var(--text)",
+                fontWeight: 700
+              }}
+            >
+              {LANGUAGE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {signedIn && (
+            <div
+              style={{
+                border: "1px solid var(--border-soft)",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                backgroundColor: "var(--surface)",
+                color: "var(--muted-strong)",
+                fontWeight: 700
+              }}
+            >
+              {appText.home.streak}: {currentStreakDays}{" "}
+              {currentStreakDays === 1 ? appText.home.day : appText.home.days}
+            </div>
+          )}
+        </div>
       </div>
 
       <div

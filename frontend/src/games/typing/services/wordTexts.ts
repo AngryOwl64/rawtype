@@ -34,14 +34,14 @@ type PickWordsFromPoolOptions = {
   enforceInitialLimit?: boolean;
 };
 
-async function fetchWordsBatchFromDb(language: string, batchSize: number): Promise<{
+async function fetchWordsBatchFromDb(language: string, batchSize: number, messageLanguage: string): Promise<{
   wordsByDifficulty: WordsByDifficulty;
   error: string | null;
 }> {
   if (!supabase) {
     return {
       wordsByDifficulty: createEmptyWordsByDifficulty(),
-      error: getTypingServiceMessage(language, "supabaseNotConfigured")
+      error: getTypingServiceMessage(messageLanguage, "supabaseNotConfigured")
     };
   }
 
@@ -62,7 +62,7 @@ async function fetchWordsBatchFromDb(language: string, batchSize: number): Promi
     if (error) {
       return {
         wordsByDifficulty: createEmptyWordsByDifficulty(),
-        error: getTypingServiceMessage(language, "wordsLoadFailed")
+        error: getTypingServiceMessage(messageLanguage, "wordsLoadFailed")
       };
     }
 
@@ -100,7 +100,11 @@ async function fetchWordsBatchFromDb(language: string, batchSize: number): Promi
   return { wordsByDifficulty, error: null };
 }
 
-async function ensureWordsBatchLoaded(language: string, batchSize: number): Promise<string | null> {
+async function ensureWordsBatchLoaded(
+  language: string,
+  batchSize: number,
+  messageLanguage: string
+): Promise<string | null> {
   const key = getWordsCacheKey(language);
   const cached = wordsCache.get(key);
 
@@ -110,7 +114,7 @@ async function ensureWordsBatchLoaded(language: string, batchSize: number): Prom
 
   let pending = inFlightWordFetches.get(key);
   if (!pending) {
-    pending = fetchWordsBatchFromDb(language, batchSize);
+    pending = fetchWordsBatchFromDb(language, batchSize, messageLanguage);
     inFlightWordFetches.set(key, pending);
   }
 
@@ -124,7 +128,7 @@ async function ensureWordsBatchLoaded(language: string, batchSize: number): Prom
   }
 
   if (countWordsInDifficultyPools(result.wordsByDifficulty) === 0) {
-    return getTypingServiceMessage(language, "noWordsFound");
+    return getTypingServiceMessage(messageLanguage, "noWordsFound");
   }
 
   wordsCache.set(key, result.wordsByDifficulty);
@@ -311,11 +315,12 @@ export async function getRandomTypingWordsText(
   options: GetRandomTypingWordsTextOptions = {}
 ): Promise<{ text: TypingText | null; error: string | null }> {
   const language = options.language ?? "en";
+  const messageLanguage = options.messageLanguage ?? language;
   const batchSize = Math.max(10, options.batchSize ?? DEFAULT_WORD_BATCH_SIZE);
   const wordsCount = Math.max(5, options.wordsCount ?? DEFAULT_WORDS_COUNT);
   const difficultyMode: WordModeDifficulty = options.difficulty ?? "mixed";
 
-  const loadError = await ensureWordsBatchLoaded(language, batchSize);
+  const loadError = await ensureWordsBatchLoaded(language, batchSize, messageLanguage);
   if (loadError) {
     return { text: null, error: loadError };
   }
@@ -324,7 +329,7 @@ export async function getRandomTypingWordsText(
   if (!poolByDifficulty || countWordsInDifficultyPools(poolByDifficulty) === 0) {
     return {
       text: null,
-      error: getTypingServiceMessage(language, "noWordsAvailable")
+      error: getTypingServiceMessage(messageLanguage, "noWordsAvailable")
     };
   }
 
@@ -336,7 +341,7 @@ export async function getRandomTypingWordsText(
   if (words.length === 0) {
     return {
       text: null,
-      error: getTypingServiceMessage(language, "noWordsForDifficulty")
+      error: getTypingServiceMessage(messageLanguage, "noWordsForDifficulty")
     };
   }
 
