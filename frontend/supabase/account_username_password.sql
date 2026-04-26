@@ -130,6 +130,14 @@ create table if not exists public.user_settings (
   save_runs_to_account boolean not null default true,
   save_error_words boolean not null default true,
   show_error_breakdown boolean not null default true,
+  animation_intensity text not null default 'balanced',
+  caret_animation text not null default 'blink',
+  caret_movement_animation text not null default 'slide',
+  typing_feedback_animation text not null default 'lift',
+  error_feedback_animation text not null default 'shake',
+  keyboard_animation text not null default 'press',
+  completion_animation text not null default 'confetti',
+  animation_respect_reduced_motion boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
 
@@ -153,7 +161,28 @@ create table if not exists public.user_settings (
   ),
   constraint user_settings_restart_key_valid check (restart_key in ('Enter', 'Escape')),
   constraint user_settings_correct_marker_color_valid check (correct_marker_color ~ '^#[0-9A-Fa-f]{6}$'),
-  constraint user_settings_error_marker_color_valid check (error_marker_color ~ '^#[0-9A-Fa-f]{6}$')
+  constraint user_settings_error_marker_color_valid check (error_marker_color ~ '^#[0-9A-Fa-f]{6}$'),
+  constraint user_settings_animation_intensity_valid check (
+    animation_intensity in ('off', 'calm', 'balanced', 'expressive')
+  ),
+  constraint user_settings_caret_animation_valid check (
+    caret_animation in ('steady', 'blink', 'glow', 'block', 'underline')
+  ),
+  constraint user_settings_caret_movement_animation_valid check (
+    caret_movement_animation in ('instant', 'slide')
+  ),
+  constraint user_settings_typing_feedback_animation_valid check (
+    typing_feedback_animation in ('none', 'lift', 'pop', 'wave', 'ink')
+  ),
+  constraint user_settings_error_feedback_animation_valid check (
+    error_feedback_animation in ('none', 'shake', 'flash', 'snap', 'glitch')
+  ),
+  constraint user_settings_keyboard_animation_valid check (
+    keyboard_animation in ('none', 'press', 'glow', 'ripple', 'tilt')
+  ),
+  constraint user_settings_completion_animation_valid check (
+    completion_animation in ('none', 'pulse', 'confetti', 'sparkles', 'ribbons')
+  )
 );
 
 drop trigger if exists user_settings_touch_updated_at on public.user_settings;

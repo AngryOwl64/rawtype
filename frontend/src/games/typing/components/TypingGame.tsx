@@ -1,14 +1,21 @@
 // Main typing game view and run-completion screen.
 // Connects the game hook, persistence, metrics, and word rendering.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../../auth/authContext";
 import { getTypingGameTexts } from "../../../i18n/messages";
 import { saveTypingRun } from "../services/runResults";
 import { useActiveKeyboardKeys } from "../hooks/useActiveKeyboardKeys";
 import { useTypingGame } from "../hooks/useTypingGame";
 import type {
+  AnimationIntensity,
+  CaretAnimationStyle,
+  CaretMovementAnimation,
+  CompletionAnimationStyle,
+  ErrorFeedbackAnimation,
+  KeyboardAnimationStyle,
   OnScreenKeyboardLayout,
   RestartKey,
+  TypingFeedbackAnimation,
   TypingLanguage,
   TypingMode,
   WordModeDifficulty,
@@ -34,7 +41,90 @@ type TypingGameProps = {
   showErrorBreakdown?: boolean;
   correctMarkerColor?: string;
   errorMarkerColor?: string;
+  animationIntensity?: AnimationIntensity;
+  caretAnimationStyle?: CaretAnimationStyle;
+  caretMovementAnimation?: CaretMovementAnimation;
+  typingFeedbackAnimation?: TypingFeedbackAnimation;
+  errorFeedbackAnimation?: ErrorFeedbackAnimation;
+  keyboardAnimationStyle?: KeyboardAnimationStyle;
+  completionAnimationStyle?: CompletionAnimationStyle;
 };
+
+type CaretBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+function GlidingCaret({
+  box,
+  caretAnimationStyle,
+  caretMovementAnimation
+}: {
+  box: CaretBox | null;
+  caretAnimationStyle: CaretAnimationStyle;
+  caretMovementAnimation: CaretMovementAnimation;
+}) {
+  if (!box) return null;
+
+  return (
+    <span
+      aria-hidden="true"
+      className={`rawtype-gliding-caret rawtype-caret-visual-${caretAnimationStyle} rawtype-cursor-movement-${caretMovementAnimation}`}
+      style={{
+        transform: `translate3d(${box.x}px, ${box.y}px, 0)`,
+        width: `${box.width}px`,
+        height: `${box.height}px`
+      }}
+    />
+  );
+}
+
+function CompletionCelebration({
+  animationIntensity,
+  completionAnimationStyle
+}: {
+  animationIntensity: AnimationIntensity;
+  completionAnimationStyle: CompletionAnimationStyle;
+}) {
+  if (animationIntensity === "off" || completionAnimationStyle === "none") {
+    return null;
+  }
+
+  const particleCount = animationIntensity === "expressive" ? 30 : animationIntensity === "balanced" ? 22 : 14;
+
+  return (
+    <div
+      aria-hidden="true"
+      className={`rawtype-completion-celebration rawtype-motion-${animationIntensity} rawtype-completion-${completionAnimationStyle}`}
+    >
+      {Array.from({ length: particleCount }, (_, index) => (
+        <span
+          key={index}
+          className="rawtype-completion-particle"
+          style={{
+            "--particle-index": index,
+            "--particle-left": `${6 + ((index * 19) % 88)}%`,
+            "--particle-hue": `${(index * 37) % 360}deg`,
+            "--particle-delay": `${index * 34}ms`,
+            "--particle-drift": `${(index % 7) - 3}`,
+            "--particle-top": `${16 + (index % 7) * 10}%`,
+            "--particle-drift-x": `${((index % 7) - 3) * 18}px`,
+            "--particle-ribbon-x": `${260 + ((index % 7) - 3) * 28}px`,
+            "--particle-tilt-start": `${((index % 7) - 3) * 5}deg`,
+            "--particle-tilt-end": `${((index % 7) - 3) * -8}deg`,
+            "--particle-angle": `${index * 24}deg`,
+            "--particle-start-rotation": `${index * 17}deg`,
+            "--particle-spin": `${index * 43}deg`,
+            "--particle-radius": `${52 + index}px`,
+            "--particle-scale": `${3 + index * 0.08}`
+          } as React.CSSProperties}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function TypingGame({
   mode = "sentences",
@@ -51,7 +141,14 @@ export default function TypingGame({
   saveErrorWords = true,
   showErrorBreakdown = true,
   correctMarkerColor = "#6fbf73",
-  errorMarkerColor = "#c86b73"
+  errorMarkerColor = "#c86b73",
+  animationIntensity = "balanced",
+  caretAnimationStyle = "blink",
+  caretMovementAnimation = "slide",
+  typingFeedbackAnimation = "lift",
+  errorFeedbackAnimation = "shake",
+  keyboardAnimationStyle = "press",
+  completionAnimationStyle = "confetti"
 }: TypingGameProps) {
   const { user } = useAuth();
   const text = useMemo(() => getTypingGameTexts(language), [language]);
@@ -87,10 +184,70 @@ export default function TypingGame({
     handleKeyDown
   } = useTypingGame({ mode, wordsCount, wordDifficulty, wordNoMistakeMode, language });
   const typingAreaRef = useRef<HTMLDivElement | null>(null);
+  const caretTargetRef = useRef<HTMLSpanElement | null>(null);
+  const [caretBox, setCaretBox] = useState<CaretBox | null>(null);
+
+  const measureCaret = useCallback(() => {
+    const typingArea = typingAreaRef.current;
+    const caretTarget = caretTargetRef.current;
+
+    if (!typingArea || !caretTarget || finished || isTextLoading || textLoadError) {
+      setCaretBox(null);
+      return;
+    }
+
+    const stageRect = typingArea.getBoundingClientRect();
+    const targetRect = caretTarget.getBoundingClientRect();
+    const placement = caretTarget.dataset.caretPlacement;
+    const nextBox = {
+      x:
+        (placement === "after" ? targetRect.right - stageRect.left : targetRect.left - stageRect.left) -
+        typingArea.clientLeft,
+      y: targetRect.top - stageRect.top - typingArea.clientTop,
+      width: Math.max(2, targetRect.width),
+      height: targetRect.height
+    };
+
+    setCaretBox((previousBox) => {
+      if (
+        previousBox &&
+        Math.abs(previousBox.x - nextBox.x) < 0.4 &&
+        Math.abs(previousBox.y - nextBox.y) < 0.4 &&
+        Math.abs(previousBox.width - nextBox.width) < 0.4 &&
+        Math.abs(previousBox.height - nextBox.height) < 0.4
+      ) {
+        return previousBox;
+      }
+
+      return nextBox;
+    });
+  }, [finished, isTextLoading, textLoadError]);
 
   useEffect(() => {
     void reloadText();
   }, [reloadText]);
+
+  useLayoutEffect(() => {
+    measureCaret();
+  }, [currentInput, currentWordIndex, measureCaret, words]);
+
+  useEffect(() => {
+    const typingArea = typingAreaRef.current;
+    if (!typingArea) return;
+
+    window.addEventListener("resize", measureCaret);
+
+    if (typeof ResizeObserver !== "undefined") {
+      const resizeObserver = new ResizeObserver(() => measureCaret());
+      resizeObserver.observe(typingArea);
+      return () => {
+        resizeObserver.disconnect();
+        window.removeEventListener("resize", measureCaret);
+      };
+    }
+
+    return () => window.removeEventListener("resize", measureCaret);
+  }, [measureCaret]);
 
   useEffect(() => {
     if (!finished && !isTextLoading && !textLoadError) {
@@ -234,6 +391,7 @@ export default function TypingGame({
 
   return (
     <div
+      className={`rawtype-typing-game rawtype-motion-${animationIntensity}`}
       style={{
         padding: "32px 16px 40px",
         display: "flex",
@@ -292,6 +450,7 @@ export default function TypingGame({
           {!isTextLoading && !textLoadError && (
             <div
               ref={typingAreaRef}
+              className="rawtype-typing-stage"
               tabIndex={0}
               onKeyDown={handleKeyDown}
               onClick={() => typingAreaRef.current?.focus()}
@@ -325,11 +484,19 @@ export default function TypingGame({
 
                   if (wordIndex < currentWordIndex) {
                     return (
-                      <span key={wordIndex} style={{ display: "inline-flex" }}>
+                      <span
+                        key={wordIndex}
+                        style={{
+                          display: "inline-flex",
+                          backgroundColor: highlightCorrectWords ? correctMarkerBackground : "transparent",
+                          borderRadius: 0
+                        }}
+                      >
                         <span
+                          className={`rawtype-completed-word rawtype-feedback-${typingFeedbackAnimation}`}
                           style={{
                             color: highlightCorrectWords ? "var(--text)" : "var(--success)",
-                            backgroundColor: highlightCorrectWords ? correctMarkerBackground : "transparent",
+                            backgroundColor: "transparent",
                             borderRadius: 0,
                             padding: 0,
                             display: "inline-flex"
@@ -343,7 +510,7 @@ export default function TypingGame({
                             style={{
                               display: "inline-flex",
                               color: "transparent",
-                              backgroundColor: highlightCorrectWords ? correctMarkerBackground : "transparent",
+                              backgroundColor: "transparent",
                               borderRadius: 0,
                               padding: 0
                             }}
@@ -368,15 +535,17 @@ export default function TypingGame({
                   const firstMismatchIndex = highlightErrorFromPoint
                     ? getFirstMismatchIndex(currentInput, word)
                     : -1;
+                  const showSpaceCursor = !cursorInWord && !finished && hasTrailingSpace;
+                  const showEndCursor = !cursorInWord && !finished && !hasTrailingSpace;
 
                   return (
                     <span key={wordIndex} style={{ display: "inline-flex" }}>
                       <span
+                        className="rawtype-current-word"
                         style={{
                           alignItems: "center",
                           whiteSpace: "normal",
-                          display: "inline-flex",
-                          boxShadow: !cursorInWord && !finished ? "inset -2px 0 0 var(--text)" : "none"
+                          display: "inline-flex"
                         }}
                       >
                         {word.split("").map((char, charIndex) => {
@@ -384,6 +553,7 @@ export default function TypingGame({
                           let backgroundColor = "transparent";
                           const borderRadius = 0;
                           const padding = 0;
+                          let characterStateClass = "";
 
                           if (charIndex < currentInput.length) {
                             const markedAsWrongFromMismatch =
@@ -392,25 +562,49 @@ export default function TypingGame({
                             if (markedAsWrongFromMismatch) {
                               color = "var(--danger)";
                               backgroundColor = errorMarkerBackground;
+                              characterStateClass = "rawtype-char-error";
                             } else {
-                              color = currentInput[charIndex] === char ? "var(--text)" : "var(--danger)";
-                              if (highlightCorrectWords && currentInput[charIndex] === char) {
+                              const typedCorrectly = currentInput[charIndex] === char;
+                              color = typedCorrectly ? "var(--text)" : "var(--danger)";
+                              characterStateClass = typedCorrectly ? "rawtype-char-correct" : "rawtype-char-error";
+
+                              if (highlightCorrectWords && typedCorrectly) {
                                 backgroundColor = correctMarkerBackground;
                               }
                             }
                           }
 
-                          const showCursor = cursorInWord && charIndex === currentInput.length;
+                          const showCaretBeforeChar = cursorInWord && charIndex === currentInput.length;
+                          const showCaretAfterChar = showEndCursor && charIndex === word.length - 1;
+                          const isCaretTarget = showCaretBeforeChar || showCaretAfterChar;
+                          const characterClassName = [
+                            "rawtype-typing-char",
+                            characterStateClass,
+                            characterStateClass === "rawtype-char-correct"
+                              ? `rawtype-feedback-${typingFeedbackAnimation}`
+                              : "",
+                            characterStateClass === "rawtype-char-error"
+                              ? `rawtype-error-${errorFeedbackAnimation}`
+                              : ""
+                          ]
+                            .filter(Boolean)
+                            .join(" ");
 
                           return (
                             <span
                               key={charIndex}
+                              ref={isCaretTarget ? caretTargetRef : undefined}
+                              className={characterClassName}
+                              data-caret-placement={showCaretAfterChar ? "after" : "before"}
                               style={{
                                 color,
                                 backgroundColor,
                                 borderRadius,
                                 padding,
-                                boxShadow: showCursor ? "inset 2px 0 0 var(--text)" : "none"
+                                animationDelay:
+                                  characterStateClass === "rawtype-char-correct" && typingFeedbackAnimation === "wave"
+                                    ? `${charIndex * 20}ms`
+                                    : undefined
                               }}
                             >
                               {char}
@@ -418,11 +612,25 @@ export default function TypingGame({
                           );
                         })}
                       </span>
-                      {hasTrailingSpace && <span aria-hidden="true">{"\u00A0"}</span>}
+                      {hasTrailingSpace && (
+                        <span
+                          aria-hidden="true"
+                          ref={showSpaceCursor ? caretTargetRef : undefined}
+                          data-caret-placement={showSpaceCursor ? "before" : undefined}
+                          style={{ display: "inline-flex" }}
+                        >
+                          {"\u00A0"}
+                        </span>
+                      )}
                     </span>
                   );
                 })}
               </div>
+              <GlidingCaret
+                box={caretBox}
+                caretAnimationStyle={caretAnimationStyle}
+                caretMovementAnimation={caretMovementAnimation}
+              />
             </div>
           )}
 
@@ -458,6 +666,8 @@ export default function TypingGame({
               activeKeys={activeKeyboardKeys}
               title={text.onScreenKeyboard}
               layout={onScreenKeyboardLayout}
+              animationIntensity={animationIntensity}
+              keyboardAnimationStyle={keyboardAnimationStyle}
             />
           )}
         </section>
@@ -465,14 +675,21 @@ export default function TypingGame({
 
       {finished && (
         <section
+          className="rawtype-finished-panel"
           style={{
             border: "1px solid var(--border)",
             borderRadius: "8px",
             backgroundColor: "var(--surface)",
             padding: "18px",
-            width: "min(100%, 980px)"
+            width: "min(100%, 980px)",
+            position: "relative",
+            overflow: "hidden"
           }}
         >
+          <CompletionCelebration
+            animationIntensity={animationIntensity}
+            completionAnimationStyle={completionAnimationStyle}
+          />
           <h2 style={{ marginTop: 0, marginBottom: "10px", fontSize: "28px" }}>{text.runComplete}</h2>
           <p style={{ marginTop: 0, marginBottom: "12px", color: "var(--muted)", fontWeight: 600 }}>
             {text.restartHint.replace("{key}", restartKeyLabel)}
