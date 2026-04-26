@@ -69,3 +69,14 @@ src/
 Set `VITE_SITE_URL` to the public production origin before deploying, for example
 `https://rawtype.example`. The build uses it to generate `sitemap.xml`, add the sitemap entry
 to `robots.txt`, and inject the canonical URL into `index.html`.
+
+`npm run build` also generates localized static entry pages for high-intent search paths such as
+`/typing-test/`, `/typing-practice/`, `/wpm-test/`, `/word-mode/`, `/de/tipptrainer/`, and
+`/de/tippgeschwindigkeit-test/`. These paths render the same app shell, but they receive their own
+canonical URL, hreflang alternates, Open Graph metadata, sitemap entries, and JSON-LD.
+
+The public folder also contains non-visual crawler helpers:
+
+- `robots.txt` points crawlers at the sitemap and keeps private utility routes out of search.
+- `_headers` adds `X-Robots-Tag` to account/settings/stats routes and cache hints for generated files.
+- `llms.txt` gives AI/search agents a concise machine-readable RawType summary.

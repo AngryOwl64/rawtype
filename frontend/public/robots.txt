@@ -1,3 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /account
+Disallow: /profile
+Disallow: /settings
+Disallow: /stats
 Sitemap: https://rawtype.net/sitemap.xml

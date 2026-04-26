@@ -81,6 +81,21 @@ const routePathsByTab: Record<AppTab, string> = {
   settings: "/settings"
 };
 
+const seoGamePaths = new Set([
+  "/",
+  "/de",
+  "/typing-test",
+  "/typing-practice",
+  "/wpm-test",
+  "/word-mode",
+  "/no-mistake-mode",
+  "/de/tipptraining",
+  "/de/tipptrainer",
+  "/de/tippgeschwindigkeit-test",
+  "/de/wortmodus",
+  "/de/no-mistake-modus"
+]);
+
 function isTypingMode(value: string | null | undefined): value is TypingMode {
   return value === "sentences" || value === "words";
 }
@@ -101,12 +116,7 @@ function normalizePathname(pathname: string): string {
 function parseRoute(pathname: string): RouteState {
   const normalizedPath = normalizePathname(pathname);
 
-  if (
-    normalizedPath === "/" ||
-    normalizedPath === "/de" ||
-    normalizedPath === "/typing-test" ||
-    normalizedPath === "/de/tipptraining"
-  ) {
+  if (seoGamePaths.has(normalizedPath)) {
     return { kind: "games" };
   }
 
