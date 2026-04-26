@@ -2,11 +2,44 @@
   "name": "RawType - Free Typing Test and Practice Game",
   "short_name": "RawType",
   "description": "Practice typing with prose and word drills, track WPM and accuracy, and keep improving.",
+  "id": "/",
+  "lang": "en",
+  "dir": "ltr",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "orientation": "any",
+  "categories": ["games", "education", "productivity"],
   "background_color": "#ffffff",
   "theme_color": "#863bff",
+  "shortcuts": [
+    {
+      "name": "Typing Test",
+      "short_name": "Test",
+      "description": "Check WPM and accuracy in RawType.",
+      "url": "/typing-test/",
+      "icons": [
+        {
+          "src": "/web-app-manifest-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Word Mode",
+      "short_name": "Words",
+      "description": "Practice random word typing drills.",
+      "url": "/word-mode/",
+      "icons": [
+        {
+          "src": "/web-app-manifest-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",

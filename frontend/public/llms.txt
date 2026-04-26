@@ -1,0 +1,32 @@
+# RawType
+
+> RawType is a free browser-based typing test and typing practice game for improving WPM, CPM, accuracy, and consistency with prose and random word drills.
+
+Website: https://rawtype.net/
+Sitemap: https://rawtype.net/sitemap.xml
+Primary language: English
+Also available: German
+
+## Key Pages
+
+- Home: https://rawtype.net/
+- Free typing test: https://rawtype.net/typing-test/
+- Typing practice: https://rawtype.net/typing-practice/
+- WPM test: https://rawtype.net/wpm-test/
+- Word Mode typing drills: https://rawtype.net/word-mode/
+- German Tipptrainer: https://rawtype.net/de/tipptrainer/
+- German Tippgeschwindigkeit test: https://rawtype.net/de/tippgeschwindigkeit-test/
+
+## Product Summary
+
+RawType helps players practice typing with two main modes:
+
+- Typing Classic uses prose-like text for rhythm, punctuation, capitalization, and sentence flow.
+- Word Mode creates random word drills with selectable word count, difficulty, and optional No Mistake Mode.
+
+RawType measures WPM, CPM, accuracy, progress, mistakes, duration, completed words, and account-saved typing history when a player signs in.
+
+## Suggested Descriptions
+
+- Short: Free typing test and practice game for WPM, accuracy, prose, and word drills.
+- German: Kostenloser Tipptrainer fuer Tippgeschwindigkeit, Genauigkeit, Prosa und Wortuebungen.
