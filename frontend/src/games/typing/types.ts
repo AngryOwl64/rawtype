@@ -37,6 +37,7 @@ export type TypingFeedbackAnimation = "none" | "lift" | "pop" | "wave" | "ink";
 export type ErrorFeedbackAnimation = "none" | "shake" | "flash" | "snap" | "glitch";
 export type KeyboardAnimationStyle = "none" | "press" | "glow" | "ripple" | "tilt";
 export type CompletionAnimationStyle = "none" | "pulse" | "confetti" | "sparkles" | "ribbons";
+export type MetricValueAnimationStyle = "none" | "roll-up" | "slide-side" | "flip";
 export type CustomCasingMode = "natural" | "lowercase" | "uppercase" | "title";
 export type CustomPunctuationMode = "none" | "light" | "dense";
 export type CustomNumberMode = "none" | "light" | "dense";

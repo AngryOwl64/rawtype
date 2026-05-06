@@ -12,6 +12,7 @@ import type {
   CustomFont,
   ErrorFeedbackAnimation,
   KeyboardAnimationStyle,
+  MetricValueAnimationStyle,
   OnScreenKeyboardLayout,
   RestartKey,
   TextFont,
@@ -64,6 +65,7 @@ const DEFAULT_TYPING_FEEDBACK_ANIMATION: TypingFeedbackAnimation = "lift";
 const DEFAULT_ERROR_FEEDBACK_ANIMATION: ErrorFeedbackAnimation = "shake";
 const DEFAULT_KEYBOARD_ANIMATION: KeyboardAnimationStyle = "press";
 const DEFAULT_COMPLETION_ANIMATION: CompletionAnimationStyle = "confetti";
+const DEFAULT_METRIC_VALUE_ANIMATION: MetricValueAnimationStyle = "roll-up";
 
 const FONT_STACKS: Record<BuiltInAppFont | BuiltInTextFont, string> = {
   "system-sans": '"Segoe UI", "Aptos", "Trebuchet MS", sans-serif',
@@ -170,6 +172,16 @@ export function getStoredCompletionAnimationStyle(): CompletionAnimationStyle {
   if (typeof window === "undefined") return DEFAULT_COMPLETION_ANIMATION;
   const storedValue = window.localStorage.getItem("rawtype-completion-animation");
   return isCompletionAnimationStyle(storedValue) ? storedValue : DEFAULT_COMPLETION_ANIMATION;
+}
+
+export function isMetricValueAnimationStyle(value: string | null | undefined): value is MetricValueAnimationStyle {
+  return value === "none" || value === "roll-up" || value === "slide-side" || value === "flip";
+}
+
+export function getStoredMetricValueAnimationStyle(): MetricValueAnimationStyle {
+  if (typeof window === "undefined") return DEFAULT_METRIC_VALUE_ANIMATION;
+  const storedValue = window.localStorage.getItem("rawtype-metric-value-animation");
+  return isMetricValueAnimationStyle(storedValue) ? storedValue : DEFAULT_METRIC_VALUE_ANIMATION;
 }
 
 export function isTypingLanguage(value: string | null | undefined): value is TypingLanguage {

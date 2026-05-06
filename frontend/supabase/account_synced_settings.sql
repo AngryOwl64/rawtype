@@ -23,6 +23,7 @@ alter table public.user_settings
   add column if not exists error_feedback_animation text not null default 'shake',
   add column if not exists keyboard_animation text not null default 'press',
   add column if not exists completion_animation text not null default 'confetti',
+  add column if not exists metric_value_animation text not null default 'roll-up',
   add column if not exists animation_respect_reduced_motion boolean not null default true;
 
 update public.user_settings
@@ -51,7 +52,8 @@ alter table public.user_settings
   drop constraint if exists user_settings_typing_feedback_animation_valid,
   drop constraint if exists user_settings_error_feedback_animation_valid,
   drop constraint if exists user_settings_keyboard_animation_valid,
-  drop constraint if exists user_settings_completion_animation_valid;
+  drop constraint if exists user_settings_completion_animation_valid,
+  drop constraint if exists user_settings_metric_value_animation_valid;
 
 alter table public.user_settings
   add constraint user_settings_theme_valid check (theme in ('pergament', 'monokai', 'dracula')),
@@ -89,6 +91,9 @@ alter table public.user_settings
   ),
   add constraint user_settings_completion_animation_valid check (
     completion_animation in ('none', 'pulse', 'confetti', 'sparkles', 'ribbons')
+  ),
+  add constraint user_settings_metric_value_animation_valid check (
+    metric_value_animation in ('none', 'roll-up', 'slide-side', 'flip')
   );
 
 commit;
