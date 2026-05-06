@@ -1056,7 +1056,8 @@ export default function SettingsPanel({
   ];
   const typingModeOptions: Array<SelectOption<TypingMode>> = [
     { value: "sentences", label: text.page.modeSentences },
-    { value: "words", label: text.page.modeWords }
+    { value: "words", label: text.page.modeWords },
+    { value: "custom", label: text.page.modeCustom }
   ];
   const wordsCountOptions: Array<SelectOption<string>> = [
     { value: "10", label: "10" },

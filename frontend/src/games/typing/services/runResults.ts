@@ -11,7 +11,6 @@ import type {
   SavedTypingStats,
   TypingError,
   TypingMode,
-  WordModeDifficulty,
   WordNoMistakeMode
 } from "../types";
 import { calculateCpm, calculateWpm } from "./typingMetrics";
@@ -25,7 +24,7 @@ export type CompletedTypingRun = {
   textId: string | null;
   mode: TypingMode;
   language: string;
-  difficulty: WordModeDifficulty | null;
+  difficulty: string | null;
   wordsCount: number | null;
   noMistakeMode: WordNoMistakeMode;
   wpm: number;
@@ -66,7 +65,7 @@ type DayAccumulator = {
   totalDurationMs: number;
 };
 
-const displayedTypingModes: TypingMode[] = ["sentences", "words"];
+const displayedTypingModes: TypingMode[] = ["sentences", "words", "custom"];
 
 function isUuid(value: string | null): value is string {
   return Boolean(

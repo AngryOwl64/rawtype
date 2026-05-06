@@ -2,7 +2,7 @@
 // Tracks input, timing, mistakes, and completion metrics.
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { getRandomTypingText, getRandomTypingWordsText } from "../services/texts";
+import { getRandomCustomTypingText, getRandomTypingText, getRandomTypingWordsText } from "../services/texts";
 import { getTypingServiceMessage } from "../services/textServiceUtils";
 import {
   calculateAccuracy,
@@ -12,6 +12,7 @@ import {
 } from "../services/typingMetrics";
 import type {
   TypingError,
+  CustomTypingSettings,
   TypingMode,
   TypingText,
   WordModeDifficulty,
@@ -23,6 +24,7 @@ type UseTypingGameOptions = {
   wordsCount?: number;
   wordDifficulty?: WordModeDifficulty;
   wordNoMistakeMode?: WordNoMistakeMode;
+  customSettings?: CustomTypingSettings;
   language?: string;
   uiLanguage?: string;
 };
@@ -39,6 +41,7 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
   const wordsCount = Math.max(5, options.wordsCount ?? 25);
   const wordDifficulty = options.wordDifficulty ?? "mixed";
   const wordNoMistakeMode = options.wordNoMistakeMode ?? "off";
+  const customSettings = options.customSettings;
   const noMistakeActive = mode === "words" && wordNoMistakeMode === "on";
   const language = options.language ?? "en";
   const uiLanguage = options.uiLanguage ?? language;
@@ -66,14 +69,16 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
     setTextLoadError("");
 
     const loader =
-      mode === "words"
-        ? getRandomTypingWordsText({
-            language,
-            messageLanguage: uiLanguage,
-            wordsCount,
-            difficulty: wordDifficulty
-          })
-        : getRandomTypingText({ language, messageLanguage: uiLanguage });
+      mode === "custom"
+        ? getRandomCustomTypingText({ language, messageLanguage: uiLanguage, settings: customSettings })
+        : mode === "words"
+          ? getRandomTypingWordsText({
+              language,
+              messageLanguage: uiLanguage,
+              wordsCount,
+              difficulty: wordDifficulty
+            })
+          : getRandomTypingText({ language, messageLanguage: uiLanguage });
 
     const { text: dbText, error } = await loader;
 
@@ -95,7 +100,7 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
     setFailedByMistake(false);
     countedMistakeWordNumbersRef.current = new Set();
     setIsTextLoading(false);
-  }, [language, mode, uiLanguage, wordsCount, wordDifficulty]);
+  }, [customSettings, language, mode, uiLanguage, wordsCount, wordDifficulty]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (isTextLoading || words.length === 0) {

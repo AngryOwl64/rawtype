@@ -9,7 +9,7 @@ export type TypingError = {
   typed: string;
 };
 
-export type TypingMode = "sentences" | "words";
+export type TypingMode = "sentences" | "words" | "custom";
 export type TypingLanguage = "en" | "de";
 export type CustomFontId = `custom:${string}`;
 export type BuiltInAppFont = "system-sans" | "libre-baskerville" | "smooch-sans" | "manrope" | "nunito-sans";
@@ -37,6 +37,24 @@ export type TypingFeedbackAnimation = "none" | "lift" | "pop" | "wave" | "ink";
 export type ErrorFeedbackAnimation = "none" | "shake" | "flash" | "snap" | "glitch";
 export type KeyboardAnimationStyle = "none" | "press" | "glow" | "ripple" | "tilt";
 export type CompletionAnimationStyle = "none" | "pulse" | "confetti" | "sparkles" | "ribbons";
+export type CustomCasingMode = "natural" | "lowercase" | "uppercase" | "title";
+export type CustomPunctuationMode = "none" | "light" | "dense";
+export type CustomNumberMode = "none" | "light" | "dense";
+export type CustomSymbolMode = "none" | "light" | "dense";
+export type CustomRepeatMode = "none" | "light" | "dense";
+export type CustomLetterFocus = "balanced" | "home-row" | "top-row" | "left-hand" | "right-hand";
+export type CustomRhythmMode = "steady" | "bursts" | "staggered";
+
+export type CustomTypingSettings = {
+  casing: CustomCasingMode;
+  punctuation: CustomPunctuationMode;
+  numbers: CustomNumberMode;
+  symbols: CustomSymbolMode;
+  repeats: CustomRepeatMode;
+  letterFocus: CustomLetterFocus;
+  rhythm: CustomRhythmMode;
+  pinnedWords: string;
+};
 
 export type CustomFont = {
   id: string;

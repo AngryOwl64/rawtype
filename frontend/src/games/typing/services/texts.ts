@@ -2,6 +2,7 @@
 // Routes requests to sentence or word providers by mode.
 export { getRandomTypingText } from "./sentenceTexts";
 export { getRandomTypingWordsText } from "./wordTexts";
+export { getRandomCustomTypingText } from "./customTexts";
 import { clearSentenceTextCache } from "./sentenceTexts";
 import { clearWordTextCache } from "./wordTexts";
 

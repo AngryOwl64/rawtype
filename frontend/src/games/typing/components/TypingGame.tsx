@@ -11,6 +11,7 @@ import type {
   CaretAnimationStyle,
   CaretMovementAnimation,
   CompletionAnimationStyle,
+  CustomTypingSettings,
   ErrorFeedbackAnimation,
   KeyboardAnimationStyle,
   OnScreenKeyboardLayout,
@@ -32,6 +33,7 @@ type TypingGameProps = {
   wordsCount?: number;
   wordDifficulty?: WordModeDifficulty;
   wordNoMistakeMode?: WordNoMistakeMode;
+  customSettings?: CustomTypingSettings;
   highlightCorrectWords?: boolean;
   highlightErrorFromPoint?: boolean;
   showOnScreenKeyboard?: boolean;
@@ -134,6 +136,7 @@ export default function TypingGame({
   wordsCount = 25,
   wordDifficulty = "mixed",
   wordNoMistakeMode = "off",
+  customSettings,
   highlightCorrectWords = true,
   highlightErrorFromPoint = true,
   showOnScreenKeyboard = false,
@@ -189,6 +192,7 @@ export default function TypingGame({
     wordsCount,
     wordDifficulty,
     wordNoMistakeMode,
+    customSettings,
     language: gameLanguage,
     uiLanguage: language
   });
@@ -296,15 +300,15 @@ export default function TypingGame({
     setSaveState("saving");
     setSaveError("");
 
-    const savedDifficulty = getSavedDifficulty(mode, wordDifficulty);
+    const savedDifficulty = mode === "custom" ? null : getSavedDifficulty(mode, wordDifficulty);
 
     void saveTypingRun({
       textId: activeText?.id ?? null,
       mode,
       language: activeText?.language ?? gameLanguage,
       difficulty: savedDifficulty,
-      wordsCount: mode === "words" ? wordsCount : null,
-      noMistakeMode: wordNoMistakeMode,
+      wordsCount: mode === "words" || mode === "custom" ? totalWords : null,
+      noMistakeMode: mode === "words" ? wordNoMistakeMode : "off",
       wpm,
       accuracy,
       durationMs,
@@ -331,6 +335,7 @@ export default function TypingGame({
     activeText?.language,
     completedWords,
     correctChars,
+    customSettings,
     durationMs,
     errorEvents,
     failedByMistake,
@@ -432,9 +437,7 @@ export default function TypingGame({
                 width: "min(100%, 980px)"
               }}
             >
-              {mode === "words"
-                ? text.loadingWords
-                : text.loadingText}
+              {mode === "custom" ? text.loadingCustom : mode === "words" ? text.loadingWords : text.loadingText}
             </div>
           )}
 

@@ -95,6 +95,12 @@ function RunMetric({ label, value }: { label: string; value: string | number }) 
   );
 }
 
+function getModeLabel(mode: string, text: ReturnType<typeof getStatsTexts>): string {
+  if (mode === "words") return text.modeWords;
+  if (mode === "custom") return text.modeCustom;
+  return text.modeSentences;
+}
+
 type WpmRangeBucket = {
   label: string;
   count: number;
@@ -258,7 +264,7 @@ function ModeBreakdown({ modes, language }: { modes: SavedTypingStats["modeStats
             backgroundColor: "var(--surface-soft)"
           }}
         >
-          <strong>{mode.mode === "words" ? text.modeWords : text.modeSentences}</strong>
+          <strong>{getModeLabel(mode.mode, text)}</strong>
           <div
             style={{
               display: "grid",
@@ -435,7 +441,7 @@ export default function StatsPanel({ language = "en" }: { language?: TypingLangu
                   }}
                 >
                   <div style={{ minWidth: "150px", flex: "1 1 180px" }}>
-                    <strong>{run.mode === "words" ? text.modeWords : text.modeSentences}</strong>
+                    <strong>{getModeLabel(run.mode, text)}</strong>
                     <div style={{ color: "var(--muted)", fontSize: "12px" }}>{formatDate(run.created_at, locale)}</div>
                   </div>
                   <div

@@ -143,7 +143,7 @@ create table if not exists public.user_settings (
 
   constraint user_settings_theme_valid check (theme in ('pergament', 'monokai', 'dracula')),
   constraint user_settings_language_valid check (language in ('en', 'de')),
-  constraint user_settings_mode_valid check (default_typing_mode in ('sentences', 'words')),
+  constraint user_settings_mode_valid check (default_typing_mode in ('sentences', 'words', 'custom')),
   constraint user_settings_words_valid check (default_words_count in (10, 25, 50, 75)),
   constraint user_settings_difficulty_valid check (
     default_word_difficulty in ('easy', 'medium', 'hard', 'mixed')
@@ -238,7 +238,7 @@ create table if not exists public.typing_runs (
   failed_by_mistake boolean not null default false,
   created_at timestamptz not null default now(),
 
-  constraint typing_runs_mode_valid check (mode in ('sentences', 'words')),
+  constraint typing_runs_mode_valid check (mode in ('sentences', 'words', 'custom')),
   constraint typing_runs_language_valid check (language in ('en', 'de')),
   constraint typing_runs_difficulty_valid check (
     difficulty is null or difficulty in ('easy', 'medium', 'hard', 'mixed')
