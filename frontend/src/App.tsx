@@ -8,6 +8,7 @@ import { useAuth, type UserSettings } from "./auth/authContext";
 import type {
   AnimationIntensity,
   AppFont,
+  CustomTypingSettings,
   CustomFont,
   CaretAnimationStyle,
   CaretMovementAnimation,
@@ -57,6 +58,7 @@ import {
   isTypingLanguage,
   type ThemeMode
 } from "./settings/preferences";
+import { getStoredCustomTypingSettings, setStoredCustomTypingSettings } from "./games/typing/customSettings";
 import { getAppTexts, getSettingsTexts, translateAccountText } from "./i18n/messages";
 import { getStoredBoolean, getStoredHexColor, isHexColor, setStoredValue } from "./lib/localStorage";
 import { deleteCustomFont, fetchCustomFonts, importGoogleFont } from "./settings/customFonts";
@@ -98,7 +100,7 @@ const seoGamePaths = new Set([
 ]);
 
 function isTypingMode(value: string | null | undefined): value is TypingMode {
-  return value === "sentences" || value === "words";
+  return value === "sentences" || value === "words" || value === "custom";
 }
 
 function isWordsCount(value: number | null | undefined): value is 10 | 25 | 50 | 75 {
@@ -185,6 +187,7 @@ type PreferencesState = {
   wordsCount: number;
   wordDifficulty: WordModeDifficulty;
   wordNoMistakeMode: WordNoMistakeMode;
+  customTypingSettings: CustomTypingSettings;
   highlightCorrectWords: boolean;
   highlightErrorFromPoint: boolean;
   showOnScreenKeyboard: boolean;
@@ -219,6 +222,7 @@ function getInitialPreferences(): PreferencesState {
     wordsCount: 25,
     wordDifficulty: "mixed",
     wordNoMistakeMode: "off",
+    customTypingSettings: getStoredCustomTypingSettings(),
     highlightCorrectWords: getStoredBoolean("rawtype-highlight-correct-words", true),
     highlightErrorFromPoint: getStoredBoolean("rawtype-highlight-error-from-point", true),
     showOnScreenKeyboard: getStoredBoolean("rawtype-show-onscreen-keyboard", false),
@@ -348,6 +352,7 @@ function App() {
     textFont,
     theme,
     gameLanguage,
+    customTypingSettings,
     typingFeedbackAnimation,
     typingMode,
     wordDifficulty,
@@ -399,9 +404,51 @@ function App() {
         : wordDifficulty === "hard"
           ? appText.home.hard
           : appText.home.mixed;
-  const gameTitle = typingMode === "words" ? appText.home.wordModeTitle : appText.gameHeader.title;
+  const customLevelLabel = (level: "none" | "light" | "dense") =>
+    level === "none"
+      ? appText.home.customLevelNone
+      : level === "light"
+        ? appText.home.customLevelLight
+        : appText.home.customLevelDense;
+  const customFocusLabel =
+    customTypingSettings.letterFocus === "home-row"
+      ? appText.home.customFocusHomeRow
+      : customTypingSettings.letterFocus === "top-row"
+        ? appText.home.customFocusTopRow
+        : customTypingSettings.letterFocus === "left-hand"
+          ? appText.home.customFocusLeftHand
+          : customTypingSettings.letterFocus === "right-hand"
+            ? appText.home.customFocusRightHand
+            : appText.home.customFocusBalanced;
+  const customRhythmLabel =
+    customTypingSettings.rhythm === "steady"
+      ? appText.home.customRhythmSteady
+      : customTypingSettings.rhythm === "staggered"
+        ? appText.home.customRhythmStaggered
+        : appText.home.customRhythmBursts;
+  const gameTitle =
+    typingMode === "custom"
+      ? appText.home.customModeTitle
+      : typingMode === "words"
+        ? appText.home.wordModeTitle
+        : appText.gameHeader.title;
   const gameMeta =
-    typingMode === "words"
+    typingMode === "custom"
+      ? [
+          customFocusLabel,
+          customRhythmLabel,
+          customTypingSettings.punctuation !== "none"
+            ? `${appText.home.customPunctuation}: ${customLevelLabel(customTypingSettings.punctuation)}`
+            : null,
+          customTypingSettings.numbers !== "none"
+            ? `${appText.home.customNumbers}: ${customLevelLabel(customTypingSettings.numbers)}`
+            : null,
+          customTypingSettings.symbols !== "none"
+            ? `${appText.home.customSymbols}: ${customLevelLabel(customTypingSettings.symbols)}`
+            : null,
+          gameLanguageLabel
+        ].filter((item): item is string => Boolean(item))
+      : typingMode === "words"
       ? [
           `${wordsCount} ${appText.home.wordsSuffix}`,
           wordDifficultyLabel,
@@ -558,6 +605,10 @@ function App() {
     updateAccountSettings({ default_no_mistake: nextMode === "on" });
   }
 
+  function handleCustomTypingSettingsChange(nextSettings: CustomTypingSettings) {
+    dispatchPreferences({ type: "patch", updates: { customTypingSettings: nextSettings } });
+  }
+
   function handleGameLanguageChange(nextLanguage: TypingLanguage) {
     dispatchPreferences({ type: "patch", updates: { gameLanguage: nextLanguage } });
   }
@@ -664,6 +715,10 @@ function App() {
   useEffect(() => {
     setStoredValue("rawtype-game-language", gameLanguage);
   }, [gameLanguage]);
+
+  useEffect(() => {
+    setStoredCustomTypingSettings(customTypingSettings);
+  }, [customTypingSettings]);
 
   useEffect(() => {
     setStoredValue("rawtype-app-font", appFont);
@@ -864,6 +919,7 @@ function App() {
             wordDifficulty={wordDifficulty}
             wordNoMistakeMode={wordNoMistakeMode}
             wordsCount={wordsCount}
+            customSettings={customTypingSettings}
             onStartClassic={() => {
               dispatchPreferences({ type: "patch", updates: { typingMode: "sentences" } });
               updateAccountSettings({ default_typing_mode: "sentences" });
@@ -874,10 +930,16 @@ function App() {
               updateAccountSettings({ default_typing_mode: "words" });
               setPlayingTypingGame(true);
             }}
+            onStartCustomMode={() => {
+              dispatchPreferences({ type: "patch", updates: { typingMode: "custom" } });
+              updateAccountSettings({ default_typing_mode: "custom" });
+              setPlayingTypingGame(true);
+            }}
             onWordDifficultyChange={handleDefaultWordDifficultyChange}
             onGameLanguageChange={handleGameLanguageChange}
             onWordNoMistakeModeChange={handleDefaultNoMistakeModeChange}
             onWordsCountChange={handleDefaultWordsCountChange}
+            onCustomSettingsChange={handleCustomTypingSettingsChange}
           />
         )}
 
@@ -925,6 +987,7 @@ function App() {
               wordsCount={wordsCount}
               wordDifficulty={wordDifficulty}
               wordNoMistakeMode={wordNoMistakeMode}
+              customSettings={customTypingSettings}
               language={language}
               gameLanguage={gameLanguage}
               highlightCorrectWords={highlightCorrectWords}

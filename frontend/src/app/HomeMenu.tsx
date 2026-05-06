@@ -4,6 +4,14 @@ import type { getAppTexts } from "../i18n/messages";
 import { LANGUAGE_OPTIONS } from "../settings/preferences";
 import { DailyActivityChart } from "../stats/DailyActivityChart";
 import type {
+  CustomCasingMode,
+  CustomLetterFocus,
+  CustomNumberMode,
+  CustomPunctuationMode,
+  CustomRepeatMode,
+  CustomRhythmMode,
+  CustomSymbolMode,
+  CustomTypingSettings,
   SavedTypingDayStats,
   TypingLanguage,
   WordModeDifficulty,
@@ -22,13 +30,64 @@ type HomeMenuProps = {
   wordDifficulty: WordModeDifficulty;
   wordNoMistakeMode: WordNoMistakeMode;
   wordsCount: number;
+  customSettings: CustomTypingSettings;
   onStartClassic: () => void;
   onStartWordMode: () => void;
+  onStartCustomMode: () => void;
   onGameLanguageChange: (language: TypingLanguage) => void;
   onWordDifficultyChange: (difficulty: WordModeDifficulty) => void;
   onWordNoMistakeModeChange: (mode: WordNoMistakeMode) => void;
   onWordsCountChange: (count: number) => void;
+  onCustomSettingsChange: (settings: CustomTypingSettings) => void;
 };
+
+type HomeSelectOption<T extends string> = {
+  value: T;
+  label: string;
+};
+
+const controlLabelStyle = {
+  fontSize: "12px",
+  color: "var(--muted)",
+  marginBottom: "6px",
+  fontWeight: 600
+};
+
+const controlFieldStyle = {
+  width: "100%",
+  boxSizing: "border-box" as const,
+  border: "1px solid var(--border-strong)",
+  borderRadius: "8px",
+  padding: "8px 10px",
+  backgroundColor: "var(--input-bg)",
+  color: "var(--text)",
+  fontWeight: 600
+};
+
+function CustomSelect<T extends string>({
+  label,
+  value,
+  options,
+  onChange
+}: {
+  label: string;
+  value: T;
+  options: Array<HomeSelectOption<T>>;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <label>
+      <div style={controlLabelStyle}>{label}</div>
+      <select value={value} onChange={(event) => onChange(event.target.value as T)} style={controlFieldStyle}>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
 
 export default function HomeMenu({
   appText,
@@ -40,13 +99,42 @@ export default function HomeMenu({
   wordDifficulty,
   wordNoMistakeMode,
   wordsCount,
+  customSettings,
   onStartClassic,
   onStartWordMode,
+  onStartCustomMode,
   onGameLanguageChange,
   onWordDifficultyChange,
   onWordNoMistakeModeChange,
-  onWordsCountChange
+  onWordsCountChange,
+  onCustomSettingsChange
 }: HomeMenuProps) {
+  const customLetterFocusOptions: Array<HomeSelectOption<CustomLetterFocus>> = [
+    { value: "balanced", label: appText.home.customFocusBalanced },
+    { value: "home-row", label: appText.home.customFocusHomeRow },
+    { value: "top-row", label: appText.home.customFocusTopRow },
+    { value: "left-hand", label: appText.home.customFocusLeftHand },
+    { value: "right-hand", label: appText.home.customFocusRightHand }
+  ];
+  const customCasingOptions: Array<HomeSelectOption<CustomCasingMode>> = [
+    { value: "natural", label: appText.home.customCasingNatural },
+    { value: "lowercase", label: appText.home.customCasingLowercase },
+    { value: "uppercase", label: appText.home.customCasingUppercase },
+    { value: "title", label: appText.home.customCasingTitle }
+  ];
+  const levelOptions: Array<HomeSelectOption<CustomPunctuationMode | CustomNumberMode | CustomSymbolMode | CustomRepeatMode>> = [
+    { value: "none", label: appText.home.customLevelNone },
+    { value: "light", label: appText.home.customLevelLight },
+    { value: "dense", label: appText.home.customLevelDense }
+  ];
+  const customRhythmOptions: Array<HomeSelectOption<CustomRhythmMode>> = [
+    { value: "steady", label: appText.home.customRhythmSteady },
+    { value: "bursts", label: appText.home.customRhythmBursts },
+    { value: "staggered", label: appText.home.customRhythmStaggered }
+  ];
+  const patchCustomSettings = (updates: Partial<CustomTypingSettings>) =>
+    onCustomSettingsChange({ ...customSettings, ...updates });
+
   return (
     <section>
       <div
@@ -339,6 +427,100 @@ export default function HomeMenu({
             }}
           >
             {appText.home.startWordMode}
+          </button>
+        </article>
+
+        <article
+          style={{
+            border: "1px solid var(--border)",
+            borderRadius: "8px",
+            backgroundColor: "var(--surface)",
+            padding: "18px"
+          }}
+        >
+          <h2 style={{ marginTop: 0, marginBottom: "8px", fontSize: "22px" }}>
+            {appText.home.customModeTitle}
+          </h2>
+          <p style={{ marginTop: 0, marginBottom: "14px", color: "var(--muted)", lineHeight: 1.45 }}>
+            {appText.home.customModeDescription}
+          </p>
+
+          <div
+            style={{
+              marginBottom: "14px",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+              gap: "10px"
+            }}
+          >
+            <CustomSelect
+              label={appText.home.customLetterFocus}
+              value={customSettings.letterFocus}
+              options={customLetterFocusOptions}
+              onChange={(letterFocus) => patchCustomSettings({ letterFocus })}
+            />
+            <CustomSelect
+              label={appText.home.customCasing}
+              value={customSettings.casing}
+              options={customCasingOptions}
+              onChange={(casing) => patchCustomSettings({ casing })}
+            />
+            <CustomSelect
+              label={appText.home.customPunctuation}
+              value={customSettings.punctuation}
+              options={levelOptions as Array<HomeSelectOption<CustomPunctuationMode>>}
+              onChange={(punctuation) => patchCustomSettings({ punctuation })}
+            />
+            <CustomSelect
+              label={appText.home.customNumbers}
+              value={customSettings.numbers}
+              options={levelOptions as Array<HomeSelectOption<CustomNumberMode>>}
+              onChange={(numbers) => patchCustomSettings({ numbers })}
+            />
+            <CustomSelect
+              label={appText.home.customSymbols}
+              value={customSettings.symbols}
+              options={levelOptions as Array<HomeSelectOption<CustomSymbolMode>>}
+              onChange={(symbols) => patchCustomSettings({ symbols })}
+            />
+            <CustomSelect
+              label={appText.home.customRepeats}
+              value={customSettings.repeats}
+              options={levelOptions as Array<HomeSelectOption<CustomRepeatMode>>}
+              onChange={(repeats) => patchCustomSettings({ repeats })}
+            />
+            <CustomSelect
+              label={appText.home.customRhythm}
+              value={customSettings.rhythm}
+              options={customRhythmOptions}
+              onChange={(rhythm) => patchCustomSettings({ rhythm })}
+            />
+            <label>
+              <div style={controlLabelStyle}>{appText.home.customPinnedWords}</div>
+              <input
+                value={customSettings.pinnedWords}
+                onChange={(event) => patchCustomSettings({ pinnedWords: event.target.value })}
+                placeholder={appText.home.customPinnedWordsPlaceholder}
+                style={controlFieldStyle}
+              />
+            </label>
+          </div>
+
+          <button
+            type="button"
+            onClick={onStartCustomMode}
+            style={{
+              border: "none",
+              borderRadius: "8px",
+              padding: "10px 16px",
+              width: "100%",
+              backgroundColor: "var(--primary)",
+              color: "var(--primary-text)",
+              fontWeight: 700,
+              cursor: "pointer"
+            }}
+          >
+            {appText.home.startCustomMode}
           </button>
         </article>
       </div>
