@@ -20,3 +20,4 @@ tests für kernflows
 animationsvorschau verbessern
 cpm nur steigern bei richtigen anschlägen
 leertaste auch falsch mitten im wort
+normal modus einfacher machen
