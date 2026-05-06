@@ -266,6 +266,32 @@ textarea {
   transform: rotate(-2deg) translateY(-1px) scale(var(--motion-scale));
 }
 
+.rawtype-metric-value-wrap {
+  display: inline-flex;
+  line-height: 1.15;
+  overflow: hidden;
+  perspective: 380px;
+  vertical-align: bottom;
+}
+
+.rawtype-metric-value {
+  display: inline-block;
+  transform-origin: center;
+  will-change: opacity, transform, filter;
+}
+
+.rawtype-metric-value-roll-up .rawtype-metric-value {
+  animation: rawtype-metric-roll-up var(--motion-medium) cubic-bezier(0.18, 0.88, 0.22, 1);
+}
+
+.rawtype-metric-value-slide-side .rawtype-metric-value {
+  animation: rawtype-metric-slide-side var(--motion-medium) cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.rawtype-metric-value-flip .rawtype-metric-value {
+  animation: rawtype-metric-flip var(--motion-medium) cubic-bezier(0.22, 0.84, 0.22, 1);
+}
+
 .rawtype-finished-panel > :not(.rawtype-completion-celebration),
 .rawtype-animation-preview > :not(.rawtype-completion-preview) {
   position: relative;
@@ -331,6 +357,7 @@ textarea {
 .rawtype-motion-off .rawtype-typing-stage,
 .rawtype-motion-off .rawtype-typing-char,
 .rawtype-motion-off .rawtype-completed-word,
+.rawtype-motion-off .rawtype-metric-value,
 .rawtype-motion-off .rawtype-key {
   animation: none !important;
   transition: none !important;
@@ -517,6 +544,53 @@ textarea {
   100% {
     opacity: 0;
     transform: scale(2.3);
+  }
+}
+
+@keyframes rawtype-metric-roll-up {
+  0% {
+    opacity: 0;
+    transform: translateY(115%);
+  }
+  48% {
+    opacity: 1;
+    transform: translateY(-12%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rawtype-metric-slide-side {
+  0% {
+    opacity: 0;
+    transform: translateX(0.75em);
+  }
+  62% {
+    opacity: 1;
+    transform: translateX(-0.08em);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes rawtype-metric-flip {
+  0% {
+    filter: brightness(1.25);
+    opacity: 0;
+    transform: rotateX(86deg) scale(0.96);
+  }
+  60% {
+    opacity: 1;
+    transform: rotateX(-12deg) scale(1.02);
+  }
+  100% {
+    filter: brightness(1);
+    opacity: 1;
+    transform: rotateX(0) scale(1);
   }
 }
 

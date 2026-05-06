@@ -13,6 +13,7 @@ import type {
   CustomFont,
   ErrorFeedbackAnimation,
   KeyboardAnimationStyle,
+  MetricValueAnimationStyle,
   OnScreenKeyboardLayout,
   RestartKey,
   TextFont,
@@ -199,7 +200,8 @@ function AnimationPreview({
   typingFeedbackAnimation,
   errorFeedbackAnimation,
   keyboardAnimationStyle,
-  completionAnimationStyle
+  completionAnimationStyle,
+  metricValueAnimationStyle
 }: {
   ariaLabel: string;
   effectiveAnimationIntensity: AnimationIntensity;
@@ -208,6 +210,7 @@ function AnimationPreview({
   errorFeedbackAnimation: ErrorFeedbackAnimation;
   keyboardAnimationStyle: KeyboardAnimationStyle;
   completionAnimationStyle: CompletionAnimationStyle;
+  metricValueAnimationStyle: MetricValueAnimationStyle;
 }) {
   const showCelebration = effectiveAnimationIntensity !== "off" && completionAnimationStyle !== "none";
   const previewParticles = Array.from({ length: 14 }, (_, index) => index);
@@ -311,6 +314,36 @@ function AnimationPreview({
           >
             {keyLabel}
           </span>
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, minmax(64px, 1fr))",
+          gap: "8px",
+          maxWidth: "280px"
+        }}
+      >
+        {["87", "421", "99%"].map((value) => (
+          <div
+            key={value}
+            style={{
+              border: "1px solid var(--border-soft)",
+              borderRadius: "8px",
+              padding: "8px",
+              backgroundColor: "var(--surface)"
+            }}
+          >
+            <span
+              className={`rawtype-metric-value-wrap rawtype-metric-value-${metricValueAnimationStyle}`}
+              style={{ fontSize: "18px", fontWeight: 800 }}
+            >
+              <span key={`${metricValueAnimationStyle}-${value}`} className="rawtype-metric-value">
+                {value}
+              </span>
+            </span>
+          </div>
         ))}
       </div>
     </div>
@@ -938,6 +971,7 @@ type SettingsPanelProps = {
   errorFeedbackAnimation: ErrorFeedbackAnimation;
   keyboardAnimationStyle: KeyboardAnimationStyle;
   completionAnimationStyle: CompletionAnimationStyle;
+  metricValueAnimationStyle: MetricValueAnimationStyle;
   animationRespectReducedMotion: boolean;
   onThemeChange: (theme: ThemeId) => void;
   onAppFontChange: (font: AppFont) => void;
@@ -966,6 +1000,7 @@ type SettingsPanelProps = {
   onErrorFeedbackAnimationChange: (animation: ErrorFeedbackAnimation) => void;
   onKeyboardAnimationStyleChange: (style: KeyboardAnimationStyle) => void;
   onCompletionAnimationStyleChange: (style: CompletionAnimationStyle) => void;
+  onMetricValueAnimationStyleChange: (style: MetricValueAnimationStyle) => void;
   onAnimationRespectReducedMotionChange: (enabled: boolean) => void;
   onCategoryChange: (category: SettingsCategory) => void;
 };
@@ -1001,6 +1036,7 @@ export default function SettingsPanel({
   errorFeedbackAnimation,
   keyboardAnimationStyle,
   completionAnimationStyle,
+  metricValueAnimationStyle,
   animationRespectReducedMotion,
   onThemeChange,
   onAppFontChange,
@@ -1029,6 +1065,7 @@ export default function SettingsPanel({
   onErrorFeedbackAnimationChange,
   onKeyboardAnimationStyleChange,
   onCompletionAnimationStyleChange,
+  onMetricValueAnimationStyleChange,
   onAnimationRespectReducedMotionChange,
   onCategoryChange
 }: SettingsPanelProps) {
@@ -1115,6 +1152,12 @@ export default function SettingsPanel({
     { value: "confetti", label: text.page.completionConfetti },
     { value: "sparkles", label: text.page.completionSparkles },
     { value: "ribbons", label: text.page.completionRibbons }
+  ];
+  const metricValueAnimationOptions: Array<SelectOption<MetricValueAnimationStyle>> = [
+    { value: "none", label: text.page.animationNone },
+    { value: "roll-up", label: text.page.metricValueRollUp },
+    { value: "slide-side", label: text.page.metricValueSlideSide },
+    { value: "flip", label: text.page.metricValueFlip }
   ];
   const customFontOptions: Array<SelectOption<AppFont>> = customFonts.map((font) => ({
     value: font.selection,
@@ -1350,6 +1393,13 @@ export default function SettingsPanel({
                   onChange={onCompletionAnimationStyleChange}
                   options={completionAnimationOptions}
                 />
+                <SelectSetting
+                  label={text.page.metricValueAnimation}
+                  value={metricValueAnimationStyle}
+                  disabled={false}
+                  onChange={onMetricValueAnimationStyleChange}
+                  options={metricValueAnimationOptions}
+                />
               </SettingGroup>
 
               <SettingGroup title={text.page.animationPreview} singleColumn>
@@ -1361,6 +1411,7 @@ export default function SettingsPanel({
                   errorFeedbackAnimation={errorFeedbackAnimation}
                   keyboardAnimationStyle={keyboardAnimationStyle}
                   completionAnimationStyle={completionAnimationStyle}
+                  metricValueAnimationStyle={metricValueAnimationStyle}
                 />
               </SettingGroup>
             </>

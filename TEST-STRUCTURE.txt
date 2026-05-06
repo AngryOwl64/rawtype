@@ -1,0 +1,103 @@
+Teststruktur für Projekt "rawtype"
+
+Ziel
+- Übersicht und Minimalstruktur für Tests (Frontend TS/React, Python utilities, SQL).
+- Beispiele, Namenskonventionen, empfohlene Tools, CI-Hinweis.
+
+Empfohlene Werkzeuge
+- Frontend (Vite + TS + React): Vitest + @testing-library/react, @testing-library/jest-dom.
+- Mocks für Netz: msw (Mock Service Worker).
+- E2E: Playwright (leicht integrierbar) oder Cypress.
+- Python: pytest + pytest-mock.
+- SQL: einfache migrations- und fixtures-basierte Tests oder Tests gegen temporäre DB (SQLite / Docker-Postgres).
+
+Ordnerstruktur (Vorschlag)
+- frontend/src/__tests__/           -> gemeinsame Test-Helpers
+- frontend/src/components/__tests__/ -> Komponententests
+- frontend/src/hooks/__tests__/     -> Hook-Tests
+- frontend/src/services/__tests__/  -> Service / API-Tests
+- python/tests/                     -> pytest-Tests für Python-Skripte
+- sql/tests/                        -> SQL-bezogene Tests / fixtures
+- e2e/                              -> Playwright/Cypress Tests
+
+Datei- und Namenskonventionen
+- Unit/Integration: use name.test.ts oder name.spec.ts (z.B. TypingGame.test.tsx).
+- E2E: descriptive-name.e2e.ts (z.B. login.e2e.ts).
+- Fixtures: __fixtures__/sample-*.json oder .sql.
+
+Beispiele (kurz)
+1) Frontend-Komponententest (Vitest + Testing Library)
+- Datei: frontend/src/games/typing/components/__tests__/MetricCard.test.tsx
+- Inhaltsskizze:
+  - Render-Komponente mit props.
+  - Überprüfe sichtbaren Text / metric values.
+  - Simuliere Benutzerinteraktionen falls relevant.
+
+2) Hook-Test (useTypingGame)
+- Datei: frontend/src/games/typing/hooks/__tests__/useTypingGame.test.ts
+- Inhaltsskizze:
+  - Verwende `renderHook` von @testing-library/react-hooks (oder Umgebung mit Vitest).
+  - Initialzustand verifizieren, state transitions nach simulierten Aktionen.
+
+3) Service/API-Test (mit msw)
+- Datei: frontend/src/games/typing/services/__tests__/textService.test.ts
+- Inhaltsskizze:
+  - msw-Handler für HTTP-Responses registrieren.
+  - Teste fetch-Funktionen auf korrekte Verarbeitung der Antwort und Fehlerpfade.
+
+4) Python-Test (pytest)
+- Datei: python/tests/test_wordlist.py
+- Inhaltsskizze:
+  - Teste `wordsToSql.py`/Helperfunktionen mit festen Eingaben.
+  - Verwende pytest fixtures, mocks für I/O.
+
+5) SQL-Tests
+- Datei: sql/tests/test_migrations.sh (oder .py)
+- Inhaltsskizze:
+  - Lade Migration in temporäre DB (SQLite für einfache Validierung oder Postgres Docker für Realitätsnähe).
+  - Überprüfe erwartete Tabellen/Constraints.
+
+Konfigurationsbeispiele (package.json)
+- Empfohlene devDependencies:
+  "vitest", "@testing-library/react", "@testing-library/jest-dom", "msw", "playwright" (oder "cypress")
+- Beispiel scripts:
+  "test": "vitest",
+  "test:watch": "vitest --watch",
+  "test:coverage": "vitest --coverage",
+  "e2e": "playwright test"
+
+Vitest quickstart (Kurz)
+- Installation: `npm install -D vitest @testing-library/react @testing-library/jest-dom msw`
+- vite config: ggf. `test` block in `vite.config.ts` für environment.
+- Empfohlen: globale Test-Setup-Datei `frontend/vitest.setup.ts` zum Registrieren von `@testing-library/jest-dom` und msw setup/teardown.
+
+Beispiel: `vitest.setup.ts`
+- import '@testing-library/jest-dom'
+- setup/teardown von msw server (start/stop/resetHandlers)
+
+CI (GitHub Actions) – minimal
+- Job `test` auf push/PR:
+  - node setup
+  - `npm ci`
+  - `npm run test -- --run` (oder `vitest --reporter=dot`)
+  - optional: `npm run test:coverage` und Upload artifact
+- E2E als separater Job (evtl. mit `services: postgres` falls benötigt)
+
+Priorisierung (erste Schritte)
+1. Frontend: Vitest + Testing Library installieren, minimalen `vitest.setup.ts` anlegen.
+2. Einen oder zwei einfache Komponententests hinzufügen (z.B. `MetricCard`, `OnScreenKeyboard`).
+3. Einen Hook-Test schreiben (`useTypingGame`).
+4. Einen Service-Test mit msw (z.B. textService).
+5. Python: pytest init + 1-2 Tests für Utilities.
+6. CI-Job einrichten.
+
+Tipps & Konventionen
+- Mock externe APIs mit msw, nicht fetch mocking lokal in jedem Test.
+- Bevorzuge kleine, deterministische Tests (kein Netzwerk, keine echten DBs) — Integration/E2E separat.
+- Nutze snapshots sparsam; bevorzuge assertions auf konkrete Werte.
+
+Nächste Schritte (optional, wenn gewünscht)
+- Ich kann eine `vitest`-Konfiguration, `vitest.setup.ts` und 3 Beispieltests erzeugen.
+- Ich kann ein `pytest`-baseline-setup und Beispieltests für `python/` anlegen.
+
+ENDE

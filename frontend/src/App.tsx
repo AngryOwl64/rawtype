@@ -15,6 +15,7 @@ import type {
   CompletionAnimationStyle,
   ErrorFeedbackAnimation,
   KeyboardAnimationStyle,
+  MetricValueAnimationStyle,
   OnScreenKeyboardLayout,
   RestartKey,
   SavedTypingDayStats,
@@ -36,6 +37,7 @@ import {
   getStoredCompletionAnimationStyle,
   getStoredErrorFeedbackAnimation,
   getStoredKeyboardAnimationStyle,
+  getStoredMetricValueAnimationStyle,
   getStoredGameLanguage,
   getStoredOnScreenKeyboardLayout,
   getStoredRestartKey,
@@ -51,6 +53,7 @@ import {
   isCompletionAnimationStyle,
   isErrorFeedbackAnimation,
   isKeyboardAnimationStyle,
+  isMetricValueAnimationStyle,
   isOnScreenKeyboardLayout,
   isRestartKey,
   isTextFont,
@@ -208,6 +211,7 @@ type PreferencesState = {
   errorFeedbackAnimation: ErrorFeedbackAnimation;
   keyboardAnimationStyle: KeyboardAnimationStyle;
   completionAnimationStyle: CompletionAnimationStyle;
+  metricValueAnimationStyle: MetricValueAnimationStyle;
   animationRespectReducedMotion: boolean;
 };
 
@@ -243,6 +247,7 @@ function getInitialPreferences(): PreferencesState {
     errorFeedbackAnimation: getStoredErrorFeedbackAnimation(),
     keyboardAnimationStyle: getStoredKeyboardAnimationStyle(),
     completionAnimationStyle: getStoredCompletionAnimationStyle(),
+    metricValueAnimationStyle: getStoredMetricValueAnimationStyle(),
     animationRespectReducedMotion: getStoredBoolean("rawtype-animation-respect-reduced-motion", true)
   };
 }
@@ -310,6 +315,9 @@ function preferencesReducer(state: PreferencesState, action: PreferencesAction):
     completionAnimationStyle: isCompletionAnimationStyle(settings.completion_animation)
       ? settings.completion_animation
       : state.completionAnimationStyle,
+    metricValueAnimationStyle: isMetricValueAnimationStyle(settings.metric_value_animation)
+      ? settings.metric_value_animation
+      : state.metricValueAnimationStyle,
     animationRespectReducedMotion:
       typeof settings.animation_respect_reduced_motion === "boolean"
         ? settings.animation_respect_reduced_motion
@@ -343,6 +351,7 @@ function App() {
     highlightCorrectWords,
     highlightErrorFromPoint,
     keyboardAnimationStyle,
+    metricValueAnimationStyle,
     onScreenKeyboardLayout,
     restartKey,
     saveErrorWords,
@@ -683,6 +692,11 @@ function App() {
     updateAccountSettings({ completion_animation: nextStyle });
   }
 
+  function handleMetricValueAnimationStyleChange(nextStyle: MetricValueAnimationStyle) {
+    dispatchPreferences({ type: "patch", updates: { metricValueAnimationStyle: nextStyle } });
+    updateAccountSettings({ metric_value_animation: nextStyle });
+  }
+
   function handleAnimationRespectReducedMotionChange(enabled: boolean) {
     dispatchPreferences({ type: "patch", updates: { animationRespectReducedMotion: enabled } });
     updateAccountSettings({ animation_respect_reduced_motion: enabled });
@@ -755,6 +769,10 @@ function App() {
   useEffect(() => {
     setStoredValue("rawtype-completion-animation", completionAnimationStyle);
   }, [completionAnimationStyle]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-metric-value-animation", metricValueAnimationStyle);
+  }, [metricValueAnimationStyle]);
 
   useEffect(() => {
     setStoredValue("rawtype-animation-respect-reduced-motion", animationRespectReducedMotion);
@@ -1007,6 +1025,7 @@ function App() {
               errorFeedbackAnimation={errorFeedbackAnimation}
               keyboardAnimationStyle={keyboardAnimationStyle}
               completionAnimationStyle={completionAnimationStyle}
+              metricValueAnimationStyle={metricValueAnimationStyle}
             />
           </section>
         )}
@@ -1047,6 +1066,7 @@ function App() {
             errorFeedbackAnimation={errorFeedbackAnimation}
             keyboardAnimationStyle={keyboardAnimationStyle}
             completionAnimationStyle={completionAnimationStyle}
+            metricValueAnimationStyle={metricValueAnimationStyle}
             animationRespectReducedMotion={animationRespectReducedMotion}
             onThemeChange={handleThemeChange}
             onAppFontChange={handleAppFontChange}
@@ -1075,6 +1095,7 @@ function App() {
             onErrorFeedbackAnimationChange={handleErrorFeedbackAnimationChange}
             onKeyboardAnimationStyleChange={handleKeyboardAnimationStyleChange}
             onCompletionAnimationStyleChange={handleCompletionAnimationStyleChange}
+            onMetricValueAnimationStyleChange={handleMetricValueAnimationStyleChange}
             onAnimationRespectReducedMotionChange={handleAnimationRespectReducedMotionChange}
             onCategoryChange={setActiveSettingsCategory}
           />

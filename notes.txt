@@ -8,6 +8,7 @@ pfp
 profile schöner machen
 custom anzahl abgefragter wörter
 code mode
+format anpassen für kleine bildschirme
 quote mode
 daily challange
 footer
@@ -16,3 +17,6 @@ DSGVO
 email adress mode xd
 multiple settings proiles 
 tests für kernflows
+animationsvorschau verbessern
+cpm nur steigern bei richtigen anschlägen
+leertaste auch falsch mitten im wort

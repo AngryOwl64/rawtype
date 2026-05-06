@@ -14,6 +14,7 @@ import type {
   CustomTypingSettings,
   ErrorFeedbackAnimation,
   KeyboardAnimationStyle,
+  MetricValueAnimationStyle,
   OnScreenKeyboardLayout,
   RestartKey,
   TypingFeedbackAnimation,
@@ -51,6 +52,7 @@ type TypingGameProps = {
   errorFeedbackAnimation?: ErrorFeedbackAnimation;
   keyboardAnimationStyle?: KeyboardAnimationStyle;
   completionAnimationStyle?: CompletionAnimationStyle;
+  metricValueAnimationStyle?: MetricValueAnimationStyle;
 };
 
 type CaretBox = {
@@ -153,7 +155,8 @@ export default function TypingGame({
   typingFeedbackAnimation = "lift",
   errorFeedbackAnimation = "shake",
   keyboardAnimationStyle = "press",
-  completionAnimationStyle = "confetti"
+  completionAnimationStyle = "confetti",
+  metricValueAnimationStyle = "none"
 }: TypingGameProps) {
   const { user } = useAuth();
   const text = useMemo(() => getTypingGameTexts(language), [language]);
@@ -657,11 +660,19 @@ export default function TypingGame({
               gap: "10px"
             }}
           >
-            <MetricCard label="WPM" value={wpm} />
-            <MetricCard label="CPM" value={cpm} />
-            <MetricCard label={text.metricAccuracy} value={`${accuracy}%`} />
-            <MetricCard label={text.metricProgress} value={`${currentWordIndex}/${totalWords}`} />
-            <MetricCard label={text.metricErrors} value={mistakes} />
+            <MetricCard label="WPM" value={wpm} metricValueAnimationStyle={metricValueAnimationStyle} />
+            <MetricCard label="CPM" value={cpm} metricValueAnimationStyle={metricValueAnimationStyle} />
+            <MetricCard
+              label={text.metricAccuracy}
+              value={`${accuracy}%`}
+              metricValueAnimationStyle={metricValueAnimationStyle}
+            />
+            <MetricCard
+              label={text.metricProgress}
+              value={`${currentWordIndex}/${totalWords}`}
+              metricValueAnimationStyle={metricValueAnimationStyle}
+            />
+            <MetricCard label={text.metricErrors} value={mistakes} metricValueAnimationStyle={metricValueAnimationStyle} />
             <MetricCard label={text.metricCategory} value={activeText?.category ?? "-"} compact />
             <MetricCard label={text.metricDifficulty} value={activeText?.difficulty ?? "-"} compact />
           </div>
@@ -737,13 +748,25 @@ export default function TypingGame({
               gap: "10px"
             }}
           >
-            <MetricCard label="WPM" value={wpm} />
-            <MetricCard label="CPM" value={cpm} />
-            <MetricCard label={text.metricAccuracy} value={`${accuracy}%`} />
-            <MetricCard label={text.metricDuration} value={`${durationSeconds}s`} />
-            <MetricCard label={text.metricKeystrokes} value={typedChars} />
-            <MetricCard label={text.metricCorrectKeystrokes} value={correctChars} />
-            <MetricCard label={text.metricErrors} value={mistakes} />
+            <MetricCard label="WPM" value={wpm} metricValueAnimationStyle={metricValueAnimationStyle} />
+            <MetricCard label="CPM" value={cpm} metricValueAnimationStyle={metricValueAnimationStyle} />
+            <MetricCard
+              label={text.metricAccuracy}
+              value={`${accuracy}%`}
+              metricValueAnimationStyle={metricValueAnimationStyle}
+            />
+            <MetricCard
+              label={text.metricDuration}
+              value={`${durationSeconds}s`}
+              metricValueAnimationStyle={metricValueAnimationStyle}
+            />
+            <MetricCard label={text.metricKeystrokes} value={typedChars} metricValueAnimationStyle={metricValueAnimationStyle} />
+            <MetricCard
+              label={text.metricCorrectKeystrokes}
+              value={correctChars}
+              metricValueAnimationStyle={metricValueAnimationStyle}
+            />
+            <MetricCard label={text.metricErrors} value={mistakes} metricValueAnimationStyle={metricValueAnimationStyle} />
           </div>
 
           {showErrorBreakdown && (

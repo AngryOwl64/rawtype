@@ -120,6 +120,7 @@ export type Database = {
           error_feedback_animation: string;
           keyboard_animation: string;
           completion_animation: string;
+          metric_value_animation: string;
           animation_respect_reduced_motion: boolean;
           created_at: string;
           updated_at: string;
@@ -151,6 +152,7 @@ export type Database = {
           error_feedback_animation?: string;
           keyboard_animation?: string;
           completion_animation?: string;
+          metric_value_animation?: string;
           animation_respect_reduced_motion?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -182,6 +184,7 @@ export type Database = {
           error_feedback_animation?: string;
           keyboard_animation?: string;
           completion_animation?: string;
+          metric_value_animation?: string;
           animation_respect_reduced_motion?: boolean;
           created_at?: string;
           updated_at?: string;

@@ -137,6 +137,7 @@ create table if not exists public.user_settings (
   error_feedback_animation text not null default 'shake',
   keyboard_animation text not null default 'press',
   completion_animation text not null default 'confetti',
+  metric_value_animation text not null default 'roll-up',
   animation_respect_reduced_motion boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -182,6 +183,9 @@ create table if not exists public.user_settings (
   ),
   constraint user_settings_completion_animation_valid check (
     completion_animation in ('none', 'pulse', 'confetti', 'sparkles', 'ribbons')
+  ),
+  constraint user_settings_metric_value_animation_valid check (
+    metric_value_animation in ('none', 'roll-up', 'slide-side', 'flip')
   )
 );
 
