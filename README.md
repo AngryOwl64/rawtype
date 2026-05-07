@@ -8,12 +8,13 @@ Live app: https://rawtype.net/
 
 - Typing Classic for prose-like text, punctuation, capitalization, and sentence flow
 - Word Mode for random word typing drills
-- Selectable word count and difficulty
-- No Mistake Mode for stricter accuracy practice
+- Custom Mode with configurable focus, casing, rhythm, symbols, and pinned words
+- Selectable word count and difficulty, plus No Mistake Mode for stricter accuracy practice
 - WPM, CPM, accuracy, progress, mistakes, duration, and completed-word metrics
-- Optional account stats, streaks, recent runs, and recurring mistake words
+- Optional account features: saved runs, stats dashboard, streaks, daily activity, recurring mistake words, and public profiles
 - English and German typing practice
-- Theme, font, keyboard, privacy, and animation preferences
+- Theme, font (including Google Fonts import), keyboard, privacy, and animation preferences
+- Localized SEO landing pages generated at build time
 
 ## SEO Entry Points
 
@@ -28,11 +29,12 @@ Live app: https://rawtype.net/
 
 ## Tech Stack
 
-- React
+- React 19
 - TypeScript
-- Vite
-- Supabase
-- Cloudflare Workers / Wrangler
+- Vite 8
+- Supabase (Auth + Postgres)
+- Cloudflare Workers + Wrangler (`@cloudflare/vite-plugin`)
+- ESLint
 
 ## Local Development
 
