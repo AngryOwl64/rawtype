@@ -37,9 +37,9 @@ export const MIN_WORD_LENGTH = 2;
 
 export const WORD_DIFFICULTIES: WordDifficulty[] = ["easy", "medium", "hard"];
 const WORD_DIFFICULTY_WEIGHTS: Record<WordDifficulty, number> = {
-  easy: 0.35,
-  medium: 0.35,
-  hard: 0.3
+  easy: 0.4,
+  medium: 0.4,
+  hard: 0.2
 };
 
 export function getSentenceCacheKey(language: string): string {
