@@ -1,8 +1,8 @@
 # RawType
 
-RawType is a free single-player typing test and typing practice game for improving WPM, CPM, accuracy, and consistency.
+RawType is a free single-player typing practice Plattform for improving WPM, CPM, accuracy, and consistency.
 
-Live app: https://rawtype.net/
+Website: https://rawtype.net/
 
 ## Features
 
