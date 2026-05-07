@@ -1,7 +1,7 @@
 ssetup SMTP in supabase
 mehr animationen für wörter abgeschlossen
 seconds mode/endless
-game text verringern (ex. Typing Classic (Words 10, medium, no-mistake off, English))
+messages i18n messages.ts überarbeiten
 leaderboard
 level system
 pfp
@@ -15,9 +15,7 @@ footer
 impressum
 DSGVO
 email adress mode xd
-multiple settings proiles 
+multiple settings proiles
 tests für kernflows
+zen/fokus mode
 animationsvorschau verbessern
-cpm nur steigern bei richtigen anschlägen
-leertaste auch falsch mitten im wort
-normal modus einfacher machen
