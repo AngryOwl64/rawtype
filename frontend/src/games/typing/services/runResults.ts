@@ -149,7 +149,7 @@ function buildWorstWords(errors: TypingErrorRow[]): WorstWord[] {
 }
 
 function getCpm(run: TypingRunRow): number {
-  return calculateCpm(run.typed_chars, run.duration_ms);
+  return calculateCpm(run.correct_chars, run.duration_ms);
 }
 
 function getAverage(values: number[]): number {
@@ -262,6 +262,7 @@ function buildStats(runs: TypingRunRow[], errors: TypingErrorRow[]): SavedTyping
   const totalAccuracy = runs.reduce((sum, run) => sum + run.accuracy, 0);
   const totalDurationMs = runs.reduce((sum, run) => sum + run.duration_ms, 0);
   const totalTypedChars = runs.reduce((sum, run) => sum + run.typed_chars, 0);
+  const totalCorrectChars = runs.reduce((sum, run) => sum + run.correct_chars, 0);
   const totalMistakes = runs.reduce((sum, run) => sum + run.mistakes, 0);
   const cleanRuns = runs.filter((run) => run.mistakes === 0).length;
   const failedRuns = runs.filter((run) => run.failed_by_mistake).length;
@@ -276,7 +277,7 @@ function buildStats(runs: TypingRunRow[], errors: TypingErrorRow[]): SavedTyping
     bestCpm,
     bestAccuracy: runs.reduce((best, run) => Math.max(best, run.accuracy), 0),
     averageWpm: calculateWpm(totalTypedChars, totalDurationMs),
-    averageCpm: calculateCpm(totalTypedChars, totalDurationMs),
+    averageCpm: calculateCpm(totalCorrectChars, totalDurationMs),
     averageAccuracy: totalRuns > 0 ? Math.round(totalAccuracy / totalRuns) : 0,
     cleanRuns,
     cleanRunRate: totalRuns > 0 ? Math.round((cleanRuns / totalRuns) * 100) : 0,

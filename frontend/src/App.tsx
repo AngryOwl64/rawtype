@@ -393,7 +393,6 @@ function App() {
       { id: "typing", label: settingsText.page.typing },
       { id: "animations", label: settingsText.page.animations },
       { id: "markers", label: settingsText.page.wordMarking },
-      { id: "keyboard", label: settingsText.page.keyboard },
       { id: "privacy", label: settingsText.page.privacyData },
       { id: "account", label: accountText("Account Settings") }
     ];

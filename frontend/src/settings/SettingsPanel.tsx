@@ -30,7 +30,7 @@ import {
 } from "../themes/registry";
 import { APP_FONT_OPTIONS, LANGUAGE_OPTIONS, TEXT_FONT_OPTIONS, type SelectOption } from "./preferences";
 
-export type SettingsCategory = "appearance" | "typing" | "animations" | "markers" | "keyboard" | "privacy" | "account";
+export type SettingsCategory = "appearance" | "typing" | "animations" | "markers" | "privacy" | "account";
 
 export type SettingsCategoryItem = {
   id: SettingsCategory;
@@ -1076,7 +1076,6 @@ export default function SettingsPanel({
     { id: "typing", label: text.page.typing },
     { id: "animations", label: text.page.animations },
     { id: "markers", label: text.page.wordMarking },
-    { id: "keyboard", label: text.page.keyboard },
     { id: "privacy", label: text.page.privacyData },
     { id: "account", label: accountText("Account Settings") }
   ];
@@ -1318,6 +1317,13 @@ export default function SettingsPanel({
                   onChange={onDefaultWordDifficultyChange}
                   options={difficultyOptions}
                 />
+                <SelectSetting
+                  label={text.page.restartKey}
+                  value={restartKey}
+                  disabled={false}
+                  onChange={onRestartKeyChange}
+                  options={restartKeyOptions}
+                />
               </SettingGroup>
 
               <SettingGroup title={text.page.training}>
@@ -1402,6 +1408,22 @@ export default function SettingsPanel({
                 />
               </SettingGroup>
 
+              <SettingGroup title={text.page.keyboard}>
+                <ToggleSetting
+                  label={text.page.showOnScreenKeyboard}
+                  checked={showOnScreenKeyboard}
+                  disabled={false}
+                  onChange={onShowOnScreenKeyboardChange}
+                />
+                <SelectSetting
+                  label={text.page.keyboardLayout}
+                  value={onScreenKeyboardLayout}
+                  disabled={false}
+                  onChange={onOnScreenKeyboardLayoutChange}
+                  options={keyboardLayoutOptions}
+                />
+              </SettingGroup>
+
               <SettingGroup title={text.page.animationPreview} singleColumn>
                 <AnimationPreview
                   ariaLabel={text.page.animationPreview}
@@ -1458,31 +1480,6 @@ export default function SettingsPanel({
                   )}
                 </div>
               </div>
-            </SettingGroup>
-          )}
-
-          {activeCategory === "keyboard" && (
-            <SettingGroup title={text.page.keyboard}>
-              <SelectSetting
-                label={text.page.restartKey}
-                value={restartKey}
-                disabled={false}
-                onChange={onRestartKeyChange}
-                options={restartKeyOptions}
-              />
-              <ToggleSetting
-                label={text.page.showOnScreenKeyboard}
-                checked={showOnScreenKeyboard}
-                disabled={false}
-                onChange={onShowOnScreenKeyboardChange}
-              />
-              <SelectSetting
-                label={text.page.keyboardLayout}
-                value={onScreenKeyboardLayout}
-                disabled={false}
-                onChange={onOnScreenKeyboardLayoutChange}
-                options={keyboardLayoutOptions}
-              />
             </SettingGroup>
           )}
 
