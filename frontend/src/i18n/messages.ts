@@ -316,7 +316,7 @@ const SETTINGS_TEXTS = {
       easy: "Leicht",
       medium: "Mittel",
       hard: "Schwer",
-      mixed: "Gemischt",
+      mixed: "default",
       training: "Training",
       noMistakeMode: "No-Mistake-Modus",
       autoFocus: "Typing-Bereich automatisch fokussieren",
