@@ -289,6 +289,7 @@ export default function TypingGame({
       wordDifficulty,
       wordNoMistakeMode,
       typedChars,
+      correctChars,
       mistakes,
       completedWords,
       totalWords,
@@ -660,8 +661,8 @@ export default function TypingGame({
               gap: "10px"
             }}
           >
-            <MetricCard label="WPM" value={wpm} metricValueAnimationStyle={metricValueAnimationStyle} />
             <MetricCard label="CPM" value={cpm} metricValueAnimationStyle={metricValueAnimationStyle} />
+            <MetricCard label="WPM" value={wpm} metricValueAnimationStyle={metricValueAnimationStyle} />
             <MetricCard
               label={text.metricAccuracy}
               value={`${accuracy}%`}
@@ -748,8 +749,8 @@ export default function TypingGame({
               gap: "10px"
             }}
           >
-            <MetricCard label="WPM" value={wpm} metricValueAnimationStyle={metricValueAnimationStyle} />
             <MetricCard label="CPM" value={cpm} metricValueAnimationStyle={metricValueAnimationStyle} />
+            <MetricCard label="WPM" value={wpm} metricValueAnimationStyle={metricValueAnimationStyle} />
             <MetricCard
               label={text.metricAccuracy}
               value={`${accuracy}%`}

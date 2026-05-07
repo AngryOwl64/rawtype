@@ -6,7 +6,6 @@ import { getRandomCustomTypingText, getRandomTypingText, getRandomTypingWordsTex
 import { getTypingServiceMessage } from "../services/textServiceUtils";
 import {
   calculateAccuracy,
-  calculateCorrectChars,
   calculateCpm,
   calculateWpm
 } from "../services/typingMetrics";
@@ -52,12 +51,14 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
   const [currentInput, setCurrentInput] = useState("");
   const [startTime, setStartTime] = useState<number | null>(null);
   const [typedChars, setTypedChars] = useState(0);
+  const [correctChars, setCorrectChars] = useState(0);
   const [mistakes, setMistakes] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [errorEvents, setErrorEvents] = useState<TypingError[]>([]);
   const [isTextLoading, setIsTextLoading] = useState(true);
   const [textLoadError, setTextLoadError] = useState("");
   const [failedByMistake, setFailedByMistake] = useState(false);
+  const countedCorrectCharacterIdsRef = useRef<Set<string>>(new Set());
   const countedMistakeWordNumbersRef = useRef<Set<number>>(new Set());
 
   const words = useMemo(() => normalizeTypingText(text).split(/\s+/).filter(Boolean), [text]);
@@ -94,13 +95,24 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
     setCurrentInput("");
     setStartTime(null);
     setTypedChars(0);
+    setCorrectChars(0);
     setMistakes(0);
     setElapsedMs(0);
     setErrorEvents([]);
     setFailedByMistake(false);
+    countedCorrectCharacterIdsRef.current = new Set();
     countedMistakeWordNumbersRef.current = new Set();
     setIsTextLoading(false);
   }, [customSettings, language, mode, uiLanguage, wordsCount, wordDifficulty]);
+
+  function countCorrectCharacterOnce(characterId: string) {
+    if (countedCorrectCharacterIdsRef.current.has(characterId)) {
+      return;
+    }
+
+    countedCorrectCharacterIdsRef.current.add(characterId);
+    setCorrectChars((prev) => prev + 1);
+  }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (isTextLoading || words.length === 0) {
@@ -145,8 +157,47 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
           setElapsedMs(Date.now() - startTime);
         }
         setTypedChars((prev) => prev + 1);
+        countCorrectCharacterOnce(`${currentWordIndex}:space`);
         setCurrentWordIndex((prev) => prev + 1);
         setCurrentInput("");
+      } else if (currentInput.length < currentWord.length) {
+        const now = Date.now();
+
+        if (startTime === null) {
+          setStartTime(now);
+          setElapsedMs(0);
+        } else {
+          setElapsedMs(now - startTime);
+        }
+
+        const charIndex = currentInput.length;
+        const expectedChar = currentWord[charIndex];
+        const nextInput = currentInput + event.key;
+        const wordNumber = currentWordIndex + 1;
+        const alreadyCountedWordMistake = countedMistakeWordNumbersRef.current.has(wordNumber);
+
+        if (!alreadyCountedWordMistake) {
+          countedMistakeWordNumbersRef.current.add(wordNumber);
+          setMistakes((prev) => prev + 1);
+          setErrorEvents((prev) => [
+            ...prev,
+            {
+              id: prev.length + 1,
+              wordNumber,
+              word: currentWord,
+              charPosition: charIndex + 1,
+              expected: expectedChar ?? "(none)",
+              typed: event.key
+            }
+          ]);
+        }
+
+        setTypedChars((prev) => prev + 1);
+        setCurrentInput(nextInput);
+
+        if (noMistakeActive) {
+          setFailedByMistake(true);
+        }
       }
       return;
     }
@@ -199,6 +250,8 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
         setFailedByMistake(true);
         return;
       }
+    } else {
+      countCorrectCharacterOnce(`${currentWordIndex}:${charIndex}`);
     }
 
     setTypedChars((prev) => prev + 1);
@@ -210,22 +263,21 @@ export function useTypingGame(options: UseTypingGameOptions = {}) {
   }
 
   const accuracy = useMemo(() => {
-    return calculateAccuracy(typedChars, mistakes);
-  }, [typedChars, mistakes]);
+    return calculateAccuracy(typedChars, correctChars);
+  }, [correctChars, typedChars]);
 
   const wpm = useMemo(() => {
     return calculateWpm(typedChars, elapsedMs);
   }, [elapsedMs, typedChars]);
 
   const cpm = useMemo(() => {
-    return calculateCpm(typedChars, elapsedMs);
-  }, [elapsedMs, typedChars]);
+    return calculateCpm(correctChars, elapsedMs);
+  }, [correctChars, elapsedMs]);
 
   function restart() {
     void reloadText();
   }
 
-  const correctChars = calculateCorrectChars(typedChars, mistakes);
   const completedWords = Math.min(currentWordIndex, words.length);
   const durationSeconds = Math.round((elapsedMs / 1000) * 10) / 10;
 
