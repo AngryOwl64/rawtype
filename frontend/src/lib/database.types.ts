@@ -236,6 +236,7 @@ export type Database = {
           duration_ms: number;
           typed_chars: number;
           correct_chars: number;
+          cpm: number;
           mistakes: number;
           completed_words: number;
           total_words: number;
@@ -256,6 +257,7 @@ export type Database = {
           duration_ms: number;
           typed_chars: number;
           correct_chars: number;
+          cpm?: never;
           mistakes: number;
           completed_words: number;
           total_words: number;
@@ -276,6 +278,7 @@ export type Database = {
           duration_ms?: number;
           typed_chars?: number;
           correct_chars?: number;
+          cpm?: never;
           mistakes?: number;
           completed_words?: number;
           total_words?: number;
