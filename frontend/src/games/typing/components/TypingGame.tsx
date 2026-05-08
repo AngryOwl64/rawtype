@@ -13,6 +13,7 @@ import type {
   CompletionAnimationStyle,
   CustomTypingSettings,
   ErrorFeedbackAnimation,
+  FocusMode,
   KeyboardAnimationStyle,
   MetricValueAnimationStyle,
   OnScreenKeyboardLayout,
@@ -40,6 +41,7 @@ type TypingGameProps = {
   showOnScreenKeyboard?: boolean;
   onScreenKeyboardLayout?: OnScreenKeyboardLayout;
   restartKey?: RestartKey;
+  focusMode?: FocusMode;
   saveRunsToAccount?: boolean;
   saveErrorWords?: boolean;
   showErrorBreakdown?: boolean;
@@ -144,6 +146,7 @@ export default function TypingGame({
   showOnScreenKeyboard = false,
   onScreenKeyboardLayout = "us-qwerty",
   restartKey = "Enter",
+  focusMode = "all",
   saveRunsToAccount = true,
   saveErrorWords = true,
   showErrorBreakdown = true,
@@ -245,7 +248,7 @@ export default function TypingGame({
 
   useLayoutEffect(() => {
     measureCaret();
-  }, [currentInput, currentWordIndex, measureCaret, words]);
+  }, [currentInput, currentWordIndex, focusMode, measureCaret, words]);
 
   useEffect(() => {
     const typingArea = typingAreaRef.current;
@@ -410,6 +413,224 @@ export default function TypingGame({
     return () => window.removeEventListener("keydown", handleRestartKeyDown);
   }, [handleRestart, isTextLoading, restartKey, textLoadError]);
 
+  const visibleWordEntries = useMemo(() => {
+    if (focusMode === "all") {
+      return words.map((word, wordIndex) => ({
+        word,
+        wordIndex,
+        focusOffset: null,
+        placementStyle: undefined
+      }));
+    }
+
+    const visibleCount = focusMode === "columns" ? 9 : 3;
+
+    return words.slice(currentWordIndex, currentWordIndex + visibleCount).map((word, focusOffset) => {
+      const placementStyle: React.CSSProperties =
+        focusMode === "columns"
+          ? {
+              gridColumn: Math.floor(focusOffset / 3) + 1,
+              gridRow: 3 - (focusOffset % 3)
+            }
+          : {};
+
+      return {
+        word,
+        wordIndex: currentWordIndex + focusOffset,
+        focusOffset,
+        placementStyle
+      };
+    });
+  }, [currentWordIndex, focusMode, words]);
+
+  const wordListStyle: React.CSSProperties =
+    focusMode === "all"
+      ? {
+          fontFamily: "var(--typing-font)",
+          fontSize: "24px",
+          lineHeight: 1.8,
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "flex-end",
+          columnGap: 0,
+          rowGap: "4px"
+        }
+      : {
+          fontFamily: "var(--typing-font)",
+          fontSize: "24px",
+          lineHeight: 1.55,
+          display: "grid",
+          gridTemplateColumns:
+            focusMode === "columns" ? "repeat(3, minmax(112px, 1fr))" : "repeat(3, max-content)",
+          gridTemplateRows: focusMode === "columns" ? "repeat(3, minmax(42px, auto))" : undefined,
+          gap: focusMode === "columns" ? "7px 24px" : "0 28px",
+          alignItems: "center",
+          justifyItems: "start",
+          minWidth: focusMode === "columns" ? "min(72vw, 560px)" : undefined
+        };
+
+  function getFocusOpacity(focusOffset: number | null): number {
+    if (focusOffset === null || focusOffset === 0) return 1;
+    if (focusMode === "row") return Math.max(0.38, 0.72 - focusOffset * 0.17);
+    return Math.max(0.36, 0.82 - focusOffset * 0.06);
+  }
+
+  function renderTypingWord(
+    word: string,
+    wordIndex: number,
+    focusOffset: number | null,
+    placementStyle?: React.CSSProperties
+  ) {
+    const hasTrailingSpace = wordIndex < words.length - 1;
+    const focusStyle: React.CSSProperties =
+      focusMode === "all"
+        ? {}
+        : {
+            ...placementStyle,
+            display: "inline-flex",
+            minWidth: 0,
+            opacity: getFocusOpacity(focusOffset),
+            transition: "opacity var(--motion-medium) ease, transform var(--motion-medium) ease"
+          };
+
+    if (wordIndex < currentWordIndex) {
+      return (
+        <span
+          key={wordIndex}
+          style={{
+            display: "inline-flex",
+            backgroundColor: highlightCorrectWords ? correctMarkerBackground : "transparent",
+            borderRadius: 0,
+            ...focusStyle
+          }}
+        >
+          <span
+            className={`rawtype-completed-word rawtype-feedback-${typingFeedbackAnimation}`}
+            style={{
+              color: highlightCorrectWords ? "var(--text)" : "var(--success)",
+              backgroundColor: "transparent",
+              borderRadius: 0,
+              padding: 0,
+              display: "inline-flex"
+            }}
+          >
+            {word}
+          </span>
+          {hasTrailingSpace && (
+            <span
+              aria-hidden="true"
+              style={{
+                display: "inline-flex",
+                color: "transparent",
+                backgroundColor: "transparent",
+                borderRadius: 0,
+                padding: 0
+              }}
+            >
+              {"\u00A0"}
+            </span>
+          )}
+        </span>
+      );
+    }
+
+    if (wordIndex > currentWordIndex || finished) {
+      return (
+        <span key={wordIndex} style={{ display: "inline-flex", ...focusStyle }}>
+          <span style={{ color: "var(--muted)", display: "inline-flex" }}>{word}</span>
+          {hasTrailingSpace && <span aria-hidden="true">{"\u00A0"}</span>}
+        </span>
+      );
+    }
+
+    const cursorInWord = currentInput.length < word.length;
+    const firstMismatchIndex = highlightErrorFromPoint ? getFirstMismatchIndex(currentInput, word) : -1;
+    const showSpaceCursor = !cursorInWord && !finished && hasTrailingSpace;
+    const showEndCursor = !cursorInWord && !finished && !hasTrailingSpace;
+
+    return (
+      <span key={wordIndex} style={{ display: "inline-flex", ...focusStyle }}>
+        <span
+          className="rawtype-current-word"
+          style={{
+            alignItems: "center",
+            whiteSpace: "normal",
+            display: "inline-flex"
+          }}
+        >
+          {word.split("").map((char, charIndex) => {
+            let color = "var(--muted)";
+            let backgroundColor = "transparent";
+            const borderRadius = 0;
+            const padding = 0;
+            let characterStateClass = "";
+
+            if (charIndex < currentInput.length) {
+              const markedAsWrongFromMismatch = firstMismatchIndex !== -1 && charIndex >= firstMismatchIndex;
+
+              if (markedAsWrongFromMismatch) {
+                color = "var(--danger)";
+                backgroundColor = errorMarkerBackground;
+                characterStateClass = "rawtype-char-error";
+              } else {
+                const typedCorrectly = currentInput[charIndex] === char;
+                color = typedCorrectly ? "var(--text)" : "var(--danger)";
+                characterStateClass = typedCorrectly ? "rawtype-char-correct" : "rawtype-char-error";
+
+                if (highlightCorrectWords && typedCorrectly) {
+                  backgroundColor = correctMarkerBackground;
+                }
+              }
+            }
+
+            const showCaretBeforeChar = cursorInWord && charIndex === currentInput.length;
+            const showCaretAfterChar = showEndCursor && charIndex === word.length - 1;
+            const isCaretTarget = showCaretBeforeChar || showCaretAfterChar;
+            const characterClassName = [
+              "rawtype-typing-char",
+              characterStateClass,
+              characterStateClass === "rawtype-char-correct" ? `rawtype-feedback-${typingFeedbackAnimation}` : "",
+              characterStateClass === "rawtype-char-error" ? `rawtype-error-${errorFeedbackAnimation}` : ""
+            ]
+              .filter(Boolean)
+              .join(" ");
+
+            return (
+              <span
+                key={charIndex}
+                ref={isCaretTarget ? caretTargetRef : undefined}
+                className={characterClassName}
+                data-caret-placement={showCaretAfterChar ? "after" : "before"}
+                style={{
+                  color,
+                  backgroundColor,
+                  borderRadius,
+                  padding,
+                  animationDelay:
+                    characterStateClass === "rawtype-char-correct" && typingFeedbackAnimation === "wave"
+                      ? `${charIndex * 20}ms`
+                      : undefined
+                }}
+              >
+                {char}
+              </span>
+            );
+          })}
+        </span>
+        {hasTrailingSpace && (
+          <span
+            aria-hidden="true"
+            ref={showSpaceCursor ? caretTargetRef : undefined}
+            data-caret-placement={showSpaceCursor ? "before" : undefined}
+            style={{ display: "inline-flex" }}
+          >
+            {"\u00A0"}
+          </span>
+        )}
+      </span>
+    );
+  }
+
   return (
     <div
       className={`rawtype-typing-game rawtype-motion-${animationIntensity}`}
@@ -486,164 +707,10 @@ export default function TypingGame({
                 verticalAlign: "top"
               }}
             >
-              <div
-                style={{
-                  fontFamily: "var(--typing-font)",
-                  fontSize: "24px",
-                  lineHeight: 1.8,
-                  display: "flex",
-                  flexWrap: "wrap",
-                  alignItems: "flex-end",
-                  columnGap: 0,
-                  rowGap: "4px"
-                }}
-              >
-                {words.map((word, wordIndex) => {
-                  const hasTrailingSpace = wordIndex < words.length - 1;
-
-                  if (wordIndex < currentWordIndex) {
-                    return (
-                      <span
-                        key={wordIndex}
-                        style={{
-                          display: "inline-flex",
-                          backgroundColor: highlightCorrectWords ? correctMarkerBackground : "transparent",
-                          borderRadius: 0
-                        }}
-                      >
-                        <span
-                          className={`rawtype-completed-word rawtype-feedback-${typingFeedbackAnimation}`}
-                          style={{
-                            color: highlightCorrectWords ? "var(--text)" : "var(--success)",
-                            backgroundColor: "transparent",
-                            borderRadius: 0,
-                            padding: 0,
-                            display: "inline-flex"
-                          }}
-                        >
-                          {word}
-                        </span>
-                        {hasTrailingSpace && (
-                          <span
-                            aria-hidden="true"
-                            style={{
-                              display: "inline-flex",
-                              color: "transparent",
-                              backgroundColor: "transparent",
-                              borderRadius: 0,
-                              padding: 0
-                            }}
-                          >
-                            {"\u00A0"}
-                          </span>
-                        )}
-                      </span>
-                    );
-                  }
-
-                  if (wordIndex > currentWordIndex || finished) {
-                    return (
-                      <span key={wordIndex} style={{ display: "inline-flex" }}>
-                        <span style={{ color: "var(--muted)", display: "inline-flex" }}>{word}</span>
-                        {hasTrailingSpace && <span aria-hidden="true">{"\u00A0"}</span>}
-                      </span>
-                    );
-                  }
-
-                  const cursorInWord = currentInput.length < word.length;
-                  const firstMismatchIndex = highlightErrorFromPoint
-                    ? getFirstMismatchIndex(currentInput, word)
-                    : -1;
-                  const showSpaceCursor = !cursorInWord && !finished && hasTrailingSpace;
-                  const showEndCursor = !cursorInWord && !finished && !hasTrailingSpace;
-
-                  return (
-                    <span key={wordIndex} style={{ display: "inline-flex" }}>
-                      <span
-                        className="rawtype-current-word"
-                        style={{
-                          alignItems: "center",
-                          whiteSpace: "normal",
-                          display: "inline-flex"
-                        }}
-                      >
-                        {word.split("").map((char, charIndex) => {
-                          let color = "var(--muted)";
-                          let backgroundColor = "transparent";
-                          const borderRadius = 0;
-                          const padding = 0;
-                          let characterStateClass = "";
-
-                          if (charIndex < currentInput.length) {
-                            const markedAsWrongFromMismatch =
-                              firstMismatchIndex !== -1 && charIndex >= firstMismatchIndex;
-
-                            if (markedAsWrongFromMismatch) {
-                              color = "var(--danger)";
-                              backgroundColor = errorMarkerBackground;
-                              characterStateClass = "rawtype-char-error";
-                            } else {
-                              const typedCorrectly = currentInput[charIndex] === char;
-                              color = typedCorrectly ? "var(--text)" : "var(--danger)";
-                              characterStateClass = typedCorrectly ? "rawtype-char-correct" : "rawtype-char-error";
-
-                              if (highlightCorrectWords && typedCorrectly) {
-                                backgroundColor = correctMarkerBackground;
-                              }
-                            }
-                          }
-
-                          const showCaretBeforeChar = cursorInWord && charIndex === currentInput.length;
-                          const showCaretAfterChar = showEndCursor && charIndex === word.length - 1;
-                          const isCaretTarget = showCaretBeforeChar || showCaretAfterChar;
-                          const characterClassName = [
-                            "rawtype-typing-char",
-                            characterStateClass,
-                            characterStateClass === "rawtype-char-correct"
-                              ? `rawtype-feedback-${typingFeedbackAnimation}`
-                              : "",
-                            characterStateClass === "rawtype-char-error"
-                              ? `rawtype-error-${errorFeedbackAnimation}`
-                              : ""
-                          ]
-                            .filter(Boolean)
-                            .join(" ");
-
-                          return (
-                            <span
-                              key={charIndex}
-                              ref={isCaretTarget ? caretTargetRef : undefined}
-                              className={characterClassName}
-                              data-caret-placement={showCaretAfterChar ? "after" : "before"}
-                              style={{
-                                color,
-                                backgroundColor,
-                                borderRadius,
-                                padding,
-                                animationDelay:
-                                  characterStateClass === "rawtype-char-correct" && typingFeedbackAnimation === "wave"
-                                    ? `${charIndex * 20}ms`
-                                    : undefined
-                              }}
-                            >
-                              {char}
-                            </span>
-                          );
-                        })}
-                      </span>
-                      {hasTrailingSpace && (
-                        <span
-                          aria-hidden="true"
-                          ref={showSpaceCursor ? caretTargetRef : undefined}
-                          data-caret-placement={showSpaceCursor ? "before" : undefined}
-                          style={{ display: "inline-flex" }}
-                        >
-                          {"\u00A0"}
-                        </span>
-                      )}
-                    </span>
-                  );
-                })}
+              <div style={wordListStyle}>
+                {visibleWordEntries.map(({ word, wordIndex, focusOffset, placementStyle }) =>
+                  renderTypingWord(word, wordIndex, focusOffset, placementStyle)
+                )}
               </div>
               <GlidingCaret
                 box={caretBox}

@@ -14,6 +14,7 @@ import type {
   CaretMovementAnimation,
   CompletionAnimationStyle,
   ErrorFeedbackAnimation,
+  FocusMode,
   KeyboardAnimationStyle,
   MetricValueAnimationStyle,
   OnScreenKeyboardLayout,
@@ -36,6 +37,7 @@ import {
   getStoredCaretMovementAnimation,
   getStoredCompletionAnimationStyle,
   getStoredErrorFeedbackAnimation,
+  getStoredFocusMode,
   getStoredKeyboardAnimationStyle,
   getStoredMetricValueAnimationStyle,
   getStoredGameLanguage,
@@ -52,6 +54,7 @@ import {
   isCaretMovementAnimation,
   isCompletionAnimationStyle,
   isErrorFeedbackAnimation,
+  isFocusMode,
   isKeyboardAnimationStyle,
   isMetricValueAnimationStyle,
   isOnScreenKeyboardLayout,
@@ -196,6 +199,7 @@ type PreferencesState = {
   showOnScreenKeyboard: boolean;
   onScreenKeyboardLayout: OnScreenKeyboardLayout;
   restartKey: RestartKey;
+  focusMode: FocusMode;
   saveRunsToAccount: boolean;
   saveErrorWords: boolean;
   showErrorBreakdown: boolean;
@@ -232,6 +236,7 @@ function getInitialPreferences(): PreferencesState {
     showOnScreenKeyboard: getStoredBoolean("rawtype-show-onscreen-keyboard", false),
     onScreenKeyboardLayout: getStoredOnScreenKeyboardLayout(),
     restartKey: getStoredRestartKey(),
+    focusMode: getStoredFocusMode(),
     saveRunsToAccount: getStoredBoolean("rawtype-save-runs-to-account", true),
     saveErrorWords: getStoredBoolean("rawtype-save-error-words", true),
     showErrorBreakdown: getStoredBoolean("rawtype-show-error-breakdown", true),
@@ -285,6 +290,7 @@ function preferencesReducer(state: PreferencesState, action: PreferencesAction):
       ? settings.on_screen_keyboard_layout
       : state.onScreenKeyboardLayout,
     restartKey: isRestartKey(settings.restart_key) ? settings.restart_key : state.restartKey,
+    focusMode: isFocusMode(settings.focus_mode) ? settings.focus_mode : state.focusMode,
     correctMarkerColor: isHexColor(settings.correct_marker_color)
       ? settings.correct_marker_color
       : state.correctMarkerColor,
@@ -353,6 +359,7 @@ function App() {
     keyboardAnimationStyle,
     metricValueAnimationStyle,
     onScreenKeyboardLayout,
+    focusMode,
     restartKey,
     saveErrorWords,
     saveRunsToAccount,
@@ -646,6 +653,11 @@ function App() {
     updateAccountSettings({ restart_key: nextKey });
   }
 
+  function handleFocusModeChange(nextMode: FocusMode) {
+    dispatchPreferences({ type: "patch", updates: { focusMode: nextMode } });
+    updateAccountSettings({ focus_mode: nextMode });
+  }
+
   function handleCorrectMarkerColorChange(nextColor: string) {
     dispatchPreferences({ type: "patch", updates: { correctMarkerColor: nextColor } });
     updateAccountSettings({ correct_marker_color: nextColor });
@@ -796,6 +808,10 @@ function App() {
   useEffect(() => {
     setStoredValue("rawtype-restart-key", restartKey);
   }, [restartKey]);
+
+  useEffect(() => {
+    setStoredValue("rawtype-focus-mode", focusMode);
+  }, [focusMode]);
 
   useEffect(() => {
     setStoredValue("rawtype-save-runs-to-account", saveRunsToAccount);
@@ -1012,6 +1028,7 @@ function App() {
               showOnScreenKeyboard={showOnScreenKeyboard}
               onScreenKeyboardLayout={onScreenKeyboardLayout}
               restartKey={restartKey}
+              focusMode={focusMode}
               saveRunsToAccount={saveRunsToAccount}
               saveErrorWords={saveErrorWords}
               showErrorBreakdown={showErrorBreakdown}
@@ -1048,6 +1065,7 @@ function App() {
             showOnScreenKeyboard={showOnScreenKeyboard}
             onScreenKeyboardLayout={onScreenKeyboardLayout}
             restartKey={restartKey}
+            focusMode={focusMode}
             saveRunsToAccount={saveRunsToAccount}
             saveErrorWords={saveErrorWords}
             showErrorBreakdown={showErrorBreakdown}
@@ -1082,6 +1100,7 @@ function App() {
             onShowOnScreenKeyboardChange={handleShowOnScreenKeyboardChange}
             onOnScreenKeyboardLayoutChange={handleOnScreenKeyboardLayoutChange}
             onRestartKeyChange={handleRestartKeyChange}
+            onFocusModeChange={handleFocusModeChange}
             onSaveRunsToAccountChange={handleSaveRunsToAccountChange}
             onSaveErrorWordsChange={handleSaveErrorWordsChange}
             onShowErrorBreakdownChange={handleShowErrorBreakdownChange}

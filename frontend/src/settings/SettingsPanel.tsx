@@ -12,6 +12,7 @@ import type {
   CompletionAnimationStyle,
   CustomFont,
   ErrorFeedbackAnimation,
+  FocusMode,
   KeyboardAnimationStyle,
   MetricValueAnimationStyle,
   OnScreenKeyboardLayout,
@@ -953,6 +954,7 @@ type SettingsPanelProps = {
   defaultWordsCount: number;
   defaultWordDifficulty: WordModeDifficulty;
   defaultNoMistakeMode: WordNoMistakeMode;
+  focusMode: FocusMode;
   highlightCorrectWords: boolean;
   highlightErrorFromPoint: boolean;
   showOnScreenKeyboard: boolean;
@@ -983,6 +985,7 @@ type SettingsPanelProps = {
   onDefaultWordsCountChange: (wordsCount: number) => void;
   onDefaultWordDifficultyChange: (difficulty: WordModeDifficulty) => void;
   onDefaultNoMistakeModeChange: (mode: WordNoMistakeMode) => void;
+  onFocusModeChange: (mode: FocusMode) => void;
   onHighlightCorrectWordsChange: (enabled: boolean) => void;
   onHighlightErrorFromPointChange: (enabled: boolean) => void;
   onShowOnScreenKeyboardChange: (enabled: boolean) => void;
@@ -1018,6 +1021,7 @@ export default function SettingsPanel({
   defaultWordsCount,
   defaultWordDifficulty,
   defaultNoMistakeMode,
+  focusMode,
   highlightCorrectWords,
   highlightErrorFromPoint,
   showOnScreenKeyboard,
@@ -1048,6 +1052,7 @@ export default function SettingsPanel({
   onDefaultWordsCountChange,
   onDefaultWordDifficultyChange,
   onDefaultNoMistakeModeChange,
+  onFocusModeChange,
   onHighlightCorrectWordsChange,
   onHighlightErrorFromPointChange,
   onShowOnScreenKeyboardChange,
@@ -1106,6 +1111,11 @@ export default function SettingsPanel({
     { value: "medium", label: text.page.medium },
     { value: "hard", label: text.page.hard },
     { value: "mixed", label: text.page.mixed }
+  ];
+  const focusModeOptions: Array<SelectOption<FocusMode>> = [
+    { value: "all", label: text.page.focusModeAll },
+    { value: "columns", label: text.page.focusModeColumns },
+    { value: "row", label: text.page.focusModeRow }
   ];
   const animationIntensityOptions: Array<SelectOption<AnimationIntensity>> = [
     { value: "off", label: text.page.motionOff },
@@ -1334,6 +1344,13 @@ export default function SettingsPanel({
                   onChange={(enabled) => onDefaultNoMistakeModeChange(enabled ? "on" : "off")}
                 />
                 <ToggleSetting label={text.page.autoFocus} checked />
+                <SelectSetting
+                  label={text.page.focusMode}
+                  value={focusMode}
+                  disabled={false}
+                  onChange={onFocusModeChange}
+                  options={focusModeOptions}
+                />
               </SettingGroup>
             </>
           )}

@@ -11,6 +11,7 @@ import type {
   CompletionAnimationStyle,
   CustomFont,
   ErrorFeedbackAnimation,
+  FocusMode,
   KeyboardAnimationStyle,
   MetricValueAnimationStyle,
   OnScreenKeyboardLayout,
@@ -58,6 +59,7 @@ export const TEXT_FONT_OPTIONS: Array<SelectOption<BuiltInTextFont>> = [
 
 const DEFAULT_ON_SCREEN_KEYBOARD_LAYOUT: OnScreenKeyboardLayout = "us-qwerty";
 const DEFAULT_RESTART_KEY: RestartKey = "Enter";
+const DEFAULT_FOCUS_MODE: FocusMode = "all";
 const DEFAULT_ANIMATION_INTENSITY: AnimationIntensity = "balanced";
 const DEFAULT_CARET_ANIMATION: CaretAnimationStyle = "blink";
 const DEFAULT_CARET_MOVEMENT_ANIMATION: CaretMovementAnimation = "slide";
@@ -102,6 +104,16 @@ export function getStoredRestartKey(): RestartKey {
   if (typeof window === "undefined") return DEFAULT_RESTART_KEY;
   const storedRestartKey = window.localStorage.getItem("rawtype-restart-key");
   return isRestartKey(storedRestartKey) ? storedRestartKey : DEFAULT_RESTART_KEY;
+}
+
+export function isFocusMode(value: string | null | undefined): value is FocusMode {
+  return value === "all" || value === "columns" || value === "row";
+}
+
+export function getStoredFocusMode(): FocusMode {
+  if (typeof window === "undefined") return DEFAULT_FOCUS_MODE;
+  const storedValue = window.localStorage.getItem("rawtype-focus-mode");
+  return isFocusMode(storedValue) ? storedValue : DEFAULT_FOCUS_MODE;
 }
 
 export function isAnimationIntensity(value: string | null | undefined): value is AnimationIntensity {
