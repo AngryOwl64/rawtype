@@ -107,13 +107,19 @@ export function getStoredRestartKey(): RestartKey {
 }
 
 export function isFocusMode(value: string | null | undefined): value is FocusMode {
-  return value === "all" || value === "columns" || value === "row";
+  return normalizeFocusMode(value) !== null;
+}
+
+export function normalizeFocusMode(value: string | null | undefined): FocusMode | null {
+  if (value === "row" || value === "onelinemode") return "onelinemode";
+  if (value === "all" || value === "columns") return value;
+  return null;
 }
 
 export function getStoredFocusMode(): FocusMode {
   if (typeof window === "undefined") return DEFAULT_FOCUS_MODE;
   const storedValue = window.localStorage.getItem("rawtype-focus-mode");
-  return isFocusMode(storedValue) ? storedValue : DEFAULT_FOCUS_MODE;
+  return normalizeFocusMode(storedValue) ?? DEFAULT_FOCUS_MODE;
 }
 
 export function isAnimationIntensity(value: string | null | undefined): value is AnimationIntensity {

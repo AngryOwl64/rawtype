@@ -28,7 +28,7 @@ export type TextFont =
   | CustomFontId;
 export type OnScreenKeyboardLayout = "us-qwerty" | "uk-qwerty" | "de-qwertz" | "fr-azerty" | "es-qwerty";
 export type RestartKey = "Enter" | "Escape";
-export type FocusMode = "all" | "columns" | "row";
+export type FocusMode = "all" | "columns" | "onelinemode";
 export type WordModeDifficulty = "easy" | "medium" | "hard" | "mixed";
 export type WordNoMistakeMode = "off" | "on";
 export type AnimationIntensity = "off" | "calm" | "balanced" | "expressive";

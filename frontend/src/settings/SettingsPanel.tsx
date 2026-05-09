@@ -405,22 +405,23 @@ function FocusModePreview({
         </div>
       )}
 
-      {focusMode === "row" && (
+      {focusMode === "onelinemode" && (
         <div
-          key={`focus-row-${previewStep}`}
+          key={`focus-oneline-${previewStep}`}
           style={{
             fontFamily: "var(--typing-font)",
             fontSize: "20px",
             lineHeight: 1.45,
-            display: "grid",
-            gridTemplateColumns: "repeat(3, max-content)",
-            gap: "0 18px",
+            display: "inline-flex",
+            whiteSpace: "nowrap",
+            gap: 0,
             alignItems: "center"
           }}
         >
-          {previewSequence.map((word, index) => (
+          {previewWords.map((word, index) => (
             <span key={word} style={{ opacity: index === 0 ? 1 : 0.72 }}>
               {word}
+              {index < previewWords.length - 1 ? " " : ""}
             </span>
           ))}
         </div>
@@ -1225,7 +1226,7 @@ export default function SettingsPanel({
   const focusModeOptions: Array<SelectOption<FocusMode>> = [
     { value: "all", label: text.page.focusModeAll },
     { value: "columns", label: text.page.focusModeColumns },
-    { value: "row", label: text.page.focusModeRow }
+    { value: "onelinemode", label: text.page.focusModeOneLine }
   ];
   const animationIntensityOptions: Array<SelectOption<AnimationIntensity>> = [
     { value: "off", label: text.page.motionOff },

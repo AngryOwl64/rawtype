@@ -54,7 +54,6 @@ import {
   isCaretMovementAnimation,
   isCompletionAnimationStyle,
   isErrorFeedbackAnimation,
-  isFocusMode,
   isKeyboardAnimationStyle,
   isMetricValueAnimationStyle,
   isOnScreenKeyboardLayout,
@@ -62,6 +61,7 @@ import {
   isTextFont,
   isTypingFeedbackAnimation,
   isTypingLanguage,
+  normalizeFocusMode,
   type ThemeMode
 } from "./settings/preferences";
 import { getStoredCustomTypingSettings, setStoredCustomTypingSettings } from "./games/typing/customSettings";
@@ -290,7 +290,7 @@ function preferencesReducer(state: PreferencesState, action: PreferencesAction):
       ? settings.on_screen_keyboard_layout
       : state.onScreenKeyboardLayout,
     restartKey: isRestartKey(settings.restart_key) ? settings.restart_key : state.restartKey,
-    focusMode: isFocusMode(settings.focus_mode) ? settings.focus_mode : state.focusMode,
+    focusMode: normalizeFocusMode(settings.focus_mode) ?? state.focusMode,
     correctMarkerColor: isHexColor(settings.correct_marker_color)
       ? settings.correct_marker_color
       : state.correctMarkerColor,

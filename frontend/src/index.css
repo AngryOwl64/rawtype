@@ -36,6 +36,15 @@ textarea {
   box-shadow: 0 0 0 3px rgba(127, 127, 127, 0.12);
 }
 
+.rawtype-typing-stage-oneline {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.rawtype-typing-stage-oneline::-webkit-scrollbar {
+  display: none;
+}
+
 .rawtype-typing-char,
 .rawtype-completed-word {
   display: inline-flex;

@@ -288,31 +288,64 @@ export default function TypingGame({
     });
   }, [finished, isTextLoading, textLoadError]);
 
+  const centerOneLineCursor = useCallback(() => {
+    if (focusMode !== "onelinemode") return;
+
+    const typingArea = typingAreaRef.current;
+    const caretTarget = caretTargetRef.current;
+    if (!typingArea || !caretTarget || finished || isTextLoading || textLoadError) {
+      return;
+    }
+
+    const stageRect = typingArea.getBoundingClientRect();
+    const targetRect = caretTarget.getBoundingClientRect();
+    const targetCenterX = targetRect.left + targetRect.width / 2;
+    const stageCenterX = stageRect.left + stageRect.width / 2;
+    const desiredScrollLeft = typingArea.scrollLeft + (targetCenterX - stageCenterX);
+    const maxScrollLeft = Math.max(0, typingArea.scrollWidth - typingArea.clientWidth);
+    const nextScrollLeft = Math.min(Math.max(0, desiredScrollLeft), maxScrollLeft);
+
+    if (Math.abs(nextScrollLeft - typingArea.scrollLeft) > 0.5) {
+      typingArea.scrollLeft = nextScrollLeft;
+    }
+  }, [finished, focusMode, isTextLoading, textLoadError]);
+
   useEffect(() => {
     void reloadText();
   }, [reloadText]);
 
   useLayoutEffect(() => {
+    if (focusMode === "onelinemode") {
+      centerOneLineCursor();
+    }
     measureCaret();
-  }, [currentInput, currentWordIndex, focusMode, measureCaret, words]);
+  }, [centerOneLineCursor, currentInput, currentWordIndex, focusMode, measureCaret, words]);
 
   useEffect(() => {
     const typingArea = typingAreaRef.current;
     if (!typingArea) return;
 
-    window.addEventListener("resize", measureCaret);
+    const handleResize = () => {
+      centerOneLineCursor();
+      measureCaret();
+    };
+
+    window.addEventListener("resize", handleResize);
 
     if (typeof ResizeObserver !== "undefined") {
-      const resizeObserver = new ResizeObserver(() => measureCaret());
+      const resizeObserver = new ResizeObserver(() => {
+        centerOneLineCursor();
+        measureCaret();
+      });
       resizeObserver.observe(typingArea);
       return () => {
         resizeObserver.disconnect();
-        window.removeEventListener("resize", measureCaret);
+        window.removeEventListener("resize", handleResize);
       };
     }
 
-    return () => window.removeEventListener("resize", measureCaret);
-  }, [measureCaret]);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [centerOneLineCursor, measureCaret]);
 
   useEffect(() => {
     const typingArea = typingAreaRef.current;
@@ -353,6 +386,26 @@ export default function TypingGame({
       window.cancelAnimationFrame(secondFrame);
     };
   }, [currentInput, currentWordIndex, focusMode, measureCaret]);
+
+  useEffect(() => {
+    if (focusMode !== "onelinemode") return;
+
+    let firstFrame = 0;
+    let secondFrame = 0;
+    firstFrame = window.requestAnimationFrame(() => {
+      centerOneLineCursor();
+      measureCaret();
+      secondFrame = window.requestAnimationFrame(() => {
+        centerOneLineCursor();
+        measureCaret();
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+    };
+  }, [centerOneLineCursor, currentInput, currentWordIndex, focusMode, measureCaret, words]);
 
   useEffect(() => {
     if (!finished && !isTextLoading && !textLoadError) {
@@ -539,6 +592,14 @@ export default function TypingGame({
       }));
     }
 
+    if (focusMode === "onelinemode") {
+      return words.map((word, wordIndex) => ({
+        word,
+        wordIndex,
+        focusDistance: Math.abs(wordIndex - currentWordIndex)
+      }));
+    }
+
     return words.slice(currentWordIndex, currentWordIndex + 3).map((word, focusDistance) => ({
       word,
       wordIndex: currentWordIndex + focusDistance,
@@ -570,6 +631,19 @@ export default function TypingGame({
             alignItems: "center",
             justifyItems: "stretch"
           }
+        : focusMode === "onelinemode"
+          ? {
+              fontFamily: "var(--typing-font)",
+              fontSize: "24px",
+              lineHeight: 1.55,
+              display: "inline-flex",
+              flexWrap: "nowrap",
+              alignItems: "flex-end",
+              whiteSpace: "nowrap",
+              gap: 0,
+              minWidth: "max-content",
+              paddingLeft: "50%"
+            }
         : {
           fontFamily: "var(--typing-font)",
           fontSize: "24px",
@@ -594,6 +668,20 @@ export default function TypingGame({
     focusDistance: number | null
   ) {
     const hasTrailingSpace = wordIndex < words.length - 1;
+    const renderSpace = (spaceKey: string, withCaretAnchor: boolean) => {
+      if (!hasTrailingSpace) return null;
+      return (
+        <span
+          key={spaceKey}
+          aria-hidden="true"
+          ref={withCaretAnchor ? caretTargetRef : undefined}
+          data-caret-placement={withCaretAnchor ? "before" : undefined}
+          style={{ display: "inline-block", whiteSpace: "pre" }}
+        >
+          {" "}
+        </span>
+      );
+    };
     const focusStyle: React.CSSProperties =
       focusMode === "all"
         ? {}
@@ -627,20 +715,7 @@ export default function TypingGame({
           >
             {word}
           </span>
-          {hasTrailingSpace && (
-            <span
-              aria-hidden="true"
-              style={{
-                display: "inline-flex",
-                color: "transparent",
-                backgroundColor: "transparent",
-                borderRadius: 0,
-                padding: 0
-              }}
-            >
-              {"\u00A0"}
-            </span>
-          )}
+          {renderSpace(`${itemKey}-space`, false)}
         </span>
       );
     }
@@ -649,7 +724,7 @@ export default function TypingGame({
       return (
         <span key={itemKey} style={{ display: "inline-flex", ...focusStyle }}>
           <span style={{ color: "var(--muted)", display: "inline-flex" }}>{word}</span>
-          {hasTrailingSpace && <span aria-hidden="true">{"\u00A0"}</span>}
+          {renderSpace(`${itemKey}-space`, false)}
         </span>
       );
     }
@@ -665,7 +740,7 @@ export default function TypingGame({
           className="rawtype-current-word"
           style={{
             alignItems: "center",
-            whiteSpace: "normal",
+            whiteSpace: "nowrap",
             display: "inline-flex"
           }}
         >
@@ -728,16 +803,7 @@ export default function TypingGame({
             );
           })}
         </span>
-        {hasTrailingSpace && (
-          <span
-            aria-hidden="true"
-            ref={showSpaceCursor ? caretTargetRef : undefined}
-            data-caret-placement={showSpaceCursor ? "before" : undefined}
-            style={{ display: "inline-flex" }}
-          >
-            {"\u00A0"}
-          </span>
-        )}
+        {renderSpace(`${itemKey}-space`, showSpaceCursor)}
       </span>
     );
   }
@@ -801,7 +867,7 @@ export default function TypingGame({
           {!isTextLoading && !textLoadError && (
             <div
               ref={typingAreaRef}
-              className="rawtype-typing-stage"
+              className={`rawtype-typing-stage ${focusMode === "onelinemode" ? "rawtype-typing-stage-oneline" : ""}`}
               tabIndex={0}
               onKeyDown={handleKeyDown}
               onClick={() => typingAreaRef.current?.focus()}
@@ -813,8 +879,10 @@ export default function TypingGame({
                 outline: "none",
                 cursor: "text",
                 display: "inline-block",
-                width: "max-content",
+                width: focusMode === "onelinemode" ? "min(100%, 980px)" : "max-content",
                 maxWidth: "min(100%, 980px)",
+                overflowX: focusMode === "onelinemode" ? "auto" : "visible",
+                overflowY: "hidden",
                 verticalAlign: "top"
               }}
             >
