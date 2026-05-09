@@ -351,6 +351,116 @@ function AnimationPreview({
   );
 }
 
+function FocusModePreview({
+  focusMode,
+  effectiveAnimationIntensity,
+  title
+}: {
+  focusMode: FocusMode;
+  effectiveAnimationIntensity: AnimationIntensity;
+  title: string;
+}) {
+  const [previewStep, setPreviewStep] = useState(0);
+  const previewWords = ["alpha", "bravo", "charlie", "delta", "echo"];
+
+  useEffect(() => {
+    setPreviewStep((current) => current + 1);
+  }, [focusMode]);
+
+  const previewStartIndex = previewStep % 3;
+  const previewSequence = previewWords.slice(previewStartIndex, previewStartIndex + 3);
+
+  return (
+    <div
+      aria-label={title}
+      className={`rawtype-motion-${effectiveAnimationIntensity}`}
+      style={{
+        border: "1px solid var(--border-soft)",
+        borderRadius: "8px",
+        backgroundColor: "var(--surface-soft)",
+        padding: "12px",
+        display: "grid",
+        gap: "8px"
+      }}
+    >
+      <span style={{ fontSize: "12px", color: "var(--muted-strong)", fontWeight: 700 }}>{title}</span>
+
+      {focusMode === "all" && (
+        <div
+          key={`focus-all-${previewStep}`}
+          style={{
+            fontFamily: "var(--typing-font)",
+            fontSize: "20px",
+            lineHeight: 1.45,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0 10px"
+          }}
+        >
+          {previewWords.map((word, index) => (
+            <span key={word} style={{ opacity: 1 - index * 0.08 }}>
+              {word}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {focusMode === "row" && (
+        <div
+          key={`focus-row-${previewStep}`}
+          style={{
+            fontFamily: "var(--typing-font)",
+            fontSize: "20px",
+            lineHeight: 1.45,
+            display: "grid",
+            gridTemplateColumns: "repeat(3, max-content)",
+            gap: "0 18px",
+            alignItems: "center"
+          }}
+        >
+          {previewSequence.map((word, index) => (
+            <span key={word} style={{ opacity: index === 0 ? 1 : 0.72 }}>
+              {word}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {focusMode === "columns" && (
+        <div
+          key={`focus-columns-${previewStep}`}
+          className="rawtype-focus-preview-columns"
+          style={{
+            fontFamily: "var(--typing-font)",
+            fontSize: "20px",
+            lineHeight: 1.45,
+            display: "grid",
+            gridTemplateColumns: "max-content",
+            gridTemplateRows: "repeat(3, minmax(30px, auto))",
+            gap: "6px",
+            alignItems: "center"
+          }}
+        >
+          {previewSequence.map((word, index) => (
+            <span
+              key={word}
+              className="rawtype-focus-preview-item"
+              style={{
+                gridColumn: 1,
+                gridRow: index + 1,
+                opacity: index === 1 ? 1 : 0.72,
+                transform: "translateY(0)"
+              }}
+            >
+              {word}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ThemePickerWindow({
   language,
   open,
@@ -1344,6 +1454,13 @@ export default function SettingsPanel({
                   onChange={(enabled) => onDefaultNoMistakeModeChange(enabled ? "on" : "off")}
                 />
                 <ToggleSetting label={text.page.autoFocus} checked />
+              </SettingGroup>
+            </>
+          )}
+
+          {activeCategory === "animations" && (
+            <>
+              <SettingGroup title={text.page.focusMode} singleColumn>
                 <SelectSetting
                   label={text.page.focusMode}
                   value={focusMode}
@@ -1351,12 +1468,13 @@ export default function SettingsPanel({
                   onChange={onFocusModeChange}
                   options={focusModeOptions}
                 />
+                <FocusModePreview
+                  focusMode={focusMode}
+                  effectiveAnimationIntensity={effectiveAnimationIntensity}
+                  title={text.page.focusModePreview}
+                />
               </SettingGroup>
-            </>
-          )}
 
-          {activeCategory === "animations" && (
-            <>
               <SettingGroup title={text.page.animationProfile}>
                 <SelectSetting
                   label={text.page.animationIntensity}

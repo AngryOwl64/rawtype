@@ -64,6 +64,52 @@ type CaretBox = {
   height: number;
 };
 
+const COLUMN_MAX_CHARS_PER_ROW = 70;
+
+type ColumnFocusRow = {
+  startWordIndex: number;
+  endWordIndex: number;
+  words: Array<{ word: string; wordIndex: number }>;
+};
+
+function buildColumnFocusRows(words: string[]): ColumnFocusRow[] {
+  const rows: ColumnFocusRow[] = [];
+  let cursor = 0;
+
+  while (cursor < words.length) {
+    const startWordIndex = cursor;
+    let currentRowChars = 0;
+    const rowWords: Array<{ word: string; wordIndex: number }> = [];
+
+    while (cursor < words.length) {
+      const nextWord = words[cursor];
+      const separatorChars = rowWords.length > 0 ? 1 : 0;
+      const nextWordChars = nextWord.length + separatorChars;
+
+      if (rowWords.length > 0 && currentRowChars + nextWordChars > COLUMN_MAX_CHARS_PER_ROW) {
+        break;
+      }
+
+      rowWords.push({ word: nextWord, wordIndex: cursor });
+      currentRowChars += nextWordChars;
+      cursor += 1;
+    }
+
+    if (rowWords.length === 0) {
+      rowWords.push({ word: words[cursor], wordIndex: cursor });
+      cursor += 1;
+    }
+
+    rows.push({
+      startWordIndex,
+      endWordIndex: cursor,
+      words: rowWords
+    });
+  }
+
+  return rows;
+}
+
 function GlidingCaret({
   box,
   caretAnimationStyle,
@@ -269,6 +315,46 @@ export default function TypingGame({
   }, [measureCaret]);
 
   useEffect(() => {
+    const typingArea = typingAreaRef.current;
+    if (!typingArea || focusMode !== "columns") return;
+
+    function handleColumnMotionEvent(event: Event) {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (!target.closest(".rawtype-focus-column-row")) return;
+      measureCaret();
+    }
+
+    typingArea.addEventListener("animationstart", handleColumnMotionEvent, true);
+    typingArea.addEventListener("animationend", handleColumnMotionEvent, true);
+    typingArea.addEventListener("animationcancel", handleColumnMotionEvent, true);
+
+    return () => {
+      typingArea.removeEventListener("animationstart", handleColumnMotionEvent, true);
+      typingArea.removeEventListener("animationend", handleColumnMotionEvent, true);
+      typingArea.removeEventListener("animationcancel", handleColumnMotionEvent, true);
+    };
+  }, [focusMode, measureCaret]);
+
+  useEffect(() => {
+    if (focusMode !== "columns") return;
+
+    let firstFrame = 0;
+    let secondFrame = 0;
+    firstFrame = window.requestAnimationFrame(() => {
+      measureCaret();
+      secondFrame = window.requestAnimationFrame(() => {
+        measureCaret();
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+    };
+  }, [currentInput, currentWordIndex, focusMode, measureCaret]);
+
+  useEffect(() => {
     if (!finished && !isTextLoading && !textLoadError) {
       typingAreaRef.current?.focus();
     }
@@ -413,34 +499,51 @@ export default function TypingGame({
     return () => window.removeEventListener("keydown", handleRestartKeyDown);
   }, [handleRestart, isTextLoading, restartKey, textLoadError]);
 
+  const columnFocusRows = useMemo(() => {
+    if (focusMode !== "columns") return [];
+    return buildColumnFocusRows(words);
+  }, [focusMode, words]);
+
+  const activeColumnRowIndex = useMemo(() => {
+    if (focusMode !== "columns" || columnFocusRows.length === 0) return -1;
+
+    const foundRowIndex = columnFocusRows.findIndex(
+      (row) => currentWordIndex >= row.startWordIndex && currentWordIndex < row.endWordIndex
+    );
+
+    return foundRowIndex === -1 ? columnFocusRows.length - 1 : foundRowIndex;
+  }, [columnFocusRows, currentWordIndex, focusMode]);
+
+  const visibleColumnRows = useMemo(() => {
+    if (focusMode !== "columns" || activeColumnRowIndex < 0) return [];
+
+    const startIndex = Math.max(0, activeColumnRowIndex - 1);
+    const endIndex = Math.min(columnFocusRows.length, activeColumnRowIndex + 2);
+
+    return columnFocusRows.slice(startIndex, endIndex).map((row, rowOffset) => {
+      const rowIndex = startIndex + rowOffset;
+      return {
+        ...row,
+        rowIndex,
+        focusDistance: rowIndex - activeColumnRowIndex
+      };
+    });
+  }, [activeColumnRowIndex, columnFocusRows, focusMode]);
+
   const visibleWordEntries = useMemo(() => {
     if (focusMode === "all") {
       return words.map((word, wordIndex) => ({
         word,
         wordIndex,
-        focusOffset: null,
-        placementStyle: undefined
+        focusDistance: null
       }));
     }
 
-    const visibleCount = focusMode === "columns" ? 9 : 3;
-
-    return words.slice(currentWordIndex, currentWordIndex + visibleCount).map((word, focusOffset) => {
-      const placementStyle: React.CSSProperties =
-        focusMode === "columns"
-          ? {
-              gridColumn: Math.floor(focusOffset / 3) + 1,
-              gridRow: 3 - (focusOffset % 3)
-            }
-          : {};
-
-      return {
-        word,
-        wordIndex: currentWordIndex + focusOffset,
-        focusOffset,
-        placementStyle
-      };
-    });
+    return words.slice(currentWordIndex, currentWordIndex + 3).map((word, focusDistance) => ({
+      word,
+      wordIndex: currentWordIndex + focusDistance,
+      focusDistance
+    }));
   }, [currentWordIndex, focusMode, words]);
 
   const wordListStyle: React.CSSProperties =
@@ -455,48 +558,56 @@ export default function TypingGame({
           columnGap: 0,
           rowGap: "4px"
         }
-      : {
+      : focusMode === "columns"
+        ? {
+            fontFamily: "var(--typing-font)",
+            fontSize: "24px",
+            lineHeight: 1.55,
+            display: "grid",
+            gridTemplateColumns: "1fr",
+            gridTemplateRows: `repeat(${Math.max(1, visibleColumnRows.length)}, minmax(42px, auto))`,
+            gap: "10px",
+            alignItems: "center",
+            justifyItems: "stretch"
+          }
+        : {
           fontFamily: "var(--typing-font)",
           fontSize: "24px",
           lineHeight: 1.55,
           display: "grid",
-          gridTemplateColumns:
-            focusMode === "columns" ? "repeat(3, minmax(112px, 1fr))" : "repeat(3, max-content)",
-          gridTemplateRows: focusMode === "columns" ? "repeat(3, minmax(42px, auto))" : undefined,
-          gap: focusMode === "columns" ? "7px 24px" : "0 28px",
+          gridTemplateColumns: "repeat(3, max-content)",
+          gap: "0 28px",
           alignItems: "center",
-          justifyItems: "start",
-          minWidth: focusMode === "columns" ? "min(72vw, 560px)" : undefined
+          justifyItems: "start"
         };
 
-  function getFocusOpacity(focusOffset: number | null): number {
-    if (focusOffset === null || focusOffset === 0) return 1;
-    if (focusMode === "row") return Math.max(0.38, 0.72 - focusOffset * 0.17);
-    return Math.max(0.36, 0.82 - focusOffset * 0.06);
+  function getFocusOpacity(focusDistance: number | null): number {
+    if (focusDistance === null || focusDistance === 0) return 1;
+    if (focusMode === "columns") return 0.72;
+    return Math.max(0.38, 0.72 - Math.max(0, focusDistance) * 0.17);
   }
 
   function renderTypingWord(
+    itemKey: string,
     word: string,
     wordIndex: number,
-    focusOffset: number | null,
-    placementStyle?: React.CSSProperties
+    focusDistance: number | null
   ) {
     const hasTrailingSpace = wordIndex < words.length - 1;
     const focusStyle: React.CSSProperties =
       focusMode === "all"
         ? {}
         : {
-            ...placementStyle,
             display: "inline-flex",
             minWidth: 0,
-            opacity: getFocusOpacity(focusOffset),
+            opacity: getFocusOpacity(focusDistance),
             transition: "opacity var(--motion-medium) ease, transform var(--motion-medium) ease"
           };
 
     if (wordIndex < currentWordIndex) {
       return (
         <span
-          key={wordIndex}
+          key={itemKey}
           style={{
             display: "inline-flex",
             backgroundColor: highlightCorrectWords ? correctMarkerBackground : "transparent",
@@ -536,7 +647,7 @@ export default function TypingGame({
 
     if (wordIndex > currentWordIndex || finished) {
       return (
-        <span key={wordIndex} style={{ display: "inline-flex", ...focusStyle }}>
+        <span key={itemKey} style={{ display: "inline-flex", ...focusStyle }}>
           <span style={{ color: "var(--muted)", display: "inline-flex" }}>{word}</span>
           {hasTrailingSpace && <span aria-hidden="true">{"\u00A0"}</span>}
         </span>
@@ -549,7 +660,7 @@ export default function TypingGame({
     const showEndCursor = !cursorInWord && !finished && !hasTrailingSpace;
 
     return (
-      <span key={wordIndex} style={{ display: "inline-flex", ...focusStyle }}>
+      <span key={itemKey} style={{ display: "inline-flex", ...focusStyle }}>
         <span
           className="rawtype-current-word"
           style={{
@@ -707,11 +818,34 @@ export default function TypingGame({
                 verticalAlign: "top"
               }}
             >
-              <div style={wordListStyle}>
-                {visibleWordEntries.map(({ word, wordIndex, focusOffset, placementStyle }) =>
-                  renderTypingWord(word, wordIndex, focusOffset, placementStyle)
-                )}
-              </div>
+              {focusMode === "columns" ? (
+                <div key={`columns-window-${activeColumnRowIndex}`} style={wordListStyle}>
+                  {visibleColumnRows.map((row) => (
+                    <div
+                      key={`columns-row-${row.startWordIndex}`}
+                      className="rawtype-focus-column-row"
+                      style={{
+                        minHeight: "42px",
+                        display: "flex",
+                        flexWrap: "nowrap",
+                        alignItems: "flex-end",
+                        columnGap: 0,
+                        overflow: "hidden"
+                      }}
+                    >
+                      {row.words.map(({ word, wordIndex }) =>
+                        renderTypingWord(`columns-${row.rowIndex}-${wordIndex}`, word, wordIndex, row.focusDistance)
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={wordListStyle}>
+                  {visibleWordEntries.map(({ word, wordIndex, focusDistance }) =>
+                    renderTypingWord(`${wordIndex}`, word, wordIndex, focusDistance)
+                  )}
+                </div>
+              )}
               <GlidingCaret
                 box={caretBox}
                 caretAnimationStyle={caretAnimationStyle}
