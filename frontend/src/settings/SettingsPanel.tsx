@@ -196,7 +196,6 @@ function ColorSetting({
 
 function AnimationPreview({
   ariaLabel,
-  focusMode,
   effectiveAnimationIntensity,
   caretAnimationStyle,
   caretMovementAnimation,
@@ -207,7 +206,6 @@ function AnimationPreview({
   metricValueAnimationStyle
 }: {
   ariaLabel: string;
-  focusMode: FocusMode;
   effectiveAnimationIntensity: AnimationIntensity;
   caretAnimationStyle: CaretAnimationStyle;
   caretMovementAnimation: CaretMovementAnimation;
@@ -220,42 +218,18 @@ function AnimationPreview({
   const showCelebration = effectiveAnimationIntensity !== "off" && completionAnimationStyle !== "none";
   const previewParticles = Array.from({ length: 14 }, (_, index) => index);
   const [previewStep, setPreviewStep] = useState(0);
-  const [caretPosition, setCaretPosition] = useState({ x: 18, y: 10 });
+  const previewWords = ["align", "center", "cursor", "focus", "target", "word", "smooth", "band", "motion"];
+  const activeWordIndex = previewStep % previewWords.length;
 
   useEffect(() => {
-    setPreviewStep((current) => current + 1);
-
-    const startX = focusMode === "columns" ? 12 : focusMode === "onelinemode" ? 14 : 18;
-    const startY = focusMode === "columns" ? 44 : 10;
-    const targetX = focusMode === "columns" ? 128 : focusMode === "onelinemode" ? 168 : 120;
-    const targetY = focusMode === "columns" ? 8 : 10;
-    setCaretPosition({ x: startX, y: startY });
-
-    let secondFrame = 0;
-    const firstFrame = window.requestAnimationFrame(() => {
-      secondFrame = window.requestAnimationFrame(() => {
-        setCaretPosition({ x: targetX, y: targetY });
-      });
-    });
-
-    return () => {
-      window.cancelAnimationFrame(firstFrame);
-      if (secondFrame) {
-        window.cancelAnimationFrame(secondFrame);
-      }
-    };
-  }, [
-    focusMode,
-    caretMovementAnimation,
-    caretAnimationStyle,
-    typingFeedbackAnimation,
-    errorFeedbackAnimation,
-    keyboardAnimationStyle,
-    completionAnimationStyle,
-    metricValueAnimationStyle
-  ]);
-
-  const previewWords = ["instruct", "focus", "typing", "motion", "flow"];
+    if (effectiveAnimationIntensity === "off") return;
+    const intervalMs =
+      effectiveAnimationIntensity === "expressive" ? 1100 : effectiveAnimationIntensity === "balanced" ? 1500 : 2000;
+    const intervalId = window.setInterval(() => {
+      setPreviewStep((current) => current + 1);
+    }, intervalMs);
+    return () => window.clearInterval(intervalId);
+  }, [effectiveAnimationIntensity]);
 
   return (
     <div
@@ -274,6 +248,7 @@ function AnimationPreview({
     >
       {showCelebration && (
         <div
+          key={`completion-${previewStep}`}
           aria-hidden="true"
           className={`rawtype-completion-preview rawtype-completion-${completionAnimationStyle}`}
         >
@@ -315,7 +290,7 @@ function AnimationPreview({
       >
         {"Raw".split("").map((char, index) => (
           <span
-            key={char}
+            key={`${char}-${previewStep}`}
             className={`rawtype-typing-char rawtype-char-correct rawtype-feedback-${typingFeedbackAnimation}`}
             style={{ animationDelay: `${index * 45}ms` }}
           >
@@ -335,101 +310,83 @@ function AnimationPreview({
       </div>
 
       <div
-        key={`focus-stage-${focusMode}-${previewStep}`}
-        className={`rawtype-typing-stage ${focusMode === "onelinemode" ? "rawtype-typing-stage-oneline" : ""}`}
+        key={`focus-stage-${previewStep}`}
+        className="rawtype-typing-stage"
         style={{
           border: "1px solid var(--border-soft)",
           borderRadius: "8px",
           backgroundColor: "var(--surface)",
           padding: "12px",
           position: "relative",
-          overflowX: focusMode === "onelinemode" ? "auto" : "hidden",
+          overflowX: "hidden",
           overflowY: "hidden"
         }}
       >
-        {focusMode === "columns" ? (
-          <div
-            style={{
-              fontFamily: "var(--typing-font)",
-              fontSize: "20px",
-              lineHeight: 1.5,
-              display: "grid",
-              gridTemplateRows: "repeat(3, minmax(30px, auto))",
-              gap: "6px"
-            }}
-          >
-            {["align center", "cursor focus", "smooth band"].map((row) => (
-              <div
-                key={`${row}-${previewStep}`}
-                className="rawtype-focus-column-row"
-                style={{
-                  minHeight: "30px",
-                  display: "flex",
-                  alignItems: "flex-end",
-                  opacity: 0.9
-                }}
-              >
-                <span style={{ color: "var(--muted)" }}>{row}</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div
-            style={{
-              fontFamily: "var(--typing-font)",
-              fontSize: "20px",
-              lineHeight: 1.5,
-              display: focusMode === "onelinemode" ? "inline-flex" : "flex",
-              flexWrap: focusMode === "all" ? "wrap" : "nowrap",
-              whiteSpace: focusMode === "onelinemode" ? "nowrap" : "normal",
-              alignItems: "flex-end",
-              gap: 0,
-              minWidth: focusMode === "onelinemode" ? "max-content" : undefined,
-              paddingLeft: focusMode === "onelinemode" ? "50%" : undefined,
-              paddingRight: focusMode === "onelinemode" ? "50%" : undefined
-            }}
-          >
-            {previewWords.map((word, index) => (
+        <div
+          style={{
+            fontFamily: "var(--typing-font)",
+            fontSize: "20px",
+            lineHeight: 1.8,
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "flex-end",
+            columnGap: 0,
+            rowGap: "4px"
+          }}
+        >
+          {previewWords.map((word, index) => {
+            const isActive = index === activeWordIndex;
+            const isCompleted = index < activeWordIndex;
+            return (
               <span
-                key={`${word}-${previewStep}`}
-                style={{
+                key={`${word}-${previewStep}-${index}`}
+              style={{
                   display: "inline-flex",
-                  opacity: focusMode === "all" ? 1 - index * 0.1 : index === 0 ? 1 : Math.max(0.42, 0.8 - index * 0.16)
-                }}
+                  alignItems: "flex-end",
+                  minWidth: 0,
+                  marginRight: index < previewWords.length - 1 ? "0.42ch" : 0,
+                  opacity: isActive ? 1 : isCompleted ? 0.92 : 0.68,
+                  transition: "opacity var(--motion-medium) ease"
+              }}
               >
                 <span
-                  className={index === 0 ? `rawtype-typing-char rawtype-char-correct rawtype-feedback-${typingFeedbackAnimation}` : ""}
+                  className={
+                    isActive
+                      ? `rawtype-typing-char rawtype-char-correct rawtype-feedback-${typingFeedbackAnimation}`
+                      : isCompleted
+                        ? `rawtype-completed-word rawtype-feedback-${typingFeedbackAnimation}`
+                        : ""
+                  }
+                  style={{ color: isCompleted || isActive ? "var(--text)" : "var(--muted)" }}
                 >
                   {word}
                 </span>
-                {index < previewWords.length - 1 ? " " : ""}
+                {isActive && (
+                  <span
+                    aria-hidden="true"
+                    className={`rawtype-end-caret rawtype-caret rawtype-caret-${caretAnimationStyle} rawtype-cursor-movement-${caretMovementAnimation}`}
+                  />
+                )}
               </span>
-            ))}
-          </div>
-        )}
-        <span
-          aria-hidden="true"
-          className={`rawtype-gliding-caret rawtype-caret-visual-${caretAnimationStyle} rawtype-cursor-movement-${caretMovementAnimation}`}
-          style={{
-            transform: `translate3d(${caretPosition.x}px, ${caretPosition.y}px, 0)`,
-            width: "12px",
-            height: "30px"
-          }}
-        />
+            );
+          })}
+        </div>
       </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
         {["R", "A", "W", "Space"].map((keyLabel, index) => (
           <span
-            key={keyLabel}
-            className={`rawtype-key rawtype-keyboard-${keyboardAnimationStyle}${index === 1 ? " is-active" : ""}`}
+            key={`${keyLabel}-${previewStep}`}
+            className={`rawtype-key rawtype-keyboard-${keyboardAnimationStyle}${
+              index === previewStep % 4 ? " is-active" : ""
+            }`}
             style={{
               width: keyLabel === "Space" ? "86px" : "34px",
               height: "30px",
-              border: `1px solid ${index === 1 ? "var(--primary)" : "var(--border-soft)"}`,
+              border: `1px solid ${index === previewStep % 4 ? "var(--primary)" : "var(--border-soft)"}`,
               borderRadius: "6px",
-              backgroundColor: index === 1 ? "var(--primary)" : "var(--surface)",
-              color: index === 1 ? "var(--primary-text)" : "var(--muted-strong)",
+              backgroundColor: index === previewStep % 4 ? "var(--primary)" : "var(--surface)",
+              color: index === previewStep % 4 ? "var(--primary-text)" : "var(--muted-strong)",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
@@ -465,7 +422,7 @@ function AnimationPreview({
               className={`rawtype-metric-value-wrap rawtype-metric-value-${metricValueAnimationStyle}`}
               style={{ fontSize: "18px", fontWeight: 800 }}
             >
-              <span key={`${metricValueAnimationStyle}-${value}`} className="rawtype-metric-value">
+              <span key={`${metricValueAnimationStyle}-${value}-${previewStep}`} className="rawtype-metric-value">
                 {value}
               </span>
             </span>
@@ -489,11 +446,29 @@ function FocusModePreview({
   const previewWords = ["alpha", "bravo", "charlie", "delta", "echo"];
 
   useEffect(() => {
-    setPreviewStep((current) => current + 1);
-  }, [focusMode]);
+    if (effectiveAnimationIntensity === "off") return;
 
-  const previewStartIndex = previewStep % 3;
-  const previewSequence = previewWords.slice(previewStartIndex, previewStartIndex + 3);
+    const intervalMs =
+      effectiveAnimationIntensity === "expressive" ? 1100 : effectiveAnimationIntensity === "balanced" ? 1500 : 2100;
+    const intervalId = window.setInterval(() => {
+      setPreviewStep((current) => current + 1);
+    }, intervalMs);
+
+    return () => window.clearInterval(intervalId);
+  }, [effectiveAnimationIntensity]);
+
+  const activeWordIndex = previewStep % previewWords.length;
+  const previewColumnRows = [
+    "align center cursor",
+    "focus on target word",
+    "smooth band motion"
+  ];
+  const activeColumnRowIndex = previewStep % previewColumnRows.length;
+  const oneLineVisibleCount = 5;
+  const oneLineCenterIndex = Math.floor(oneLineVisibleCount / 2);
+  const oneLineWords = Array.from({ length: oneLineVisibleCount }, (_, index) => {
+    return previewWords[(previewStep + index) % previewWords.length];
+  });
 
   return (
     <div
@@ -523,8 +498,21 @@ function FocusModePreview({
           }}
         >
           {previewWords.map((word, index) => (
-            <span key={word} style={{ opacity: 1 - index * 0.08 }}>
-              {word}
+            <span key={word} style={{ opacity: 1 }}>
+              <span
+                style={{
+                  color:
+                    index < activeWordIndex
+                      ? "var(--success)"
+                      : index === activeWordIndex
+                        ? "var(--text)"
+                        : "var(--muted)",
+                  fontWeight: index === activeWordIndex ? 700 : 500
+                }}
+              >
+                {word}
+              </span>
+              {index < previewWords.length - 1 ? " " : ""}
             </span>
           ))}
         </div>
@@ -543,10 +531,20 @@ function FocusModePreview({
             alignItems: "center"
           }}
         >
-          {previewWords.map((word, index) => (
-            <span key={word} style={{ opacity: index === 0 ? 1 : 0.72 }}>
+          {oneLineWords.map((word, index) => (
+            <span
+              key={`${word}-${previewStep}-${index}`}
+              style={{
+                opacity:
+                  index === oneLineCenterIndex
+                    ? 1
+                    : Math.max(0.38, 0.72 - Math.abs(index - oneLineCenterIndex) * 0.17),
+                transition: "opacity var(--motion-medium) ease",
+                color: index === oneLineCenterIndex ? "var(--text)" : "var(--muted)",
+                marginRight: index < oneLineWords.length - 1 ? "0.36ch" : 0
+              }}
+            >
               {word}
-              {index < previewWords.length - 1 ? " " : ""}
             </span>
           ))}
         </div>
@@ -567,18 +565,18 @@ function FocusModePreview({
             alignItems: "center"
           }}
         >
-          {previewSequence.map((word, index) => (
+          {previewColumnRows.map((row, index) => (
             <span
-              key={word}
+              key={`${row}-${previewStep}`}
               className="rawtype-focus-preview-item"
               style={{
                 gridColumn: 1,
                 gridRow: index + 1,
-                opacity: index === 1 ? 1 : 0.72,
+                opacity: index === activeColumnRowIndex ? 1 : 0.72,
                 transform: "translateY(0)"
               }}
             >
-              {word}
+              {row}
             </span>
           ))}
         </div>
@@ -1688,7 +1686,6 @@ export default function SettingsPanel({
               <SettingGroup title={text.page.animationPreview} singleColumn>
                 <AnimationPreview
                   ariaLabel={text.page.animationPreview}
-                  focusMode={focusMode}
                   effectiveAnimationIntensity={effectiveAnimationIntensity}
                   caretAnimationStyle={caretAnimationStyle}
                   caretMovementAnimation={caretMovementAnimation}

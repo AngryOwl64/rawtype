@@ -327,7 +327,7 @@ const SETTINGS_TEXTS = {
       autoFocus: "Typing-Bereich automatisch fokussieren",
       focusMode: "Fokusmodus",
       focusModeAll: "Standart Modus",
-      focusModeColumns: "Spalteb Modus",
+      focusModeColumns: "Spalten Modus",
       focusModeOneLine: "Linien Modus",
       focusModePreview: "Vorschau",
       showErrorBreakdown: "Fehleraufschlüsselung anzeigen",
