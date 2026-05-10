@@ -108,6 +108,7 @@ export type Database = {
           show_on_screen_keyboard: boolean;
           on_screen_keyboard_layout: string;
           restart_key: string;
+          focus_mode: string;
           correct_marker_color: string;
           error_marker_color: string;
           save_runs_to_account: boolean;
@@ -140,6 +141,7 @@ export type Database = {
           show_on_screen_keyboard?: boolean;
           on_screen_keyboard_layout?: string;
           restart_key?: string;
+          focus_mode?: string;
           correct_marker_color?: string;
           error_marker_color?: string;
           save_runs_to_account?: boolean;
@@ -172,6 +174,7 @@ export type Database = {
           show_on_screen_keyboard?: boolean;
           on_screen_keyboard_layout?: string;
           restart_key?: string;
+          focus_mode?: string;
           correct_marker_color?: string;
           error_marker_color?: string;
           save_runs_to_account?: boolean;

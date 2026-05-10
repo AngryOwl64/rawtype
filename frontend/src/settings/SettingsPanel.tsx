@@ -12,6 +12,7 @@ import type {
   CompletionAnimationStyle,
   CustomFont,
   ErrorFeedbackAnimation,
+  FocusMode,
   KeyboardAnimationStyle,
   MetricValueAnimationStyle,
   OnScreenKeyboardLayout,
@@ -195,8 +196,10 @@ function ColorSetting({
 
 function AnimationPreview({
   ariaLabel,
+  focusMode,
   effectiveAnimationIntensity,
   caretAnimationStyle,
+  caretMovementAnimation,
   typingFeedbackAnimation,
   errorFeedbackAnimation,
   keyboardAnimationStyle,
@@ -204,8 +207,10 @@ function AnimationPreview({
   metricValueAnimationStyle
 }: {
   ariaLabel: string;
+  focusMode: FocusMode;
   effectiveAnimationIntensity: AnimationIntensity;
   caretAnimationStyle: CaretAnimationStyle;
+  caretMovementAnimation: CaretMovementAnimation;
   typingFeedbackAnimation: TypingFeedbackAnimation;
   errorFeedbackAnimation: ErrorFeedbackAnimation;
   keyboardAnimationStyle: KeyboardAnimationStyle;
@@ -214,6 +219,43 @@ function AnimationPreview({
 }) {
   const showCelebration = effectiveAnimationIntensity !== "off" && completionAnimationStyle !== "none";
   const previewParticles = Array.from({ length: 14 }, (_, index) => index);
+  const [previewStep, setPreviewStep] = useState(0);
+  const [caretPosition, setCaretPosition] = useState({ x: 18, y: 10 });
+
+  useEffect(() => {
+    setPreviewStep((current) => current + 1);
+
+    const startX = focusMode === "columns" ? 12 : focusMode === "onelinemode" ? 14 : 18;
+    const startY = focusMode === "columns" ? 44 : 10;
+    const targetX = focusMode === "columns" ? 128 : focusMode === "onelinemode" ? 168 : 120;
+    const targetY = focusMode === "columns" ? 8 : 10;
+    setCaretPosition({ x: startX, y: startY });
+
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        setCaretPosition({ x: targetX, y: targetY });
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame) {
+        window.cancelAnimationFrame(secondFrame);
+      }
+    };
+  }, [
+    focusMode,
+    caretMovementAnimation,
+    caretAnimationStyle,
+    typingFeedbackAnimation,
+    errorFeedbackAnimation,
+    keyboardAnimationStyle,
+    completionAnimationStyle,
+    metricValueAnimationStyle
+  ]);
+
+  const previewWords = ["instruct", "focus", "typing", "motion", "flow"];
 
   return (
     <div
@@ -292,6 +334,90 @@ function AnimationPreview({
         />
       </div>
 
+      <div
+        key={`focus-stage-${focusMode}-${previewStep}`}
+        className={`rawtype-typing-stage ${focusMode === "onelinemode" ? "rawtype-typing-stage-oneline" : ""}`}
+        style={{
+          border: "1px solid var(--border-soft)",
+          borderRadius: "8px",
+          backgroundColor: "var(--surface)",
+          padding: "12px",
+          position: "relative",
+          overflowX: focusMode === "onelinemode" ? "auto" : "hidden",
+          overflowY: "hidden"
+        }}
+      >
+        {focusMode === "columns" ? (
+          <div
+            style={{
+              fontFamily: "var(--typing-font)",
+              fontSize: "20px",
+              lineHeight: 1.5,
+              display: "grid",
+              gridTemplateRows: "repeat(3, minmax(30px, auto))",
+              gap: "6px"
+            }}
+          >
+            {["align center", "cursor focus", "smooth band"].map((row) => (
+              <div
+                key={`${row}-${previewStep}`}
+                className="rawtype-focus-column-row"
+                style={{
+                  minHeight: "30px",
+                  display: "flex",
+                  alignItems: "flex-end",
+                  opacity: 0.9
+                }}
+              >
+                <span style={{ color: "var(--muted)" }}>{row}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            style={{
+              fontFamily: "var(--typing-font)",
+              fontSize: "20px",
+              lineHeight: 1.5,
+              display: focusMode === "onelinemode" ? "inline-flex" : "flex",
+              flexWrap: focusMode === "all" ? "wrap" : "nowrap",
+              whiteSpace: focusMode === "onelinemode" ? "nowrap" : "normal",
+              alignItems: "flex-end",
+              gap: 0,
+              minWidth: focusMode === "onelinemode" ? "max-content" : undefined,
+              paddingLeft: focusMode === "onelinemode" ? "50%" : undefined,
+              paddingRight: focusMode === "onelinemode" ? "50%" : undefined
+            }}
+          >
+            {previewWords.map((word, index) => (
+              <span
+                key={`${word}-${previewStep}`}
+                style={{
+                  display: "inline-flex",
+                  opacity: focusMode === "all" ? 1 - index * 0.1 : index === 0 ? 1 : Math.max(0.42, 0.8 - index * 0.16)
+                }}
+              >
+                <span
+                  className={index === 0 ? `rawtype-typing-char rawtype-char-correct rawtype-feedback-${typingFeedbackAnimation}` : ""}
+                >
+                  {word}
+                </span>
+                {index < previewWords.length - 1 ? " " : ""}
+              </span>
+            ))}
+          </div>
+        )}
+        <span
+          aria-hidden="true"
+          className={`rawtype-gliding-caret rawtype-caret-visual-${caretAnimationStyle} rawtype-cursor-movement-${caretMovementAnimation}`}
+          style={{
+            transform: `translate3d(${caretPosition.x}px, ${caretPosition.y}px, 0)`,
+            width: "12px",
+            height: "30px"
+          }}
+        />
+      </div>
+
       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
         {["R", "A", "W", "Space"].map((keyLabel, index) => (
           <span
@@ -346,6 +472,117 @@ function AnimationPreview({
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function FocusModePreview({
+  focusMode,
+  effectiveAnimationIntensity,
+  title
+}: {
+  focusMode: FocusMode;
+  effectiveAnimationIntensity: AnimationIntensity;
+  title: string;
+}) {
+  const [previewStep, setPreviewStep] = useState(0);
+  const previewWords = ["alpha", "bravo", "charlie", "delta", "echo"];
+
+  useEffect(() => {
+    setPreviewStep((current) => current + 1);
+  }, [focusMode]);
+
+  const previewStartIndex = previewStep % 3;
+  const previewSequence = previewWords.slice(previewStartIndex, previewStartIndex + 3);
+
+  return (
+    <div
+      aria-label={title}
+      className={`rawtype-motion-${effectiveAnimationIntensity}`}
+      style={{
+        border: "1px solid var(--border-soft)",
+        borderRadius: "8px",
+        backgroundColor: "var(--surface-soft)",
+        padding: "12px",
+        display: "grid",
+        gap: "8px"
+      }}
+    >
+      <span style={{ fontSize: "12px", color: "var(--muted-strong)", fontWeight: 700 }}>{title}</span>
+
+      {focusMode === "all" && (
+        <div
+          key={`focus-all-${previewStep}`}
+          style={{
+            fontFamily: "var(--typing-font)",
+            fontSize: "20px",
+            lineHeight: 1.45,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0 10px"
+          }}
+        >
+          {previewWords.map((word, index) => (
+            <span key={word} style={{ opacity: 1 - index * 0.08 }}>
+              {word}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {focusMode === "onelinemode" && (
+        <div
+          key={`focus-oneline-${previewStep}`}
+          style={{
+            fontFamily: "var(--typing-font)",
+            fontSize: "20px",
+            lineHeight: 1.45,
+            display: "inline-flex",
+            whiteSpace: "nowrap",
+            gap: 0,
+            alignItems: "center"
+          }}
+        >
+          {previewWords.map((word, index) => (
+            <span key={word} style={{ opacity: index === 0 ? 1 : 0.72 }}>
+              {word}
+              {index < previewWords.length - 1 ? " " : ""}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {focusMode === "columns" && (
+        <div
+          key={`focus-columns-${previewStep}`}
+          className="rawtype-focus-preview-columns"
+          style={{
+            fontFamily: "var(--typing-font)",
+            fontSize: "20px",
+            lineHeight: 1.45,
+            display: "grid",
+            gridTemplateColumns: "max-content",
+            gridTemplateRows: "repeat(3, minmax(30px, auto))",
+            gap: "6px",
+            alignItems: "center"
+          }}
+        >
+          {previewSequence.map((word, index) => (
+            <span
+              key={word}
+              className="rawtype-focus-preview-item"
+              style={{
+                gridColumn: 1,
+                gridRow: index + 1,
+                opacity: index === 1 ? 1 : 0.72,
+                transform: "translateY(0)"
+              }}
+            >
+              {word}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -953,6 +1190,7 @@ type SettingsPanelProps = {
   defaultWordsCount: number;
   defaultWordDifficulty: WordModeDifficulty;
   defaultNoMistakeMode: WordNoMistakeMode;
+  focusMode: FocusMode;
   highlightCorrectWords: boolean;
   highlightErrorFromPoint: boolean;
   showOnScreenKeyboard: boolean;
@@ -983,6 +1221,7 @@ type SettingsPanelProps = {
   onDefaultWordsCountChange: (wordsCount: number) => void;
   onDefaultWordDifficultyChange: (difficulty: WordModeDifficulty) => void;
   onDefaultNoMistakeModeChange: (mode: WordNoMistakeMode) => void;
+  onFocusModeChange: (mode: FocusMode) => void;
   onHighlightCorrectWordsChange: (enabled: boolean) => void;
   onHighlightErrorFromPointChange: (enabled: boolean) => void;
   onShowOnScreenKeyboardChange: (enabled: boolean) => void;
@@ -1018,6 +1257,7 @@ export default function SettingsPanel({
   defaultWordsCount,
   defaultWordDifficulty,
   defaultNoMistakeMode,
+  focusMode,
   highlightCorrectWords,
   highlightErrorFromPoint,
   showOnScreenKeyboard,
@@ -1048,6 +1288,7 @@ export default function SettingsPanel({
   onDefaultWordsCountChange,
   onDefaultWordDifficultyChange,
   onDefaultNoMistakeModeChange,
+  onFocusModeChange,
   onHighlightCorrectWordsChange,
   onHighlightErrorFromPointChange,
   onShowOnScreenKeyboardChange,
@@ -1106,6 +1347,11 @@ export default function SettingsPanel({
     { value: "medium", label: text.page.medium },
     { value: "hard", label: text.page.hard },
     { value: "mixed", label: text.page.mixed }
+  ];
+  const focusModeOptions: Array<SelectOption<FocusMode>> = [
+    { value: "all", label: text.page.focusModeAll },
+    { value: "columns", label: text.page.focusModeColumns },
+    { value: "onelinemode", label: text.page.focusModeOneLine }
   ];
   const animationIntensityOptions: Array<SelectOption<AnimationIntensity>> = [
     { value: "off", label: text.page.motionOff },
@@ -1340,6 +1586,21 @@ export default function SettingsPanel({
 
           {activeCategory === "animations" && (
             <>
+              <SettingGroup title={text.page.focusMode} singleColumn>
+                <SelectSetting
+                  label={text.page.focusMode}
+                  value={focusMode}
+                  disabled={false}
+                  onChange={onFocusModeChange}
+                  options={focusModeOptions}
+                />
+                <FocusModePreview
+                  focusMode={focusMode}
+                  effectiveAnimationIntensity={effectiveAnimationIntensity}
+                  title={text.page.focusModePreview}
+                />
+              </SettingGroup>
+
               <SettingGroup title={text.page.animationProfile}>
                 <SelectSetting
                   label={text.page.animationIntensity}
@@ -1427,8 +1688,10 @@ export default function SettingsPanel({
               <SettingGroup title={text.page.animationPreview} singleColumn>
                 <AnimationPreview
                   ariaLabel={text.page.animationPreview}
+                  focusMode={focusMode}
                   effectiveAnimationIntensity={effectiveAnimationIntensity}
                   caretAnimationStyle={caretAnimationStyle}
+                  caretMovementAnimation={caretMovementAnimation}
                   typingFeedbackAnimation={typingFeedbackAnimation}
                   errorFeedbackAnimation={errorFeedbackAnimation}
                   keyboardAnimationStyle={keyboardAnimationStyle}

@@ -13,6 +13,7 @@ import type {
   CompletionAnimationStyle,
   CustomTypingSettings,
   ErrorFeedbackAnimation,
+  FocusMode,
   KeyboardAnimationStyle,
   MetricValueAnimationStyle,
   OnScreenKeyboardLayout,
@@ -40,6 +41,7 @@ type TypingGameProps = {
   showOnScreenKeyboard?: boolean;
   onScreenKeyboardLayout?: OnScreenKeyboardLayout;
   restartKey?: RestartKey;
+  focusMode?: FocusMode;
   saveRunsToAccount?: boolean;
   saveErrorWords?: boolean;
   showErrorBreakdown?: boolean;
@@ -61,6 +63,58 @@ type CaretBox = {
   width: number;
   height: number;
 };
+
+function getCaretAnchorOffset(placement: string | undefined, targetWidth: number): number {
+  if (placement === "after") return targetWidth;
+  if (placement === "inside-start") return Math.min(3, Math.max(1, targetWidth * 0.14));
+  return 0;
+}
+
+const COLUMN_MAX_CHARS_PER_ROW = 70;
+
+type ColumnFocusRow = {
+  startWordIndex: number;
+  endWordIndex: number;
+  words: Array<{ word: string; wordIndex: number }>;
+};
+
+function buildColumnFocusRows(words: string[]): ColumnFocusRow[] {
+  const rows: ColumnFocusRow[] = [];
+  let cursor = 0;
+
+  while (cursor < words.length) {
+    const startWordIndex = cursor;
+    let currentRowChars = 0;
+    const rowWords: Array<{ word: string; wordIndex: number }> = [];
+
+    while (cursor < words.length) {
+      const nextWord = words[cursor];
+      const separatorChars = rowWords.length > 0 ? 1 : 0;
+      const nextWordChars = nextWord.length + separatorChars;
+
+      if (rowWords.length > 0 && currentRowChars + nextWordChars > COLUMN_MAX_CHARS_PER_ROW) {
+        break;
+      }
+
+      rowWords.push({ word: nextWord, wordIndex: cursor });
+      currentRowChars += nextWordChars;
+      cursor += 1;
+    }
+
+    if (rowWords.length === 0) {
+      rowWords.push({ word: words[cursor], wordIndex: cursor });
+      cursor += 1;
+    }
+
+    rows.push({
+      startWordIndex,
+      endWordIndex: cursor,
+      words: rowWords
+    });
+  }
+
+  return rows;
+}
 
 function GlidingCaret({
   box,
@@ -144,6 +198,7 @@ export default function TypingGame({
   showOnScreenKeyboard = false,
   onScreenKeyboardLayout = "us-qwerty",
   restartKey = "Enter",
+  focusMode = "all",
   saveRunsToAccount = true,
   saveErrorWords = true,
   showErrorBreakdown = true,
@@ -202,6 +257,38 @@ export default function TypingGame({
   const typingAreaRef = useRef<HTMLDivElement | null>(null);
   const caretTargetRef = useRef<HTMLSpanElement | null>(null);
   const [caretBox, setCaretBox] = useState<CaretBox | null>(null);
+  const [oneLineEdgePadding, setOneLineEdgePadding] = useState(0);
+  const [forceInstantCaretMovement, setForceInstantCaretMovement] = useState(false);
+  const instantCaretFrameRef = useRef<number | null>(null);
+  const wasAtRunStartRef = useRef(false);
+
+  const triggerInstantCaretMovement = useCallback(() => {
+    if (instantCaretFrameRef.current !== null) {
+      window.cancelAnimationFrame(instantCaretFrameRef.current);
+      instantCaretFrameRef.current = null;
+    }
+
+    setForceInstantCaretMovement(true);
+    instantCaretFrameRef.current = window.requestAnimationFrame(() => {
+      instantCaretFrameRef.current = window.requestAnimationFrame(() => {
+        setForceInstantCaretMovement(false);
+        instantCaretFrameRef.current = null;
+      });
+    });
+  }, []);
+
+  const syncOneLineEdgePadding = useCallback(() => {
+    const typingArea = typingAreaRef.current;
+    if (!typingArea || focusMode !== "onelinemode") {
+      setOneLineEdgePadding((previousPadding) => (previousPadding === 0 ? previousPadding : 0));
+      return;
+    }
+
+    const nextPadding = Math.max(0, typingArea.clientWidth / 2);
+    setOneLineEdgePadding((previousPadding) =>
+      Math.abs(previousPadding - nextPadding) < 0.5 ? previousPadding : nextPadding
+    );
+  }, [focusMode]);
 
   const measureCaret = useCallback(() => {
     const typingArea = typingAreaRef.current;
@@ -215,11 +302,13 @@ export default function TypingGame({
     const stageRect = typingArea.getBoundingClientRect();
     const targetRect = caretTarget.getBoundingClientRect();
     const placement = caretTarget.dataset.caretPlacement;
+    const anchorOffset = getCaretAnchorOffset(placement, targetRect.width);
+    const targetContentX =
+      targetRect.left - stageRect.left - typingArea.clientLeft + typingArea.scrollLeft + anchorOffset;
+    const targetContentY = targetRect.top - stageRect.top - typingArea.clientTop + typingArea.scrollTop;
     const nextBox = {
-      x:
-        (placement === "after" ? targetRect.right - stageRect.left : targetRect.left - stageRect.left) -
-        typingArea.clientLeft,
-      y: targetRect.top - stageRect.top - typingArea.clientTop,
+      x: targetContentX,
+      y: targetContentY,
       width: Math.max(2, targetRect.width),
       height: targetRect.height
     };
@@ -239,31 +328,157 @@ export default function TypingGame({
     });
   }, [finished, isTextLoading, textLoadError]);
 
+  const centerOneLineCursor = useCallback(() => {
+    if (focusMode !== "onelinemode") return;
+
+    const typingArea = typingAreaRef.current;
+    const caretTarget = caretTargetRef.current;
+    if (!typingArea || !caretTarget || finished || isTextLoading || textLoadError) {
+      return;
+    }
+
+    const stageRect = typingArea.getBoundingClientRect();
+    const targetRect = caretTarget.getBoundingClientRect();
+    const placement = caretTarget.dataset.caretPlacement;
+    const anchorOffset = getCaretAnchorOffset(placement, targetRect.width);
+    const targetContentX =
+      targetRect.left - stageRect.left - typingArea.clientLeft + typingArea.scrollLeft + anchorOffset;
+    const desiredScrollLeft = targetContentX - typingArea.clientWidth / 2;
+    const maxScrollLeft = Math.max(0, typingArea.scrollWidth - typingArea.clientWidth);
+    const nextScrollLeft = Math.min(Math.max(0, desiredScrollLeft), maxScrollLeft);
+
+    if (Math.abs(nextScrollLeft - typingArea.scrollLeft) > 0.5) {
+      typingArea.scrollLeft = nextScrollLeft;
+    }
+  }, [finished, focusMode, isTextLoading, textLoadError]);
+
   useEffect(() => {
     void reloadText();
   }, [reloadText]);
 
+  useEffect(() => {
+    const isAtRunStart =
+      !finished && !isTextLoading && !textLoadError && currentWordIndex === 0 && currentInput.length === 0;
+
+    if (isAtRunStart && !wasAtRunStartRef.current) {
+      triggerInstantCaretMovement();
+    }
+
+    wasAtRunStartRef.current = isAtRunStart;
+  }, [currentInput, currentWordIndex, finished, isTextLoading, textLoadError, triggerInstantCaretMovement, words]);
+
+  useEffect(() => {
+    return () => {
+      if (instantCaretFrameRef.current !== null) {
+        window.cancelAnimationFrame(instantCaretFrameRef.current);
+      }
+    };
+  }, []);
+
   useLayoutEffect(() => {
+    if (focusMode === "onelinemode") {
+      syncOneLineEdgePadding();
+      centerOneLineCursor();
+    }
     measureCaret();
-  }, [currentInput, currentWordIndex, measureCaret, words]);
+  }, [
+    centerOneLineCursor,
+    currentInput,
+    currentWordIndex,
+    focusMode,
+    measureCaret,
+    oneLineEdgePadding,
+    syncOneLineEdgePadding,
+    words
+  ]);
 
   useEffect(() => {
     const typingArea = typingAreaRef.current;
     if (!typingArea) return;
 
-    window.addEventListener("resize", measureCaret);
+    const handleResize = () => {
+      syncOneLineEdgePadding();
+      centerOneLineCursor();
+      measureCaret();
+    };
+
+    window.addEventListener("resize", handleResize);
 
     if (typeof ResizeObserver !== "undefined") {
-      const resizeObserver = new ResizeObserver(() => measureCaret());
+      const resizeObserver = new ResizeObserver(() => {
+        syncOneLineEdgePadding();
+        centerOneLineCursor();
+        measureCaret();
+      });
       resizeObserver.observe(typingArea);
       return () => {
         resizeObserver.disconnect();
-        window.removeEventListener("resize", measureCaret);
+        window.removeEventListener("resize", handleResize);
       };
     }
 
-    return () => window.removeEventListener("resize", measureCaret);
-  }, [measureCaret]);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [centerOneLineCursor, measureCaret, syncOneLineEdgePadding]);
+
+  useEffect(() => {
+    const typingArea = typingAreaRef.current;
+    if (!typingArea || focusMode !== "columns") return;
+
+    function handleColumnMotionEvent(event: Event) {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (!target.closest(".rawtype-focus-column-row")) return;
+      measureCaret();
+    }
+
+    typingArea.addEventListener("animationstart", handleColumnMotionEvent, true);
+    typingArea.addEventListener("animationend", handleColumnMotionEvent, true);
+    typingArea.addEventListener("animationcancel", handleColumnMotionEvent, true);
+
+    return () => {
+      typingArea.removeEventListener("animationstart", handleColumnMotionEvent, true);
+      typingArea.removeEventListener("animationend", handleColumnMotionEvent, true);
+      typingArea.removeEventListener("animationcancel", handleColumnMotionEvent, true);
+    };
+  }, [focusMode, measureCaret]);
+
+  useEffect(() => {
+    if (focusMode !== "columns") return;
+
+    let firstFrame = 0;
+    let secondFrame = 0;
+    firstFrame = window.requestAnimationFrame(() => {
+      measureCaret();
+      secondFrame = window.requestAnimationFrame(() => {
+        measureCaret();
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+    };
+  }, [currentInput, currentWordIndex, focusMode, measureCaret]);
+
+  useEffect(() => {
+    if (focusMode !== "onelinemode") return;
+
+    let firstFrame = 0;
+    let secondFrame = 0;
+    firstFrame = window.requestAnimationFrame(() => {
+      centerOneLineCursor();
+      measureCaret();
+      secondFrame = window.requestAnimationFrame(() => {
+        centerOneLineCursor();
+        measureCaret();
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+    };
+  }, [centerOneLineCursor, currentInput, currentWordIndex, focusMode, measureCaret, words]);
 
   useEffect(() => {
     if (!finished && !isTextLoading && !textLoadError) {
@@ -366,8 +581,13 @@ export default function TypingGame({
     savedRunKeyRef.current = "";
     setSaveState("idle");
     setSaveError("");
+    triggerInstantCaretMovement();
     restart();
-  }, [restart]);
+  }, [restart, triggerInstantCaretMovement]);
+
+  const effectiveCaretMovementAnimation: CaretMovementAnimation = forceInstantCaretMovement
+    ? "instant"
+    : caretMovementAnimation;
 
   const errorSummary = useMemo(() => {
     const errorCountByWord = errorEvents.reduce<Record<string, number>>((acc, entry) => {
@@ -409,6 +629,264 @@ export default function TypingGame({
     window.addEventListener("keydown", handleRestartKeyDown);
     return () => window.removeEventListener("keydown", handleRestartKeyDown);
   }, [handleRestart, isTextLoading, restartKey, textLoadError]);
+
+  const columnFocusRows = useMemo(() => {
+    if (focusMode !== "columns") return [];
+    return buildColumnFocusRows(words);
+  }, [focusMode, words]);
+
+  const activeColumnRowIndex = useMemo(() => {
+    if (focusMode !== "columns" || columnFocusRows.length === 0) return -1;
+
+    const foundRowIndex = columnFocusRows.findIndex(
+      (row) => currentWordIndex >= row.startWordIndex && currentWordIndex < row.endWordIndex
+    );
+
+    return foundRowIndex === -1 ? columnFocusRows.length - 1 : foundRowIndex;
+  }, [columnFocusRows, currentWordIndex, focusMode]);
+
+  const visibleColumnRows = useMemo(() => {
+    if (focusMode !== "columns" || activeColumnRowIndex < 0) return [];
+
+    const startIndex = Math.max(0, activeColumnRowIndex - 1);
+    const endIndex = Math.min(columnFocusRows.length, activeColumnRowIndex + 2);
+
+    return columnFocusRows.slice(startIndex, endIndex).map((row, rowOffset) => {
+      const rowIndex = startIndex + rowOffset;
+      return {
+        ...row,
+        rowIndex,
+        focusDistance: rowIndex - activeColumnRowIndex
+      };
+    });
+  }, [activeColumnRowIndex, columnFocusRows, focusMode]);
+
+  const visibleWordEntries = useMemo(() => {
+    if (focusMode === "all") {
+      return words.map((word, wordIndex) => ({
+        word,
+        wordIndex,
+        focusDistance: null
+      }));
+    }
+
+    if (focusMode === "onelinemode") {
+      return words.map((word, wordIndex) => ({
+        word,
+        wordIndex,
+        focusDistance: Math.abs(wordIndex - currentWordIndex)
+      }));
+    }
+
+    return words.slice(currentWordIndex, currentWordIndex + 3).map((word, focusDistance) => ({
+      word,
+      wordIndex: currentWordIndex + focusDistance,
+      focusDistance
+    }));
+  }, [currentWordIndex, focusMode, words]);
+
+  const wordListStyle: React.CSSProperties =
+    focusMode === "all"
+      ? {
+          fontFamily: "var(--typing-font)",
+          fontSize: "24px",
+          lineHeight: 1.8,
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "flex-end",
+          columnGap: 0,
+          rowGap: "4px"
+        }
+      : focusMode === "columns"
+        ? {
+            fontFamily: "var(--typing-font)",
+            fontSize: "24px",
+            lineHeight: 1.55,
+            display: "grid",
+            gridTemplateColumns: "1fr",
+            gridTemplateRows: `repeat(${Math.max(1, visibleColumnRows.length)}, minmax(42px, auto))`,
+            gap: "10px",
+            alignItems: "center",
+            justifyItems: "stretch"
+          }
+        : focusMode === "onelinemode"
+          ? {
+              fontFamily: "var(--typing-font)",
+              fontSize: "24px",
+              lineHeight: 1.55,
+              display: "inline-flex",
+              flexWrap: "nowrap",
+              alignItems: "flex-end",
+              whiteSpace: "nowrap",
+              gap: 0,
+              minWidth: "max-content",
+              paddingLeft: `${oneLineEdgePadding}px`,
+              paddingRight: `${oneLineEdgePadding}px`
+            }
+        : {
+          fontFamily: "var(--typing-font)",
+          fontSize: "24px",
+          lineHeight: 1.55,
+          display: "grid",
+          gridTemplateColumns: "repeat(3, max-content)",
+          gap: "0 28px",
+          alignItems: "center",
+          justifyItems: "start"
+        };
+
+  function getFocusOpacity(focusDistance: number | null): number {
+    if (focusDistance === null || focusDistance === 0) return 1;
+    if (focusMode === "columns") return 0.72;
+    return Math.max(0.38, 0.72 - Math.max(0, focusDistance) * 0.17);
+  }
+
+  function renderTypingWord(
+    itemKey: string,
+    word: string,
+    wordIndex: number,
+    focusDistance: number | null
+  ) {
+    const hasTrailingSpace = wordIndex < words.length - 1;
+    const renderSpace = (spaceKey: string, withCaretAnchor: boolean) => {
+      if (!hasTrailingSpace) return null;
+      return (
+        <span
+          key={spaceKey}
+          aria-hidden="true"
+          ref={withCaretAnchor ? caretTargetRef : undefined}
+          data-caret-placement={withCaretAnchor ? "before" : undefined}
+          style={{ display: "inline-block", whiteSpace: "pre" }}
+        >
+          {" "}
+        </span>
+      );
+    };
+    const focusStyle: React.CSSProperties =
+      focusMode === "all"
+        ? {}
+        : {
+            display: "inline-flex",
+            minWidth: 0,
+            opacity: getFocusOpacity(focusDistance),
+            transition: "opacity var(--motion-medium) ease, transform var(--motion-medium) ease"
+          };
+
+    if (wordIndex < currentWordIndex) {
+      return (
+        <span
+          key={itemKey}
+          style={{
+            display: "inline-flex",
+            backgroundColor: highlightCorrectWords ? correctMarkerBackground : "transparent",
+            borderRadius: 0,
+            ...focusStyle
+          }}
+        >
+          <span
+            className={`rawtype-completed-word rawtype-feedback-${typingFeedbackAnimation}`}
+            style={{
+              color: highlightCorrectWords ? "var(--text)" : "var(--success)",
+              backgroundColor: "transparent",
+              borderRadius: 0,
+              padding: 0,
+              display: "inline-flex"
+            }}
+          >
+            {word}
+          </span>
+          {renderSpace(`${itemKey}-space`, false)}
+        </span>
+      );
+    }
+
+    if (wordIndex > currentWordIndex || finished) {
+      return (
+        <span key={itemKey} style={{ display: "inline-flex", ...focusStyle }}>
+          <span style={{ color: "var(--muted)", display: "inline-flex" }}>{word}</span>
+          {renderSpace(`${itemKey}-space`, false)}
+        </span>
+      );
+    }
+
+    const cursorInWord = currentInput.length < word.length;
+    const firstMismatchIndex = highlightErrorFromPoint ? getFirstMismatchIndex(currentInput, word) : -1;
+    const showSpaceCursor = !cursorInWord && !finished && hasTrailingSpace;
+    const showEndCursor = !cursorInWord && !finished && !hasTrailingSpace;
+
+    return (
+      <span key={itemKey} style={{ display: "inline-flex", ...focusStyle }}>
+        <span
+          className="rawtype-current-word"
+          style={{
+            alignItems: "center",
+            whiteSpace: "nowrap",
+            display: "inline-flex"
+          }}
+        >
+          {word.split("").map((char, charIndex) => {
+            let color = "var(--muted)";
+            let backgroundColor = "transparent";
+            const borderRadius = 0;
+            const padding = 0;
+            let characterStateClass = "";
+
+            if (charIndex < currentInput.length) {
+              const markedAsWrongFromMismatch = firstMismatchIndex !== -1 && charIndex >= firstMismatchIndex;
+
+              if (markedAsWrongFromMismatch) {
+                color = "var(--danger)";
+                backgroundColor = errorMarkerBackground;
+                characterStateClass = "rawtype-char-error";
+              } else {
+                const typedCorrectly = currentInput[charIndex] === char;
+                color = typedCorrectly ? "var(--text)" : "var(--danger)";
+                characterStateClass = typedCorrectly ? "rawtype-char-correct" : "rawtype-char-error";
+
+                if (highlightCorrectWords && typedCorrectly) {
+                  backgroundColor = correctMarkerBackground;
+                }
+              }
+            }
+
+            const showCaretBeforeChar = cursorInWord && charIndex === currentInput.length;
+            const showCaretAfterChar = showEndCursor && charIndex === word.length - 1;
+            const isCaretTarget = showCaretBeforeChar || showCaretAfterChar;
+            const isInitialCaretAtFirstChar = showCaretBeforeChar && charIndex === 0 && currentInput.length === 0;
+            const characterClassName = [
+              "rawtype-typing-char",
+              characterStateClass,
+              characterStateClass === "rawtype-char-correct" ? `rawtype-feedback-${typingFeedbackAnimation}` : "",
+              characterStateClass === "rawtype-char-error" ? `rawtype-error-${errorFeedbackAnimation}` : ""
+            ]
+              .filter(Boolean)
+              .join(" ");
+
+            return (
+              <span
+                key={charIndex}
+                ref={isCaretTarget ? caretTargetRef : undefined}
+                className={characterClassName}
+                data-caret-placement={showCaretAfterChar ? "after" : isInitialCaretAtFirstChar ? "inside-start" : "before"}
+                style={{
+                  color,
+                  backgroundColor,
+                  borderRadius,
+                  padding,
+                  animationDelay:
+                    characterStateClass === "rawtype-char-correct" && typingFeedbackAnimation === "wave"
+                      ? `${charIndex * 20}ms`
+                      : undefined
+                }}
+              >
+                {char}
+              </span>
+            );
+          })}
+        </span>
+        {renderSpace(`${itemKey}-space`, showSpaceCursor)}
+      </span>
+    );
+  }
 
   return (
     <div
@@ -469,7 +947,7 @@ export default function TypingGame({
           {!isTextLoading && !textLoadError && (
             <div
               ref={typingAreaRef}
-              className="rawtype-typing-stage"
+              className={`rawtype-typing-stage ${focusMode === "onelinemode" ? "rawtype-typing-stage-oneline" : ""}`}
               tabIndex={0}
               onKeyDown={handleKeyDown}
               onClick={() => typingAreaRef.current?.focus()}
@@ -481,174 +959,45 @@ export default function TypingGame({
                 outline: "none",
                 cursor: "text",
                 display: "inline-block",
-                width: "max-content",
+                width: focusMode === "onelinemode" ? "min(100%, 980px)" : "max-content",
                 maxWidth: "min(100%, 980px)",
+                overflowX: focusMode === "onelinemode" ? "auto" : "visible",
+                overflowY: "hidden",
                 verticalAlign: "top"
               }}
             >
-              <div
-                style={{
-                  fontFamily: "var(--typing-font)",
-                  fontSize: "24px",
-                  lineHeight: 1.8,
-                  display: "flex",
-                  flexWrap: "wrap",
-                  alignItems: "flex-end",
-                  columnGap: 0,
-                  rowGap: "4px"
-                }}
-              >
-                {words.map((word, wordIndex) => {
-                  const hasTrailingSpace = wordIndex < words.length - 1;
-
-                  if (wordIndex < currentWordIndex) {
-                    return (
-                      <span
-                        key={wordIndex}
-                        style={{
-                          display: "inline-flex",
-                          backgroundColor: highlightCorrectWords ? correctMarkerBackground : "transparent",
-                          borderRadius: 0
-                        }}
-                      >
-                        <span
-                          className={`rawtype-completed-word rawtype-feedback-${typingFeedbackAnimation}`}
-                          style={{
-                            color: highlightCorrectWords ? "var(--text)" : "var(--success)",
-                            backgroundColor: "transparent",
-                            borderRadius: 0,
-                            padding: 0,
-                            display: "inline-flex"
-                          }}
-                        >
-                          {word}
-                        </span>
-                        {hasTrailingSpace && (
-                          <span
-                            aria-hidden="true"
-                            style={{
-                              display: "inline-flex",
-                              color: "transparent",
-                              backgroundColor: "transparent",
-                              borderRadius: 0,
-                              padding: 0
-                            }}
-                          >
-                            {"\u00A0"}
-                          </span>
-                        )}
-                      </span>
-                    );
-                  }
-
-                  if (wordIndex > currentWordIndex || finished) {
-                    return (
-                      <span key={wordIndex} style={{ display: "inline-flex" }}>
-                        <span style={{ color: "var(--muted)", display: "inline-flex" }}>{word}</span>
-                        {hasTrailingSpace && <span aria-hidden="true">{"\u00A0"}</span>}
-                      </span>
-                    );
-                  }
-
-                  const cursorInWord = currentInput.length < word.length;
-                  const firstMismatchIndex = highlightErrorFromPoint
-                    ? getFirstMismatchIndex(currentInput, word)
-                    : -1;
-                  const showSpaceCursor = !cursorInWord && !finished && hasTrailingSpace;
-                  const showEndCursor = !cursorInWord && !finished && !hasTrailingSpace;
-
-                  return (
-                    <span key={wordIndex} style={{ display: "inline-flex" }}>
-                      <span
-                        className="rawtype-current-word"
-                        style={{
-                          alignItems: "center",
-                          whiteSpace: "normal",
-                          display: "inline-flex"
-                        }}
-                      >
-                        {word.split("").map((char, charIndex) => {
-                          let color = "var(--muted)";
-                          let backgroundColor = "transparent";
-                          const borderRadius = 0;
-                          const padding = 0;
-                          let characterStateClass = "";
-
-                          if (charIndex < currentInput.length) {
-                            const markedAsWrongFromMismatch =
-                              firstMismatchIndex !== -1 && charIndex >= firstMismatchIndex;
-
-                            if (markedAsWrongFromMismatch) {
-                              color = "var(--danger)";
-                              backgroundColor = errorMarkerBackground;
-                              characterStateClass = "rawtype-char-error";
-                            } else {
-                              const typedCorrectly = currentInput[charIndex] === char;
-                              color = typedCorrectly ? "var(--text)" : "var(--danger)";
-                              characterStateClass = typedCorrectly ? "rawtype-char-correct" : "rawtype-char-error";
-
-                              if (highlightCorrectWords && typedCorrectly) {
-                                backgroundColor = correctMarkerBackground;
-                              }
-                            }
-                          }
-
-                          const showCaretBeforeChar = cursorInWord && charIndex === currentInput.length;
-                          const showCaretAfterChar = showEndCursor && charIndex === word.length - 1;
-                          const isCaretTarget = showCaretBeforeChar || showCaretAfterChar;
-                          const characterClassName = [
-                            "rawtype-typing-char",
-                            characterStateClass,
-                            characterStateClass === "rawtype-char-correct"
-                              ? `rawtype-feedback-${typingFeedbackAnimation}`
-                              : "",
-                            characterStateClass === "rawtype-char-error"
-                              ? `rawtype-error-${errorFeedbackAnimation}`
-                              : ""
-                          ]
-                            .filter(Boolean)
-                            .join(" ");
-
-                          return (
-                            <span
-                              key={charIndex}
-                              ref={isCaretTarget ? caretTargetRef : undefined}
-                              className={characterClassName}
-                              data-caret-placement={showCaretAfterChar ? "after" : "before"}
-                              style={{
-                                color,
-                                backgroundColor,
-                                borderRadius,
-                                padding,
-                                animationDelay:
-                                  characterStateClass === "rawtype-char-correct" && typingFeedbackAnimation === "wave"
-                                    ? `${charIndex * 20}ms`
-                                    : undefined
-                              }}
-                            >
-                              {char}
-                            </span>
-                          );
-                        })}
-                      </span>
-                      {hasTrailingSpace && (
-                        <span
-                          aria-hidden="true"
-                          ref={showSpaceCursor ? caretTargetRef : undefined}
-                          data-caret-placement={showSpaceCursor ? "before" : undefined}
-                          style={{ display: "inline-flex" }}
-                        >
-                          {"\u00A0"}
-                        </span>
+              {focusMode === "columns" ? (
+                <div key={`columns-window-${activeColumnRowIndex}`} style={wordListStyle}>
+                  {visibleColumnRows.map((row) => (
+                    <div
+                      key={`columns-row-${row.startWordIndex}`}
+                      className="rawtype-focus-column-row"
+                      style={{
+                        minHeight: "42px",
+                        display: "flex",
+                        flexWrap: "nowrap",
+                        alignItems: "flex-end",
+                        columnGap: 0,
+                        overflow: "hidden"
+                      }}
+                    >
+                      {row.words.map(({ word, wordIndex }) =>
+                        renderTypingWord(`columns-${row.rowIndex}-${wordIndex}`, word, wordIndex, row.focusDistance)
                       )}
-                    </span>
-                  );
-                })}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={wordListStyle}>
+                  {visibleWordEntries.map(({ word, wordIndex, focusDistance }) =>
+                    renderTypingWord(`${wordIndex}`, word, wordIndex, focusDistance)
+                  )}
+                </div>
+              )}
               <GlidingCaret
                 box={caretBox}
                 caretAnimationStyle={caretAnimationStyle}
-                caretMovementAnimation={caretMovementAnimation}
+                caretMovementAnimation={effectiveCaretMovementAnimation}
               />
             </div>
           )}
