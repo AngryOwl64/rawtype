@@ -64,6 +64,12 @@ type CaretBox = {
   height: number;
 };
 
+function getCaretAnchorOffset(placement: string | undefined, targetWidth: number): number {
+  if (placement === "after") return targetWidth;
+  if (placement === "inside-start") return Math.min(3, Math.max(1, targetWidth * 0.14));
+  return 0;
+}
+
 const COLUMN_MAX_CHARS_PER_ROW = 70;
 
 type ColumnFocusRow = {
@@ -251,6 +257,38 @@ export default function TypingGame({
   const typingAreaRef = useRef<HTMLDivElement | null>(null);
   const caretTargetRef = useRef<HTMLSpanElement | null>(null);
   const [caretBox, setCaretBox] = useState<CaretBox | null>(null);
+  const [oneLineEdgePadding, setOneLineEdgePadding] = useState(0);
+  const [forceInstantCaretMovement, setForceInstantCaretMovement] = useState(false);
+  const instantCaretFrameRef = useRef<number | null>(null);
+  const wasAtRunStartRef = useRef(false);
+
+  const triggerInstantCaretMovement = useCallback(() => {
+    if (instantCaretFrameRef.current !== null) {
+      window.cancelAnimationFrame(instantCaretFrameRef.current);
+      instantCaretFrameRef.current = null;
+    }
+
+    setForceInstantCaretMovement(true);
+    instantCaretFrameRef.current = window.requestAnimationFrame(() => {
+      instantCaretFrameRef.current = window.requestAnimationFrame(() => {
+        setForceInstantCaretMovement(false);
+        instantCaretFrameRef.current = null;
+      });
+    });
+  }, []);
+
+  const syncOneLineEdgePadding = useCallback(() => {
+    const typingArea = typingAreaRef.current;
+    if (!typingArea || focusMode !== "onelinemode") {
+      setOneLineEdgePadding((previousPadding) => (previousPadding === 0 ? previousPadding : 0));
+      return;
+    }
+
+    const nextPadding = Math.max(0, typingArea.clientWidth / 2);
+    setOneLineEdgePadding((previousPadding) =>
+      Math.abs(previousPadding - nextPadding) < 0.5 ? previousPadding : nextPadding
+    );
+  }, [focusMode]);
 
   const measureCaret = useCallback(() => {
     const typingArea = typingAreaRef.current;
@@ -264,11 +302,13 @@ export default function TypingGame({
     const stageRect = typingArea.getBoundingClientRect();
     const targetRect = caretTarget.getBoundingClientRect();
     const placement = caretTarget.dataset.caretPlacement;
+    const anchorOffset = getCaretAnchorOffset(placement, targetRect.width);
+    const targetContentX =
+      targetRect.left - stageRect.left - typingArea.clientLeft + typingArea.scrollLeft + anchorOffset;
+    const targetContentY = targetRect.top - stageRect.top - typingArea.clientTop + typingArea.scrollTop;
     const nextBox = {
-      x:
-        (placement === "after" ? targetRect.right - stageRect.left : targetRect.left - stageRect.left) -
-        typingArea.clientLeft,
-      y: targetRect.top - stageRect.top - typingArea.clientTop,
+      x: targetContentX,
+      y: targetContentY,
       width: Math.max(2, targetRect.width),
       height: targetRect.height
     };
@@ -299,9 +339,11 @@ export default function TypingGame({
 
     const stageRect = typingArea.getBoundingClientRect();
     const targetRect = caretTarget.getBoundingClientRect();
-    const targetCenterX = targetRect.left + targetRect.width / 2;
-    const stageCenterX = stageRect.left + stageRect.width / 2;
-    const desiredScrollLeft = typingArea.scrollLeft + (targetCenterX - stageCenterX);
+    const placement = caretTarget.dataset.caretPlacement;
+    const anchorOffset = getCaretAnchorOffset(placement, targetRect.width);
+    const targetContentX =
+      targetRect.left - stageRect.left - typingArea.clientLeft + typingArea.scrollLeft + anchorOffset;
+    const desiredScrollLeft = targetContentX - typingArea.clientWidth / 2;
     const maxScrollLeft = Math.max(0, typingArea.scrollWidth - typingArea.clientWidth);
     const nextScrollLeft = Math.min(Math.max(0, desiredScrollLeft), maxScrollLeft);
 
@@ -314,18 +356,48 @@ export default function TypingGame({
     void reloadText();
   }, [reloadText]);
 
+  useEffect(() => {
+    const isAtRunStart =
+      !finished && !isTextLoading && !textLoadError && currentWordIndex === 0 && currentInput.length === 0;
+
+    if (isAtRunStart && !wasAtRunStartRef.current) {
+      triggerInstantCaretMovement();
+    }
+
+    wasAtRunStartRef.current = isAtRunStart;
+  }, [currentInput, currentWordIndex, finished, isTextLoading, textLoadError, triggerInstantCaretMovement, words]);
+
+  useEffect(() => {
+    return () => {
+      if (instantCaretFrameRef.current !== null) {
+        window.cancelAnimationFrame(instantCaretFrameRef.current);
+      }
+    };
+  }, []);
+
   useLayoutEffect(() => {
     if (focusMode === "onelinemode") {
+      syncOneLineEdgePadding();
       centerOneLineCursor();
     }
     measureCaret();
-  }, [centerOneLineCursor, currentInput, currentWordIndex, focusMode, measureCaret, words]);
+  }, [
+    centerOneLineCursor,
+    currentInput,
+    currentWordIndex,
+    focusMode,
+    measureCaret,
+    oneLineEdgePadding,
+    syncOneLineEdgePadding,
+    words
+  ]);
 
   useEffect(() => {
     const typingArea = typingAreaRef.current;
     if (!typingArea) return;
 
     const handleResize = () => {
+      syncOneLineEdgePadding();
       centerOneLineCursor();
       measureCaret();
     };
@@ -334,6 +406,7 @@ export default function TypingGame({
 
     if (typeof ResizeObserver !== "undefined") {
       const resizeObserver = new ResizeObserver(() => {
+        syncOneLineEdgePadding();
         centerOneLineCursor();
         measureCaret();
       });
@@ -345,7 +418,7 @@ export default function TypingGame({
     }
 
     return () => window.removeEventListener("resize", handleResize);
-  }, [centerOneLineCursor, measureCaret]);
+  }, [centerOneLineCursor, measureCaret, syncOneLineEdgePadding]);
 
   useEffect(() => {
     const typingArea = typingAreaRef.current;
@@ -508,8 +581,13 @@ export default function TypingGame({
     savedRunKeyRef.current = "";
     setSaveState("idle");
     setSaveError("");
+    triggerInstantCaretMovement();
     restart();
-  }, [restart]);
+  }, [restart, triggerInstantCaretMovement]);
+
+  const effectiveCaretMovementAnimation: CaretMovementAnimation = forceInstantCaretMovement
+    ? "instant"
+    : caretMovementAnimation;
 
   const errorSummary = useMemo(() => {
     const errorCountByWord = errorEvents.reduce<Record<string, number>>((acc, entry) => {
@@ -642,7 +720,8 @@ export default function TypingGame({
               whiteSpace: "nowrap",
               gap: 0,
               minWidth: "max-content",
-              paddingLeft: "50%"
+              paddingLeft: `${oneLineEdgePadding}px`,
+              paddingRight: `${oneLineEdgePadding}px`
             }
         : {
           fontFamily: "var(--typing-font)",
@@ -772,6 +851,7 @@ export default function TypingGame({
             const showCaretBeforeChar = cursorInWord && charIndex === currentInput.length;
             const showCaretAfterChar = showEndCursor && charIndex === word.length - 1;
             const isCaretTarget = showCaretBeforeChar || showCaretAfterChar;
+            const isInitialCaretAtFirstChar = showCaretBeforeChar && charIndex === 0 && currentInput.length === 0;
             const characterClassName = [
               "rawtype-typing-char",
               characterStateClass,
@@ -786,7 +866,7 @@ export default function TypingGame({
                 key={charIndex}
                 ref={isCaretTarget ? caretTargetRef : undefined}
                 className={characterClassName}
-                data-caret-placement={showCaretAfterChar ? "after" : "before"}
+                data-caret-placement={showCaretAfterChar ? "after" : isInitialCaretAtFirstChar ? "inside-start" : "before"}
                 style={{
                   color,
                   backgroundColor,
@@ -917,7 +997,7 @@ export default function TypingGame({
               <GlidingCaret
                 box={caretBox}
                 caretAnimationStyle={caretAnimationStyle}
-                caretMovementAnimation={caretMovementAnimation}
+                caretMovementAnimation={effectiveCaretMovementAnimation}
               />
             </div>
           )}
