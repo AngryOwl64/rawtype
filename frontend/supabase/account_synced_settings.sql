@@ -11,6 +11,7 @@ alter table public.user_settings
   add column if not exists show_on_screen_keyboard boolean not null default false,
   add column if not exists on_screen_keyboard_layout text not null default 'us-qwerty',
   add column if not exists restart_key text not null default 'Enter',
+  add column if not exists focus_mode text not null default 'all',
   add column if not exists correct_marker_color text not null default '#6fbf73',
   add column if not exists error_marker_color text not null default '#c86b73',
   add column if not exists save_runs_to_account boolean not null default true,
@@ -44,6 +45,7 @@ alter table public.user_settings
   drop constraint if exists user_settings_text_font_valid,
   drop constraint if exists user_settings_keyboard_layout_valid,
   drop constraint if exists user_settings_restart_key_valid,
+  drop constraint if exists user_settings_focus_mode_valid,
   drop constraint if exists user_settings_correct_marker_color_valid,
   drop constraint if exists user_settings_error_marker_color_valid,
   drop constraint if exists user_settings_animation_intensity_valid,
@@ -69,6 +71,7 @@ alter table public.user_settings
     on_screen_keyboard_layout in ('us-qwerty', 'uk-qwerty', 'de-qwertz', 'fr-azerty', 'es-qwerty')
   ),
   add constraint user_settings_restart_key_valid check (restart_key in ('Enter', 'Escape')),
+  add constraint user_settings_focus_mode_valid check (focus_mode in ('all', 'columns', 'row')),
   add constraint user_settings_correct_marker_color_valid check (correct_marker_color ~ '^#[0-9A-Fa-f]{6}$'),
   add constraint user_settings_error_marker_color_valid check (error_marker_color ~ '^#[0-9A-Fa-f]{6}$'),
   add constraint user_settings_animation_intensity_valid check (
