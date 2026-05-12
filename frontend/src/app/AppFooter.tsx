@@ -6,11 +6,20 @@ type FooterLink = {
   hrefLang?: string;
   lang?: string;
   rel?: string;
+  target?: "_blank";
 };
 
 type FooterSection = {
   title: string;
   links: FooterLink[];
+};
+
+type FooterContent = {
+  description: string;
+  sections: FooterSection[];
+  languageSectionTitle: string;
+  alternateLanguageLabel: string;
+  bottomLine: string;
 };
 
 type AppFooterProps = {
@@ -20,18 +29,16 @@ type AppFooterProps = {
   onNavigate: (path: string) => void;
 };
 
-const footerContent: Record<
-  TypingLanguage,
-  {
-    description: string;
-    sections: FooterSection[];
-    languageSectionTitle: string;
-    alternateLanguageLabel: string;
-    bottomLine: string;
-  }
-> = {
+const githubLink: FooterLink = {
+  href: "https://github.com/AngryOwl64/rawtype",
+  label: "View on GitHub",
+  rel: "noopener noreferrer",
+  target: "_blank"
+};
+
+const footerContent: Record<TypingLanguage, FooterContent> = {
   en: {
-    description: "Typing tests, focused practice, and quick drills for English and German.",
+    description: "Open-source typing practice with quick tests, focused drills, and clean bilingual routes.",
     sections: [
       {
         title: "Practice",
@@ -48,21 +55,25 @@ const footerContent: Record<
           { href: "/word-mode", label: "Word Mode" },
           { href: "/no-mistake-mode", label: "No-Mistake" }
         ]
+      },
+      {
+        title: "Open Source",
+        links: [githubLink]
       }
     ],
     languageSectionTitle: "Language",
     alternateLanguageLabel: "Switch to German",
-    bottomLine: "Built for fast daily typing practice."
+    bottomLine: "Open source, free to use, and built for fast daily typing practice."
   },
   de: {
-    description: "Tipptests, lockeres Training und schnelle Wortdrills auf Deutsch und Englisch.",
+    description: "Open-Source-Tipptrainer mit schnellen Tests, klaren Uebungen und sauberen Sprachseiten.",
     sections: [
       {
         title: "Loslegen",
         links: [
           { href: "/de", label: "Start" },
           { href: "/de/tipptraining", label: "Tipptest" },
-          { href: "/de/tipptrainer", label: "Tippen üben" },
+          { href: "/de/tipptrainer", label: "Tippen ueben" },
           { href: "/de/tippgeschwindigkeit-test", label: "Speedtest" }
         ]
       },
@@ -72,11 +83,22 @@ const footerContent: Record<
           { href: "/de/wortmodus", label: "Wortmodus" },
           { href: "/de/no-mistake-modus", label: "No-Mistake" }
         ]
+      },
+      {
+        title: "Open Source",
+        links: [
+          {
+            href: githubLink.href,
+            label: "Projekt auf GitHub",
+            rel: githubLink.rel,
+            target: githubLink.target
+          }
+        ]
       }
     ],
     languageSectionTitle: "Sprache",
     alternateLanguageLabel: "English version",
-    bottomLine: "Gemacht für kurze Sessions und konstantes Besserwerden."
+    bottomLine: "Kostenlos, open source und gemacht fuer kurze Sessions."
   }
 };
 
@@ -86,18 +108,23 @@ function FooterAnchor({
   hrefLang,
   lang,
   rel,
+  target,
   active,
   onNavigate
 }: FooterLink & { active: boolean; onNavigate: (path: string) => void }) {
+  const isInternalLink = href.startsWith("/");
+
   return (
     <a
       href={href}
       hrefLang={hrefLang}
       lang={lang}
       rel={rel}
+      target={target}
       aria-current={active ? "page" : undefined}
       onClick={(event) => {
         if (
+          !isInternalLink ||
           event.button !== 0 ||
           event.metaKey ||
           event.ctrlKey ||
@@ -176,16 +203,17 @@ export default function AppFooter({ language, pathname, alternateLanguagePath, o
             </h2>
             <div style={{ display: "grid", gap: "8px" }}>
               {section.links.map((link) => (
-              <FooterAnchor
-                key={link.href}
-                href={link.href}
-                label={link.label}
-                hrefLang={link.hrefLang}
-                lang={link.lang}
-                rel={link.rel}
-                active={pathname === link.href}
-                onNavigate={onNavigate}
-              />
+                <FooterAnchor
+                  key={link.href}
+                  href={link.href}
+                  label={link.label}
+                  hrefLang={link.hrefLang}
+                  lang={link.lang}
+                  rel={link.rel}
+                  target={link.target}
+                  active={pathname === link.href}
+                  onNavigate={onNavigate}
+                />
               ))}
             </div>
           </section>
