@@ -29,4 +29,4 @@ RawType measures WPM, CPM, accuracy, progress, mistakes, duration, completed wor
 ## Suggested Descriptions
 
 - Short: Free typing test and practice game for WPM, accuracy, prose, and word drills.
-- German: Kostenloser Tipptrainer fuer Tippgeschwindigkeit, Genauigkeit, Prosa und Wortuebungen.
+- German: Kostenloser Tipptrainer für Tippgeschwindigkeit, Genauigkeit, Prosa und Wortübungen.

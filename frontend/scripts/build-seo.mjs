@@ -10,10 +10,10 @@ const distDir = path.join(projectRoot, "dist");
 const indexPath = path.join(distDir, "index.html");
 const appName = "RawType";
 const defaultSiteUrl = "https://rawtype.net";
-const socialImagePath = "/web-app-manifest-512x512.png";
+const socialImagePath = "/rawtype-logo.png";
 const socialImageAlt = "RawType logo";
-const socialImageWidth = 512;
-const socialImageHeight = 512;
+const socialImageWidth = 1254;
+const socialImageHeight = 1254;
 const availableLanguages = ["en", "de"];
 
 async function readEnvValue(fileName, key) {
@@ -93,17 +93,17 @@ const commonEnglishFaq = [
 const commonGermanFaq = [
   {
     question: "Ist RawType kostenlos?",
-    answer: "Ja. RawType ist kostenlos und fuer schnelle, wiederholbare Tippuebungen gebaut."
+    answer: "Ja. RawType ist kostenlos und für schnelle, wiederholbare Tippübungen gebaut."
   },
   {
     question: "Was misst RawType?",
     answer:
-      "RawType misst Tippgeschwindigkeit, Zeichen pro Minute, Genauigkeit, Fehler, Fortschritt, Dauer und abgeschlossene Woerter."
+      "RawType misst Tippgeschwindigkeit, Zeichen pro Minute, Genauigkeit, Fehler, Fortschritt, Dauer und abgeschlossene Wörter."
   },
   {
     question: "Kann ich meinen Fortschritt verfolgen?",
     answer:
-      "Eingeloggte Spieler koennen Runs speichern, Statistiken ansehen, taegliche Serien aufbauen und wiederkehrende Fehlerwoerter erkennen."
+      "Eingeloggte Spieler können Runs speichern, Statistiken ansehen, tägliche Serien aufbauen und wiederkehrende Fehlerwörter erkennen."
   }
 ];
 
@@ -346,49 +346,49 @@ const pages = [
     description:
       "RawType ist ein kostenloser Tipptrainer zum Verbessern von Tippgeschwindigkeit, Genauigkeit und Konstanz.",
     socialDescription:
-      "Trainiere Tippen mit Prosa und Wortuebungen, verfolge Geschwindigkeit und Genauigkeit und verbessere dich Schritt fuer Schritt.",
+      "Trainiere Tippen mit Prosa und Wortübungen, verfolge Geschwindigkeit und Genauigkeit und verbessere dich Schritt für Schritt.",
     noscriptTitle: "RawType Tipptraining",
     noscriptDescription:
-      "RawType ist ein kostenloses Einzelspieler-Tippspiel mit Prosa- und Wortuebungen fuer Geschwindigkeit, Genauigkeit und Konstanz.",
+      "RawType ist ein kostenloses Einzelspieler-Tippspiel mit Prosa- und Wortübungen für Geschwindigkeit, Genauigkeit und Konstanz.",
     breadcrumbName: "Tipptraining",
-    keywords: ["Tipptrainer", "Tipptraining", "Tippen ueben", "Tippgeschwindigkeit verbessern"],
+    keywords: ["Tipptrainer", "Tipptraining", "Tippen üben", "Tippgeschwindigkeit verbessern"],
     sitemapPriority: "0.95",
     faq: commonGermanFaq,
     noscriptContent: `<section data-seo-noscript>
-          <h2>Kostenloses Tipptraining fuer Geschwindigkeit und Genauigkeit</h2>
+          <h2>Kostenloses Tipptraining für Geschwindigkeit und Genauigkeit</h2>
           <p>
-            RawType hilft dir, echtes Tippen mit fokussierten Runs, klarer Rueckmeldung und
+            RawType hilft dir, echtes Tippen mit fokussierten Runs, klarer Rückmeldung und
             praktischen Messwerten wie WPM, CPM, Genauigkeit, Fortschritt, Fehlern und
-            abgeschlossenen Woertern zu trainieren.
+            abgeschlossenen Wörtern zu trainieren.
           </p>
           <h2>Typing Classic</h2>
           <p>
-            Typing Classic nutzt zusammenhaengende Texte, damit du Rhythmus, Satzzeichen,
-            Grossschreibung und echten Schreibfluss trainierst statt nur einzelne Buchstaben zu
+            Typing Classic nutzt zusammenhängende Texte, damit du Rhythmus, Satzzeichen,
+            Großschreibung und echten Schreibfluss trainierst statt nur einzelne Buchstaben zu
             wiederholen.
           </p>
           <h2>Wortmodus</h2>
           <p>
-            Der Wortmodus erstellt kurze Tippuebungen aus zufaelligen Woertern. Du kannst Wortanzahl,
-            Schwierigkeit und No-Mistake-Training waehlen, um sauberere Anschlaege zu ueben.
+            Der Wortmodus erstellt kurze Tippübungen aus zufälligen Wörtern. Du kannst Wortanzahl,
+            Schwierigkeit und No-Mistake-Training wählen, um sauberere Anschläge zu üben.
           </p>
           <h2>Englisches und deutsches Tipptraining</h2>
           <p>
-            RawType unterstuetzt Englisch und Deutsch. Die Hauptseite ist Englisch, die deutsche
+            RawType unterstützt Englisch und Deutsch. Die Hauptseite ist Englisch, die deutsche
             Einstiegsseite liegt unter /de/.
           </p>
           <h2>FAQ zum Tipptraining</h2>
           <h3>Ist RawType kostenlos?</h3>
-          <p>Ja. RawType ist kostenlos und fuer schnelle, wiederholbare Tippuebungen gebaut.</p>
+          <p>Ja. RawType ist kostenlos und für schnelle, wiederholbare Tippübungen gebaut.</p>
           <h3>Was misst RawType?</h3>
           <p>
             RawType misst Tippgeschwindigkeit, Zeichen pro Minute, Genauigkeit, Fehler,
-            Fortschritt, Dauer und abgeschlossene Woerter waehrend eines Runs.
+            Fortschritt, Dauer und abgeschlossene Wörter während eines Runs.
           </p>
           <h3>Kann ich meinen Fortschritt verfolgen?</h3>
           <p>
-            Eingeloggte Spieler koennen Runs speichern, Statistiken ansehen, taegliche Serien
-            aufbauen und wiederkehrende Fehlerwoerter erkennen.
+            Eingeloggte Spieler können Runs speichern, Statistiken ansehen, tägliche Serien
+            aufbauen und wiederkehrende Fehlerwörter erkennen.
           </p>
         </section>`
   },
@@ -401,10 +401,10 @@ const pages = [
     description:
       "Trainiere kostenlos Tippen mit RawType: Tippgeschwindigkeit, WPM, Genauigkeit, Fehler und Konstanz mit deutschen oder englischen Texten verbessern.",
     socialDescription:
-      "Verbessere Tippgeschwindigkeit und Genauigkeit mit kostenlosen Tippuebungen in RawType.",
+      "Verbessere Tippgeschwindigkeit und Genauigkeit mit kostenlosen Tippübungen in RawType.",
     noscriptTitle: "Kostenloses Tipptraining",
     noscriptDescription:
-      "RawType hilft dir, Tippgeschwindigkeit, Genauigkeit und Konstanz mit fokussierten Tippuebungen zu verbessern.",
+      "RawType hilft dir, Tippgeschwindigkeit, Genauigkeit und Konstanz mit fokussierten Tippübungen zu verbessern.",
     breadcrumbName: "Tipptraining",
     keywords: ["kostenloses Tipptraining", "Tippgeschwindigkeit verbessern", "WPM Test", "Tippen trainieren"],
     sitemapPriority: "0.9",
@@ -415,15 +415,15 @@ const pages = [
             RawType misst WPM, CPM, Genauigkeit, Fehler und Fortschritt, damit du deine
             Tippgeschwindigkeit gezielt trainieren kannst.
           </p>
-          <h2>Deutsche und englische Tippuebungen</h2>
+          <h2>Deutsche und englische Tippübungen</h2>
           <p>
-            Trainiere mit Prosa im Typing-Classic-Modus oder mit zufaelligen Woertern im
-            Wortmodus. Beide Modi eignen sich fuer kurze taegliche Sessions.
+            Trainiere mit Prosa im Typing-Classic-Modus oder mit zufälligen Wörtern im
+            Wortmodus. Beide Modi eignen sich für kurze tägliche Sessions.
           </p>
           <h2>Fortschritt speichern</h2>
           <p>
             Mit Konto kannst du Runs speichern, Statistiken ansehen, Serien aufbauen und
-            wiederkehrende Fehlerwoerter erkennen.
+            wiederkehrende Fehlerwörter erkennen.
           </p>
         </section>`
   },
@@ -432,16 +432,16 @@ const pages = [
     alternateGroup: "typing-practice",
     lang: "de",
     locale: "de_DE",
-    title: "Tipptrainer Online fuer Geschwindigkeit und Genauigkeit | RawType",
+    title: "Tipptrainer Online für Geschwindigkeit und Genauigkeit | RawType",
     description:
-      "Nutze RawType als kostenlosen Online-Tipptrainer mit Prosa, Wortuebungen, WPM-Messung, Genauigkeit und wiederholbarem Training.",
+      "Nutze RawType als kostenlosen Online-Tipptrainer mit Prosa, Wortübungen, WPM-Messung, Genauigkeit und wiederholbarem Training.",
     socialDescription:
-      "Online-Tipptrainer fuer Geschwindigkeit, Genauigkeit, Prosa-Runs und kurze Wortuebungen.",
+      "Online-Tipptrainer für Geschwindigkeit, Genauigkeit, Prosa-Runs und kurze Wortübungen.",
     noscriptTitle: "Online-Tipptrainer",
     noscriptDescription:
-      "RawType ist ein Online-Tipptrainer fuer Geschwindigkeit, Genauigkeit, Rhythmus und Konstanz.",
+      "RawType ist ein Online-Tipptrainer für Geschwindigkeit, Genauigkeit, Rhythmus und Konstanz.",
     breadcrumbName: "Tipptrainer",
-    keywords: ["Online Tipptrainer", "Tipptrainer kostenlos", "Tippen ueben", "Tipptraining"],
+    keywords: ["Online Tipptrainer", "Tipptrainer kostenlos", "Tippen üben", "Tipptraining"],
     sitemapPriority: "0.9",
     faq: commonGermanFaq,
     noscriptContent: `<section data-seo-noscript>
@@ -450,15 +450,15 @@ const pages = [
             RawType bietet kurze Tipp-Sessions, um Tastaturrhythmus aufzubauen, Tippfehler zu
             reduzieren und Konstanz im Schreiben zu verbessern.
           </p>
-          <h2>Fokussierte Uebungen</h2>
+          <h2>Fokussierte Übungen</h2>
           <p>
-            Starte Prosa fuer natuerlichen Schreibfluss oder nutze den Wortmodus fuer schnelle
-            Wortuebungen. Ergebnisse zeigen WPM, CPM, Genauigkeit, Fortschritt und Fehler.
+            Starte Prosa für natürlichen Schreibfluss oder nutze den Wortmodus für schnelle
+            Wortübungen. Ergebnisse zeigen WPM, CPM, Genauigkeit, Fortschritt und Fehler.
           </p>
           <h2>Fortschritt erkennen</h2>
           <p>
             Mit Konto kannst du Runs speichern, aktuelle Leistung vergleichen und wiederkehrende
-            Fehlerwoerter finden.
+            Fehlerwörter finden.
           </p>
         </section>`
   },
@@ -469,31 +469,31 @@ const pages = [
     locale: "de_DE",
     title: "Tippgeschwindigkeit Test - WPM online messen | RawType",
     description:
-      "Messe deine Tippgeschwindigkeit mit RawType: kostenloser WPM-Test mit CPM, Genauigkeit, Fehlern und abgeschlossenen Woertern.",
+      "Messe deine Tippgeschwindigkeit mit RawType: kostenloser WPM-Test mit CPM, Genauigkeit, Fehlern und abgeschlossenen Wörtern.",
     socialDescription:
       "Messe WPM, CPM, Genauigkeit und Fehler mit einem kostenlosen Tippgeschwindigkeit-Test im Browser.",
     noscriptTitle: "Tippgeschwindigkeit Test",
     noscriptDescription:
-      "RawType misst Tippgeschwindigkeit mit WPM, CPM, Genauigkeit, Fehlern und abgeschlossenen Woertern.",
+      "RawType misst Tippgeschwindigkeit mit WPM, CPM, Genauigkeit, Fehlern und abgeschlossenen Wörtern.",
     breadcrumbName: "Tippgeschwindigkeit Test",
-    keywords: ["Tippgeschwindigkeit Test", "WPM messen", "Tippen Geschwindigkeit", "Anschlaege pro Minute"],
+    keywords: ["Tippgeschwindigkeit Test", "WPM messen", "Tippen Geschwindigkeit", "Anschläge pro Minute"],
     sitemapPriority: "0.9",
     faq: commonGermanFaq,
     noscriptContent: `<section data-seo-noscript>
-          <h2>Woerter pro Minute messen</h2>
+          <h2>Wörter pro Minute messen</h2>
           <p>
-            RawType berechnet WPM waehrend jedes Runs und kombiniert den Wert mit CPM,
-            Genauigkeit, Fortschritt, Fehlern und abgeschlossenen Woertern.
+            RawType berechnet WPM während jedes Runs und kombiniert den Wert mit CPM,
+            Genauigkeit, Fortschritt, Fehlern und abgeschlossenen Wörtern.
           </p>
           <h2>Geschwindigkeit mit Genauigkeit</h2>
           <p>
             Der Test belohnt sauberes und konstantes Tippen, nicht nur kurze Geschwindigkeitsspitzen.
-            Wortuebungen und Prosa trainieren unterschiedliche Schreibgewohnheiten.
+            Wortübungen und Prosa trainieren unterschiedliche Schreibgewohnheiten.
           </p>
           <h2>Fortschritt verfolgen</h2>
           <p>
-            Eingeloggte Spieler koennen WPM-Ergebnisse speichern, letzte Runs vergleichen und eine
-            taegliche Serie aufbauen.
+            Eingeloggte Spieler können WPM-Ergebnisse speichern, letzte Runs vergleichen und eine
+            tägliche Serie aufbauen.
           </p>
         </section>`
   },
@@ -502,33 +502,33 @@ const pages = [
     alternateGroup: "word-mode",
     lang: "de",
     locale: "de_DE",
-    title: "Wortmodus fuer Tippuebungen | RawType",
+    title: "Wortmodus für Tippübungen | RawType",
     description:
-      "Trainiere im RawType Wortmodus mit zufaelligen Woertern, waehle Wortanzahl, Schwierigkeit, No-Mistake-Modus, WPM und Genauigkeit.",
+      "Trainiere im RawType Wortmodus mit zufälligen Wörtern, wähle Wortanzahl, Schwierigkeit, No-Mistake-Modus, WPM und Genauigkeit.",
     socialDescription:
-      "Kurze Wortuebungen mit Wortanzahl, Schwierigkeit, No-Mistake-Modus, WPM und Genauigkeit.",
-    noscriptTitle: "Wortmodus Tippuebungen",
+      "Kurze Wortübungen mit Wortanzahl, Schwierigkeit, No-Mistake-Modus, WPM und Genauigkeit.",
+    noscriptTitle: "Wortmodus Tippübungen",
     noscriptDescription:
-      "Der Wortmodus erstellt zufaellige Wortuebungen fuer schnelles, wiederholbares Tipptraining.",
+      "Der Wortmodus erstellt zufällige Wortübungen für schnelles, wiederholbares Tipptraining.",
     breadcrumbName: "Wortmodus",
-    keywords: ["Wortmodus", "Wortuebungen", "zufaellige Woerter tippen", "Tippuebungen"],
+    keywords: ["Wortmodus", "Wortübungen", "zufällige Wörter tippen", "Tippübungen"],
     sitemapPriority: "0.85",
     faq: commonGermanFaq,
     noscriptContent: `<section data-seo-noscript>
-          <h2>Zufaellige Wortuebungen</h2>
+          <h2>Zufällige Wortübungen</h2>
           <p>
-            Der Wortmodus erstellt kurze Tipp-Sessions aus zufaelligen Woertern, damit du saubere
-            Anschlaege ohne lange Textpassage trainieren kannst.
+            Der Wortmodus erstellt kurze Tipp-Sessions aus zufälligen Wörtern, damit du saubere
+            Anschläge ohne lange Textpassage trainieren kannst.
           </p>
-          <h2>Laenge und Schwierigkeit waehlen</h2>
+          <h2>Länge und Schwierigkeit wählen</h2>
           <p>
-            Waehle 10, 25, 50 oder 75 Woerter, stelle die Schwierigkeit ein und aktiviere
-            No-Mistake-Training fuer strengere Genauigkeit.
+            Wähle 10, 25, 50 oder 75 Wörter, stelle die Schwierigkeit ein und aktiviere
+            No-Mistake-Training für strengere Genauigkeit.
           </p>
-          <h2>Jede Uebung messen</h2>
+          <h2>Jede Übung messen</h2>
           <p>
             RawType zeigt WPM, CPM, Genauigkeit, Fehler, Fortschritt, Dauer und abgeschlossene
-            Woerter nach dem Training.
+            Wörter nach dem Training.
           </p>
         </section>`
   },
@@ -537,14 +537,14 @@ const pages = [
     alternateGroup: "no-mistake-mode",
     lang: "de",
     locale: "de_DE",
-    title: "No-Mistake-Modus fuer genaueres Tippen | RawType",
+    title: "No-Mistake-Modus für genaueres Tippen | RawType",
     description:
-      "Trainiere Genauigkeit mit dem RawType No-Mistake-Modus: eine strenge Tippuebung, die nach dem ersten Fehler endet.",
+      "Trainiere Genauigkeit mit dem RawType No-Mistake-Modus: eine strenge Tippübung, die nach dem ersten Fehler endet.",
     socialDescription:
-      "Nutze den No-Mistake-Modus fuer sauberere Anschlaege und strengeres Genauigkeitstraining.",
+      "Nutze den No-Mistake-Modus für sauberere Anschläge und strengeres Genauigkeitstraining.",
     noscriptTitle: "No-Mistake-Modus",
     noscriptDescription:
-      "Der No-Mistake-Modus hilft dir, Genauigkeit zu trainieren, indem eine Wortuebung nach dem ersten Fehler endet.",
+      "Der No-Mistake-Modus hilft dir, Genauigkeit zu trainieren, indem eine Wortübung nach dem ersten Fehler endet.",
     breadcrumbName: "No-Mistake-Modus",
     keywords: ["No-Mistake-Modus", "fehlerfrei tippen", "Tippgenauigkeit", "Genauigkeit trainieren"],
     sitemapPriority: "0.8",
@@ -552,17 +552,17 @@ const pages = [
     noscriptContent: `<section data-seo-noscript>
           <h2>Strenges Genauigkeitstraining</h2>
           <p>
-            Der No-Mistake-Modus macht aus einer Wortuebung eine fokussierte Genauigkeits-Challenge,
+            Der No-Mistake-Modus macht aus einer Wortübung eine fokussierte Genauigkeits-Challenge,
             weil der Run nach dem ersten Fehler endet.
           </p>
           <h2>Saubere Tippgewohnheiten aufbauen</h2>
           <p>
-            Kurze, wiederholbare Uebungen helfen dir, langsamer zu werden, Fehler zu erkennen und
+            Kurze, wiederholbare Übungen helfen dir, langsamer zu werden, Fehler zu erkennen und
             bessere Tasten-Kontrolle aufzubauen.
           </p>
           <h2>Mit dem Wortmodus kombinieren</h2>
           <p>
-            Nutze No-Mistake-Training zusammen mit Wortanzahl und Schwierigkeit fuer gezielte
+            Nutze No-Mistake-Training zusammen mit Wortanzahl und Schwierigkeit für gezielte
             Tipp-Sessions.
           </p>
         </section>`
