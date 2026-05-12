@@ -1,6 +1,7 @@
 // Coordinates the RawType app shell, tabs, and shared preferences.
 // Passes account, language, and game settings into the active screen.
 import { lazy, Suspense, useEffect, useMemo, useReducer, useState } from "react";
+import AppFooter from "./app/AppFooter";
 import AppHeader from "./app/AppHeader";
 import HomeMenu from "./app/HomeMenu";
 import type { AppTab } from "./app/types";
@@ -105,6 +106,37 @@ const seoGamePaths = new Set([
   "/de/no-mistake-modus"
 ]);
 
+const localizedSeoPaths: Record<TypingLanguage, Record<string, string>> = {
+  en: {
+    "/": "/",
+    "/de": "/",
+    "/typing-test": "/typing-test",
+    "/typing-practice": "/typing-practice",
+    "/wpm-test": "/wpm-test",
+    "/word-mode": "/word-mode",
+    "/no-mistake-mode": "/no-mistake-mode",
+    "/de/tipptraining": "/typing-test",
+    "/de/tipptrainer": "/typing-practice",
+    "/de/tippgeschwindigkeit-test": "/wpm-test",
+    "/de/wortmodus": "/word-mode",
+    "/de/no-mistake-modus": "/no-mistake-mode"
+  },
+  de: {
+    "/": "/de",
+    "/de": "/de",
+    "/typing-test": "/de/tipptraining",
+    "/typing-practice": "/de/tipptrainer",
+    "/wpm-test": "/de/tippgeschwindigkeit-test",
+    "/word-mode": "/de/wortmodus",
+    "/no-mistake-mode": "/de/no-mistake-modus",
+    "/de/tipptraining": "/de/tipptraining",
+    "/de/tipptrainer": "/de/tipptrainer",
+    "/de/tippgeschwindigkeit-test": "/de/tippgeschwindigkeit-test",
+    "/de/wortmodus": "/de/wortmodus",
+    "/de/no-mistake-modus": "/de/no-mistake-modus"
+  }
+};
+
 function isTypingMode(value: string | null | undefined): value is TypingMode {
   return value === "sentences" || value === "words" || value === "custom";
 }
@@ -158,6 +190,24 @@ function getActiveTabFromRoute(route: RouteState): AppTab | null {
   }
 
   return route.kind;
+}
+
+function getLocalizedSeoPath(pathname: string, language: TypingLanguage): string | null {
+  const normalizedPath = normalizePathname(pathname);
+  return localizedSeoPaths[language][normalizedPath] ?? null;
+}
+
+function getRoutePathForTab(tab: AppTab, language: TypingLanguage, pathname: string): string {
+  if (tab === "games") {
+    return getLocalizedSeoPath(pathname, language) ?? (language === "de" ? "/de" : "/");
+  }
+
+  return routePathsByTab[tab];
+}
+
+function getAlternateLanguagePath(pathname: string, language: TypingLanguage): string | null {
+  const alternateLanguage: TypingLanguage = language === "de" ? "en" : "de";
+  return getLocalizedSeoPath(pathname, alternateLanguage);
 }
 
 function getPrefersReducedMotion(): boolean {
@@ -411,6 +461,8 @@ function App() {
       ? profile?.username ?? appText.account.default
       : appText.account.login;
   const gameLanguageLabel = getLanguageLabel(gameLanguage);
+  const currentPath = normalizePathname(window.location.pathname);
+  const alternateLanguagePath = getAlternateLanguagePath(currentPath, language);
   const wordDifficultyLabel =
     wordDifficulty === "easy"
       ? appText.home.easy
@@ -876,6 +928,13 @@ function App() {
   function handleLanguageChange(nextLanguage: TypingLanguage) {
     setLocalLanguage(nextLanguage);
 
+    if (route.kind === "games") {
+      const localizedSeoPath = getLocalizedSeoPath(window.location.pathname, nextLanguage);
+      if (localizedSeoPath) {
+        navigateToPath(localizedSeoPath);
+      }
+    }
+
     if (!user) {
       return;
     }
@@ -904,7 +963,7 @@ function App() {
 
   function handleSelectTab(tab: AppTab) {
     setPlayingTypingGame(false);
-    navigateToPath(routePathsByTab[tab]);
+    navigateToPath(getRoutePathForTab(tab, language, window.location.pathname));
   }
 
   function handleSelectSettingsCategory(category: SettingsCategory) {
@@ -1124,6 +1183,12 @@ function App() {
         )}
         </Suspense>
       </main>
+      <AppFooter
+        language={language}
+        pathname={currentPath}
+        alternateLanguagePath={alternateLanguagePath}
+        onNavigate={navigateToPath}
+      />
     </div>
   );
 }
