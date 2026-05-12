@@ -80,3 +80,12 @@ The public folder also contains non-visual crawler helpers:
 - `robots.txt` points crawlers at the sitemap and keeps private utility routes out of search.
 - `_headers` adds `X-Robots-Tag` to account/settings/stats routes and cache hints for generated files.
 - `llms.txt` gives AI/search agents a concise machine-readable RawType summary.
+
+## Production Security Notes
+
+- `rawtype.net` already redirects `http://` to `https://` live. Keep Cloudflare `SSL/TLS -> Edge Certificates -> Always Use HTTPS` enabled so this does not regress.
+- `_headers` enforces the production CSP and transport/security headers for the deployed app shell and static assets.
+- SPF and DMARC are DNS-level controls and are not configurable from this repo. If the domain does not send mail, add these Cloudflare DNS TXT records:
+  - Host `@`: `v=spf1 -all`
+  - Host `_dmarc`: `v=DMARC1; p=reject; rua=mailto:dmarc@rawtype.net`
+- If RawType will send mail later, replace the SPF record with the provider-specific include/mechanisms and add provider DKIM records before keeping `p=reject`.
