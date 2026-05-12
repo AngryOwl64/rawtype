@@ -66,14 +66,14 @@ const footerContent: Record<TypingLanguage, FooterContent> = {
     bottomLine: "Open source, free to use, and built for fast daily typing practice."
   },
   de: {
-    description: "Open-Source-Tipptrainer mit schnellen Tests, klaren Uebungen und sauberen Sprachseiten.",
+    description: "Open-Source-Tipptrainer mit schnellen Tests, klaren Übungen und sauberen Sprachseiten.",
     sections: [
       {
         title: "Loslegen",
         links: [
           { href: "/de", label: "Start" },
           { href: "/de/tipptraining", label: "Tipptest" },
-          { href: "/de/tipptrainer", label: "Tippen ueben" },
+          { href: "/de/tipptrainer", label: "Tippen üben" },
           { href: "/de/tippgeschwindigkeit-test", label: "Speedtest" }
         ]
       },
@@ -98,7 +98,7 @@ const footerContent: Record<TypingLanguage, FooterContent> = {
     ],
     languageSectionTitle: "Sprache",
     alternateLanguageLabel: "English version",
-    bottomLine: "Kostenlos, open source und gemacht fuer kurze Sessions."
+    bottomLine: "Kostenlos, open source und gemacht für kurze Sessions."
   }
 };
 
@@ -253,9 +253,27 @@ export default function AppFooter({ language, pathname, alternateLanguagePath, o
           margin: "0 auto",
           padding: "0 24px 24px",
           color: "var(--muted)",
-          fontSize: "13px"
+          fontSize: "13px",
+          display: "flex",
+          alignItems: "center",
+          gap: "10px"
         }}
       >
+        <img
+          src="/rawtype-logo.png"
+          alt=""
+          width={18}
+          height={18}
+          style={{
+            display: "block",
+            width: "18px",
+            height: "18px",
+            objectFit: "contain",
+            borderRadius: "5px",
+            flexShrink: 0,
+            opacity: 0.9
+          }}
+        />
         {content.bottomLine}
       </div>
     </footer>
