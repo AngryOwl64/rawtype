@@ -1,20 +1,9 @@
+# Vibe coded Bullshit 
 # RawType
 
 RawType is a free single-player typing practice Plattform for improving WPM, CPM, accuracy, and consistency.
 
 Website: https://rawtype.net/
-
-## Features
-
-- Typing Classic for prose-like text, punctuation, capitalization, and sentence flow
-- Word Mode for random word typing drills
-- Custom Mode with configurable focus, casing, rhythm, symbols, and pinned words
-- Selectable word count and difficulty, plus No Mistake Mode for stricter accuracy practice
-- WPM, CPM, accuracy, progress, mistakes, duration, and completed-word metrics
-- Optional account features: saved runs, stats dashboard, streaks, daily activity, recurring mistake words, and public profiles
-- English and German typing practice
-- Theme, font (including Google Fonts import), keyboard, privacy, and animation preferences
-- Localized SEO landing pages generated at build time
 
 ## SEO Entry Points
 
